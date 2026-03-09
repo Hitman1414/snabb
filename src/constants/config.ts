@@ -2,21 +2,8 @@ import { Platform } from 'react-native';
 
 // API Configuration
 export const getApiUrl = () => {
-    if (!__DEV__) {
-        return 'https://your-production-api.com';
-    }
-
-    // Development URLs
-    if (Platform.OS === 'web') {
-        return 'http://localhost:8000';
-    } else if (Platform.OS === 'android') {
-        // Use LAN IP for physical device (works for emulator too if bridged, otherwise use 10.0.2.2)
-        return 'http://192.168.31.250:8000';
-    } else {
-        // iOS Simulator or Physical Device
-        // Using detected IP address
-        return 'http://192.168.31.250:8000';
-    }
+    // If you ever want to test locally again, change this back to your IP (http://192.168.31.250:8000)
+    return 'https://snabb-api.onrender.com';
 };
 
 export const getWsUrl = () => {
