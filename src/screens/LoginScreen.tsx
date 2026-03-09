@@ -1,0 +1,163 @@
+import React, { useState } from 'react';
+import {
+    View,
+    StyleSheet,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    TouchableOpacity,
+} from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { useAuth } from '../hooks/useAuth';
+import { Input, Typography, LoadingButton } from '../design-system/components';
+import { useTheme } from '../design-system/ThemeContext';
+import { spacing, elevation } from '../design-system/tokens';
+import { toastService } from '../services/toast.service';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
+
+const LoginScreen: React.FC<Props> = ({ navigation }) => {
+    const { login } = useAuth();
+    const { colors } = useTheme();
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async () => {
+        if (!username.trim()) {
+            toastService.error('Please enter your username');
+            return;
+        }
+
+        if (!password) {
+            toastService.error('Please enter your password');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await login({ username: username.trim(), password });
+            toastService.success('Welcome back!');
+        } catch (error: any) {
+            console.error('Login error:', error);
+            const errorMessage = error.response?.data?.detail ||
+                error.message ||
+                'Invalid credentials. Please try again.';
+            toastService.error(errorMessage);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <KeyboardAvoidingView
+            style={[styles.container, { backgroundColor: colors.background }]}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                <View style={[styles.hero, { backgroundColor: colors.primary }]}>
+                    <Typography variant="h1" style={styles.heroLogo}>⚡</Typography>
+                    <Typography variant="h1" weight="bold" style={{ color: colors.textInverse }}>
+                        Snabb
+                    </Typography>
+                    <Typography variant="body" style={{ color: colors.textInverse, opacity: 0.9 }}>
+                        Get help instantly, anywhere.
+                    </Typography>
+                </View>
+
+                <View style={[styles.formCard, { backgroundColor: colors.background }]}>
+                    <Typography variant="h3" weight="bold" style={styles.title}>
+                        Welcome Back
+                    </Typography>
+                    <Typography variant="bodySmall" color="secondary" style={styles.subtitle}>
+                        Enter your credentials to continue
+                    </Typography>
+                    <Input
+                        label="Username"
+                        value={username}
+                        onChangeText={setUsername}
+                        placeholder="Enter your username"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                    />
+
+                    <Input
+                        label="Password"
+                        value={password}
+                        onChangeText={setPassword}
+                        placeholder="Enter your password"
+                        secureTextEntry
+                        autoCapitalize="none"
+                    />
+
+                    <LoadingButton
+                        title="Login"
+                        onPress={handleLogin}
+                        loading={loading}
+                        fullWidth
+                        size="lg"
+                        style={styles.loginButton}
+                    />
+
+                    <View style={styles.footerStatus}>
+                        <Typography variant="bodySmall" color="secondary">
+                            Don't have an account?{' '}
+                        </Typography>
+                        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                            <Typography variant="bodySmall" weight="bold" color="primary">
+                                Sign Up
+                            </Typography>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+    },
+    hero: {
+        height: 300,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: spacing[12],
+    },
+    heroLogo: {
+        fontSize: 72,
+        marginBottom: spacing[2],
+    },
+    formCard: {
+        flex: 1,
+        marginTop: -spacing[8],
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        padding: spacing[8],
+        ...elevation.lg,
+    },
+    title: {
+        marginBottom: spacing[1],
+        marginTop: spacing[2],
+    },
+    subtitle: {
+        marginBottom: spacing[8],
+    },
+    loginButton: {
+        marginTop: spacing[4],
+        borderRadius: 16,
+    },
+    footerStatus: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: spacing[8],
+    },
+});
+
+export default LoginScreen;
