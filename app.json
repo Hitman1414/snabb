@@ -39,14 +39,10 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "kotlinVersion": "1.8.10"
-          }
-        }
-      ]
+      "expo-build-properties",
+      "expo-font",
+      "@sentry/react-native",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {
