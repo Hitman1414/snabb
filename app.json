@@ -1,48 +1,58 @@
 {
-    "expo": {
-        "name": "Snabb",
-        "slug": "snabb-mobile",
-        "version": "1.0.0",
-        "orientation": "portrait",
-        "icon": "./assets/icon.png",
-        "userInterfaceStyle": "automatic",
-        "jsEngine": "hermes",
-        "splash": {
-            "image": "./assets/splash-icon.png",
-            "resizeMode": "contain",
-            "backgroundColor": "#FF6B35"
-        },
-        "ios": {
-            "supportsTablet": true,
-            "bundleIdentifier": "com.snabb.mobile",
-            "buildNumber": "1",
-            "infoPlist": {
-                "NSCameraUsageDescription": "Snabb needs access to your camera to upload photos for your asks.",
-                "NSPhotoLibraryUsageDescription": "Snabb needs access to your photos to upload images for your asks.",
-                "NSLocationWhenInUseUsageDescription": "Snabb uses your location to show nearby services and filter asks by location.",
-                "UIBackgroundModes": []
-            },
-            "config": {
-                "usesNonExemptEncryption": false
-            }
-        },
-        "android": {
-            "adaptiveIcon": {
-                "foregroundImage": "./assets/adaptive-icon.png",
-                "backgroundColor": "#FF6B35"
-            },
-            "package": "com.snabb.mobile",
-            "edgeToEdgeEnabled": true,
-            "predictiveBackGestureEnabled": false
-        },
-        "web": {
-            "favicon": "./assets/favicon.png"
-        },
-        "extra": {
-            "eas": {
-                "projectId": "your-project-id"
-            }
-        },
-        "plugins": []
-    }
+  "expo": {
+    "name": "Snabb",
+    "slug": "snabb-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF6B35"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.snabb.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Snabb needs access to your camera to upload photos for your asks.",
+        "NSPhotoLibraryUsageDescription": "Snabb needs access to your photos to upload images for your asks.",
+        "NSLocationWhenInUseUsageDescription": "Snabb uses your location to show nearby services and filter asks by location.",
+        "UIBackgroundModes": []
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FF6B35"
+      },
+      "package": "com.snabb.mobile",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.8.10"
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "3b989354-a381-4a0e-b1c8-e23f8dd2d967"
+      }
+    },
+    "owner": "svc-expousage"
+  }
 }
