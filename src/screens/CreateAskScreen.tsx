@@ -57,11 +57,16 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
 
     const handleSubmit = async () => {
         try {
-            // Combine location with manual fields if provided
             let finalLocation = location;
             if (showManualAddress) {
-                const parts = [houseNo, area, landmark, location].filter(Boolean);
+                // Ensure we don't end up with an empty string if all fields are empty
+                const parts = [houseNo, area, landmark, location].filter(val => val && val.trim().length > 0);
                 finalLocation = parts.join(', ');
+            }
+            
+            if (!finalLocation || finalLocation.trim().length === 0) {
+                Alert.alert('Error', 'Please enter a location or use a manual address.');
+                return;
             }
 
             // Validate form data
@@ -83,18 +88,21 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
             Alert.alert('Success', 'Ask created successfully!', [
                 { text: 'OK', onPress: () => navigation.goBack() }
             ]);
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                Alert.alert('Validation Error', error.issues[0].message);
-            } else {
-                console.error('Failed to create ask:', error);
-                const serverError = (error as any)?.response?.data?.error?.message || (error as any)?.response?.data?.detail;
-                Alert.alert(
-                    'Error', 
-                    serverError ? `Failed to create ask: ${serverError}` : 'Failed to create ask. Please try again.'
-                );
+            } catch (error: any) {
+                // Handle both Zod errors and standard errors
+                if (error.name === 'ZodError' || error.issues) {
+                    const firstIssue = error.issues?.[0];
+                    Alert.alert('Validation Error', firstIssue ? `${firstIssue.path}: ${firstIssue.message}` : 'Please check all fields.');
+                } else {
+                    console.error('Failed to create ask:', error);
+                    const serverError = error?.response?.data?.error?.message || error?.response?.data?.detail;
+                    Alert.alert(
+                        'Error', 
+                        serverError ? `Server Error: ${serverError}` : 'Failed to create ask. Please check your internet or try again.'
+                    );
+                }
             }
-        } finally {
+        finally {
             setLoading(false);
         }
     };

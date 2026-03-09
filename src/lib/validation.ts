@@ -15,7 +15,7 @@ export const createAskSchema = z.object({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
 }).refine(data => {
-    if (data.budget_min && data.budget_max) {
+    if (data.budget_min !== undefined && data.budget_max !== undefined) {
         return data.budget_max >= data.budget_min;
     }
     return true;
