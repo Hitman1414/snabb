@@ -1,11 +1,11 @@
 import React from 'react';
 import { registerRootComponent } from 'expo';
-import * as Sentry from '@sentry/react-native';
-
-Sentry.init({
-  dsn: 'https://dummyPublicKey@o0.ingest.sentry.io/0',
-  tracesSampleRate: 1.0,
-});
+// import * as Sentry from '@sentry/react-native';
+// 
+// Sentry.init({
+//   dsn: 'https://dummyPublicKey@o0.ingest.sentry.io/0',
+//   tracesSampleRate: 1.0,
+// });
 import { QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
@@ -34,6 +34,6 @@ function App() {
     );
 }
 
-export default Sentry.wrap(App);
+export default App;
 
-registerRootComponent(Sentry.wrap(App));
+registerRootComponent(App);

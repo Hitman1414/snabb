@@ -41,7 +41,6 @@
     "plugins": [
       "expo-build-properties",
       "expo-font",
-      "@sentry/react-native",
       "expo-secure-store"
     ],
     "extra": {
