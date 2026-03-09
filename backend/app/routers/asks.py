@@ -63,10 +63,15 @@ def get_asks(
     if max_budget:
         query = query.filter(models.Ask.budget_max <= max_budget)
         
-    if lat is not None and lng is not None and radius_km:
-        lat_delta = radius_km / 111.0
+    if lat is not None and lng is not None:
+        radius = radius_km if radius_km is not None else 30.0
+        lat_delta = radius / 111.0
         import math
-        lng_delta = radius_km / (111.0 * math.cos(math.radians(lat))) if lat != 0 else radius_km / 111.0
+        # Prevent division by zero and handle edges
+        cos_lat = math.cos(math.radians(lat))
+        if abs(cos_lat) < 0.0001:
+            cos_lat = 0.0001
+        lng_delta = radius / (111.0 * cos_lat)
         
         query = query.filter(
             models.Ask.latitude >= lat - lat_delta,
@@ -74,6 +79,9 @@ def get_asks(
             models.Ask.longitude >= lng - lng_delta,
             models.Ask.longitude <= lng + lng_delta
         )
+    elif radius_km is not None and (lat is None or lng is None):
+        logger.warning(f"Proximity search requested with radius_km={radius_km} but missing coordinates (lat={lat}, lng={lng})")
+        # We don't crash, we just skip the proximity filter
     
     total = query.count()
     asks = query.order_by(models.Ask.created_at.desc()).offset(skip).limit(limit).all()
@@ -208,15 +216,23 @@ async def create_ask(
         user_id=current_user.id
     )
     
-    db.add(db_ask)
-    db.commit()
-    db.refresh(db_ask)
-    logger.info(f"Ask {db_ask.id} created successfully with {len(image_urls)} images.")
-    
-    # Trigger bot processing
-    background_tasks.add_task(process_new_ask_sync, db_ask.id)
-    
-    return db_ask
+    try:
+        db.add(db_ask)
+        db.commit()
+        db.refresh(db_ask)
+        logger.info(f"Ask {db_ask.id} created successfully with {len(image_urls)} images.")
+        
+        # Trigger bot processing
+        background_tasks.add_task(process_new_ask_sync, db_ask.id)
+        
+        return db_ask
+    except Exception as e:
+        logger.error(f"Failed to save ask to database: {e}", exc_info=True)
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error: {str(e)}"
+        )
 
 @router.put("/{ask_id}", response_model=schemas.Ask)
 def update_ask(

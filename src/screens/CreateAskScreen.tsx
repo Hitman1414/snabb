@@ -88,7 +88,11 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                 Alert.alert('Validation Error', error.issues[0].message);
             } else {
                 console.error('Failed to create ask:', error);
-                Alert.alert('Error', 'Failed to create ask. Please try again.');
+                const serverError = (error as any)?.response?.data?.error?.message || (error as any)?.response?.data?.detail;
+                Alert.alert(
+                    'Error', 
+                    serverError ? `Failed to create ask: ${serverError}` : 'Failed to create ask. Please try again.'
+                );
             }
         } finally {
             setLoading(false);

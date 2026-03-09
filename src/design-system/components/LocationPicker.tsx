@@ -115,11 +115,21 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             }
         } catch (error: any) {
             console.error('Location detection failed:', error);
-            Alert.alert(
-                'Location Error',
-                error.message || 'Failed to detect location. Please enter manually.',
-                [{ text: 'OK' }]
-            );
+            const errorMessage = error.message || '';
+            
+            if (errorMessage.includes('Location services are disabled')) {
+                Alert.alert(
+                    'Location Disabled',
+                    'Please enable location services in your device settings.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert(
+                    'Location Error',
+                    'Current location is unavailable. You can still enter your location manually using the fields below.',
+                    [{ text: 'OK' }]
+                );
+            }
         } finally {
             setLoading(false);
         }
