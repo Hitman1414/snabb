@@ -108,7 +108,7 @@ export const useCreateAsk = () => {
             formData.append('description', ask.description);
             formData.append('category', ask.category);
             formData.append('location', ask.location);
-            
+
             if (ask.budget_min !== undefined) formData.append('budget_min', ask.budget_min.toString());
             if (ask.budget_max !== undefined) formData.append('budget_max', ask.budget_max.toString());
             if (ask.latitude !== undefined) formData.append('latitude', ask.latitude.toString());
@@ -120,7 +120,7 @@ export const useCreateAsk = () => {
                         const filename = imageUri.split('/').pop() || `image_${index}.jpg`;
                         const match = /\.(\w+)$/.exec(filename);
                         const type = match ? `image/${match[1]}` : 'image/jpeg';
-                        
+
                         formData.append('images', {
                             uri: imageUri,
                             name: filename,
@@ -129,10 +129,16 @@ export const useCreateAsk = () => {
                     }
                 });
             }
-            
+
             data = formData;
 
-            const response = await apiClient.post<Ask>('/asks', data);
+            const response = await apiClient.post<Ask>('/asks', data, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Accept': 'application/json',
+                },
+                transformRequest: (data) => data, // This prevents Axios from stringifying FormData in React Native
+            });
             return response.data;
         },
         onSuccess: () => {
