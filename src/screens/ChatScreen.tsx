@@ -14,6 +14,9 @@ import { useAuth } from '../hooks/useAuth';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useChatSocket } from '../hooks/useChatSocket';
 import { Message } from '../types';
+import { messageSchema } from '../lib/validation';
+import { z } from 'zod';
+import { toastService } from '../services/toast.service';
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
 
@@ -161,16 +164,24 @@ export default function ChatScreen() {
     };
 
     const handleSend = async () => {
-        if (!message.trim()) return;
         try {
+            const validatedData = messageSchema.parse({
+                content: message.trim(),
+            });
+
             await sendMessageMutation.mutateAsync({
                 receiver_id: otherUserId,
-                content: message,
+                content: validatedData.content,
                 ask_id: askId,
             });
             setMessage('');
-        } catch (error) {
-            console.error('Failed to send message', error);
+        } catch (error: any) {
+            if (error instanceof z.ZodError) {
+                toastService.error(error.issues[0].message);
+            } else {
+                console.error('Failed to send message', error);
+                toastService.error('Failed to send message');
+            }
         }
     };
 

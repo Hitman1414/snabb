@@ -13,6 +13,8 @@ import { Input, Typography, LoadingButton } from '../design-system/components';
 import { useTheme } from '../design-system/ThemeContext';
 import { spacing } from '../design-system/tokens';
 import { toastService } from '../services/toast.service';
+import { registerSchema } from '../lib/validation';
+import { z } from 'zod';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -28,57 +30,15 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
 
     const handleRegister = async () => {
-        // Validate username
-        if (!username.trim()) {
-            toastService.error('Please enter a username');
-            return;
-        }
-
-        if (username.trim().length < 3) {
-            toastService.error('Username must be at least 3 characters long');
-            return;
-        }
-
-        // Validate email
-        if (!email.trim()) {
-            toastService.error('Please enter your email');
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email.trim())) {
-            toastService.error('Please enter a valid email address');
-            return;
-        }
-
-        // Validate password
-        if (!password) {
-            toastService.error('Please enter a password');
-            return;
-        }
-
-        if (password.length < 8) {
-            toastService.error('Password must be at least 8 characters long');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            toastService.error('Passwords do not match');
-            return;
-        }
-
-        // Validate phone number if provided
-        if (phoneNumber.trim()) {
-            const cleaned = phoneNumber.replace(/\D/g, '');
-            if (!/^[6-9]\d{9}$/.test(cleaned) && !/^91[6-9]\d{9}$/.test(cleaned)) {
-                toastService.error('Please enter a valid Indian phone number');
+        try {
+            // Check password match first (since it's not in the base schema)
+            if (password !== confirmPassword) {
+                toastService.error('Passwords do not match');
                 return;
             }
-        }
 
-        setLoading(true);
-        try {
-            await register({
+            // Validate form data
+            const validatedData = registerSchema.parse({
                 username: username.trim(),
                 email: email.trim(),
                 password,
@@ -86,14 +46,21 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 location: location.trim() || undefined,
             });
 
+            setLoading(true);
+            await register(validatedData);
+
             toastService.success('Account created successfully! Please login.');
             setTimeout(() => navigation.navigate('Login'), 1500);
         } catch (error: any) {
-            console.error('Registration error:', error);
-            const errorMessage = error.response?.data?.detail ||
-                error.message ||
-                'Unable to create account. Please try again.';
-            toastService.error(errorMessage);
+            if (error instanceof z.ZodError) {
+                toastService.error(error.issues[0].message);
+            } else {
+                console.error('Registration error:', error);
+                const errorMessage = error.response?.data?.detail ||
+                    error.message ||
+                    'Unable to create account. Please try again.';
+                toastService.error(errorMessage);
+            }
         } finally {
             setLoading(false);
         }

@@ -13,6 +13,9 @@ import { useCreateReview, useAskReviews } from '../hooks/useReviews';
 import { useToggleInterested } from '../hooks/useResponses';
 import { useMarkMessagesRead } from '../hooks/useMessages';
 import { getFullImageUrl } from '../constants/config';
+import { responseSchema, reviewSchema } from '../lib/validation';
+import { z } from 'zod';
+import { toastService } from '../services/toast.service';
 
 type AskDetailRouteProp = RouteProp<RootStackParamList, 'AskDetail'>;
 
@@ -68,40 +71,55 @@ export default function AskDetailScreen() {
     };
 
     const handleSubmitResponse = async () => {
-        if (!responseMessage.trim()) return;
-
         try {
-            await createResponseMutation.mutateAsync({
+            const validatedData = responseSchema.parse({
                 message: responseMessage,
                 bid_amount: bidAmount ? parseFloat(bidAmount) : undefined,
             });
+
+            await createResponseMutation.mutateAsync(validatedData);
             setResponseMessage('');
             setBidAmount('');
-        } catch (error) {
-            console.error('Failed to submit response', error);
+            toastService.success('Response submitted!');
+        } catch (error: any) {
+            if (error instanceof z.ZodError) {
+                toastService.error(error.issues[0].message);
+            } else {
+                console.error('Failed to submit response', error);
+                toastService.error('Failed to submit response');
+            }
         }
     };
 
     const handleSubmitReview = async () => {
-        if (rating === 0) return;
-
         if (!computedRevieweeId) {
-            console.error('Cannot determine who to review');
+            toastService.error('Cannot determine who to review');
             return;
         }
 
         try {
-            await createReviewMutation.mutateAsync({
-                ask_id: askId,
-                reviewee_id: computedRevieweeId,
+            const validatedData = reviewSchema.parse({
                 rating,
                 comment: reviewComment,
             });
+
+            await createReviewMutation.mutateAsync({
+                ask_id: askId,
+                reviewee_id: computedRevieweeId,
+                ...validatedData
+            });
+            
             setIsReviewing(false);
             setRating(0);
             setReviewComment('');
-        } catch (error) {
-            console.error('Failed to submit review', error);
+            toastService.success('Review submitted!');
+        } catch (error: any) {
+            if (error instanceof z.ZodError) {
+                toastService.error(error.issues[0].message);
+            } else {
+                console.error('Failed to submit review', error);
+                toastService.error('Failed to submit review');
+            }
         }
     };
 

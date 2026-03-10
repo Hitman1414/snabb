@@ -7,6 +7,9 @@ import { spacing, borderRadius } from '../tokens';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from './Input';
 import { useSendMessage } from '../../hooks/useMessages';
+import { messageSchema } from '../../lib/validation';
+import { z } from 'zod';
+import { toastService } from '../../services/toast.service';
 
 interface MessageModalProps {
     visible: boolean;
@@ -28,18 +31,26 @@ export const MessageModal: React.FC<MessageModalProps> = ({
     const sendMessageMutation = useSendMessage();
 
     const handleSend = async () => {
-        if (!message.trim()) return;
-
         try {
+            const validatedData = messageSchema.parse({
+                content: message.trim(),
+            });
+
             await sendMessageMutation.mutateAsync({
                 receiver_id: receiverId,
-                content: message,
+                content: validatedData.content,
                 ask_id: askId,
             });
             setMessage('');
             onClose();
-        } catch (error) {
-            console.error('Failed to send message', error);
+            toastService.success('Message sent');
+        } catch (error: any) {
+            if (error instanceof z.ZodError) {
+                toastService.error(error.issues[0].message);
+            } else {
+                console.error('Failed to send message', error);
+                toastService.error('Failed to send message');
+            }
         }
     };
 

@@ -14,6 +14,8 @@ import { Input, Typography, LoadingButton } from '../design-system/components';
 import { useTheme } from '../design-system/ThemeContext';
 import { spacing, elevation } from '../design-system/tokens';
 import { toastService } from '../services/toast.service';
+import { loginSchema } from '../lib/validation';
+import { z } from 'zod';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -25,26 +27,26 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
-        if (!username.trim()) {
-            toastService.error('Please enter your username');
-            return;
-        }
-
-        if (!password) {
-            toastService.error('Please enter your password');
-            return;
-        }
-
-        setLoading(true);
         try {
-            await login({ username: username.trim(), password });
+            // Validate form data
+            const validatedData = loginSchema.parse({
+                username: username.trim(),
+                password,
+            });
+
+            setLoading(true);
+            await login(validatedData);
             toastService.success('Welcome back!');
         } catch (error: any) {
-            console.error('Login error:', error);
-            const errorMessage = error.response?.data?.detail ||
-                error.message ||
-                'Invalid credentials. Please try again.';
-            toastService.error(errorMessage);
+            if (error instanceof z.ZodError) {
+                toastService.error(error.issues[0].message);
+            } else {
+                console.error('Login error:', error);
+                const errorMessage = error.response?.data?.detail ||
+                    error.message ||
+                    'Invalid credentials. Please try again.';
+                toastService.error(errorMessage);
+            }
         } finally {
             setLoading(false);
         }

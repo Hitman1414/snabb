@@ -30,8 +30,37 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
-    username: z.string().min(3, 'Username must be at least 3 characters'),
+    username: z.string()
+        .min(3, 'Username must be at least 3 characters')
+        .max(20, 'Username too long')
+        .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers and underscores'),
     email: z.string().email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    full_name: z.string().optional(),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    phone_number: z.string().optional().refine(val => {
+        if (!val) return true;
+        const cleaned = val.replace(/\D/g, '');
+        return cleaned.length === 10 || (cleaned.length === 12 && cleaned.startsWith('91'));
+    }, 'Invalid phone number (must be 10 digits)'),
+    location: z.string().optional(),
+});
+
+export const responseSchema = z.object({
+    message: z.string().min(5, 'Message must be at least 5 characters').max(500, 'Message too long'),
+    bid_amount: z.number().min(0, 'Bid cannot be negative').optional(),
+});
+
+export const reviewSchema = z.object({
+    rating: z.number().min(1, 'Rating is required').max(5, 'Invalid rating'),
+    comment: z.string().max(250, 'Comment too long').optional(),
+});
+
+export const messageSchema = z.object({
+    content: z.string().min(1, 'Message cannot be empty').max(1000, 'Message too long'),
+});
+
+export const profileUpdateSchema = z.object({
+    username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username too long').optional(),
+    email: z.string().email('Invalid email address').optional(),
+    phone_number: z.string().optional(),
+    location: z.string().optional(),
 });
