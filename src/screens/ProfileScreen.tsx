@@ -73,7 +73,12 @@ export default function ProfileScreen() {
                 });
             }
 
-            await apiClient.post('/users/me/avatar', formData);
+            await apiClient.post('/users/me/avatar', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+                transformRequest: (data) => data, // This prevents Axios from stringifying FormData in React Native 
+            });
 
             await refreshUser();
             Alert.alert('Success', 'Profile picture updated successfully');
@@ -120,7 +125,7 @@ export default function ProfileScreen() {
     }
 
     return (
-        <ScrollView 
+        <ScrollView
             style={[styles.container, { backgroundColor: colors.background }]}
             contentContainerStyle={{ paddingTop: insets.top }}
             showsVerticalScrollIndicator={false}
@@ -164,7 +169,7 @@ export default function ProfileScreen() {
                     {user.email}
                 </Typography>
 
-                <View key={`stats-${colorScheme}`} style={[styles.statsRow, { 
+                <View key={`stats-${colorScheme}`} style={[styles.statsRow, {
                     backgroundColor: colors.surfaceVariant,
                     borderColor: colors.border,
                 }]}>
@@ -186,8 +191,8 @@ export default function ProfileScreen() {
                     </View>
                     <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                     <TouchableOpacity style={styles.statBox} onPress={() => navigation.navigate('ProLanding')}>
-                         <Typography variant="h5" weight="bold" color="primary">PRO</Typography>
-                         <Typography variant="caption" color="tertiary">Status</Typography>
+                        <Typography variant="h5" weight="bold" color="primary">PRO</Typography>
+                        <Typography variant="caption" color="tertiary">Status</Typography>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -259,8 +264,8 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity 
-                    style={[styles.logoutButton, { borderColor: colors.error }]} 
+                <TouchableOpacity
+                    style={[styles.logoutButton, { borderColor: colors.error }]}
                     onPress={handleLogout}
                 >
                     <Ionicons name="log-out-outline" size={20} color={colors.error} />
