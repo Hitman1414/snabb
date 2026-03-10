@@ -2,7 +2,11 @@ import { Platform } from 'react-native';
 
 // API Configuration
 export const getApiUrl = () => {
-    // If you ever want to test locally again, change this back to your IP (http://192.168.31.250:8000)
+    if (__DEV__) {
+        // Local development IP for testing on physical devices/emulators
+        return 'http://192.168.31.250:8000';
+    }
+    // Production API
     return 'https://snabb-api.onrender.com';
 };
 
@@ -23,7 +27,7 @@ export const getFullImageUrl = (path: string | null | undefined, includeTimestam
     if (!path.startsWith('http://') && !path.startsWith('https://')) {
         url = `${getApiUrl()}${path}`;
     }
-    
+
     if (includeTimestamp) {
         const separator = url.includes('?') ? '&' : '?';
         return `${url}${separator}t=${new Date().getTime()}`;

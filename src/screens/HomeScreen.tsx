@@ -104,7 +104,7 @@ export default function HomeScreen() {
         <TouchableOpacity
             onPress={() => handleAskPress(item.id)}
             activeOpacity={0.8}
-            style={[styles.card, { 
+            style={[styles.card, {
                 backgroundColor: colors.surface,
                 borderColor: colors.border,
             }]}
@@ -112,10 +112,10 @@ export default function HomeScreen() {
             <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant }]}>
                 {/* Simulated category icon as placeholder for image */}
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons 
-                        name={(CATEGORY_ICONS[item.category] as any)?.name || 'document-text-outline'} 
-                        size={40} 
-                        color={(CATEGORY_ICONS[item.category] as any)?.color || colors.primary} 
+                    <Ionicons
+                        name={(CATEGORY_ICONS[item.category] as any)?.name || 'document-text-outline'}
+                        size={40}
+                        color={(CATEGORY_ICONS[item.category] as any)?.color || colors.primary}
                     />
                 </View>
             </View>
@@ -169,14 +169,14 @@ export default function HomeScreen() {
         <View style={{ backgroundColor: colors.background }}>
 
             {/* Promo Carousel */}
-            <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.carouselContainer}
                 snapToInterval={315}
                 decelerationRate="fast"
             >
-                <TouchableOpacity 
+                <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={() => navigation.navigate('CreateAsk')}
                 >
@@ -194,7 +194,7 @@ export default function HomeScreen() {
                     </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={() => navigation.navigate('ProLanding')}
                 >
@@ -212,9 +212,9 @@ export default function HomeScreen() {
                     </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                     activeOpacity={0.9}
-                    onPress={() => {}}
+                    onPress={() => { }}
                 >
                     <View style={[styles.promoCard, { backgroundColor: '#F5F3FF' }]}>
                         <View style={styles.promoContent}>
@@ -251,8 +251,8 @@ export default function HomeScreen() {
                                 style={styles.categoryItem}
                             >
                                 <View key={`${cat}-${colorScheme}`} style={[
-                                    styles.categoryIcon, 
-                                    { 
+                                    styles.categoryIcon,
+                                    {
                                         backgroundColor: colors.surfaceVariant,
                                         borderColor: colors.border,
                                     },
@@ -260,10 +260,10 @@ export default function HomeScreen() {
                                 ]}>
                                     <Ionicons name={(iconData as any).name} size={28} color={isSelected ? colors.primaryDark : iconData.color} />
                                 </View>
-                                <Typography 
-                                    variant="caption" 
-                                    weight={isSelected ? "bold" : "medium"} 
-                                    numberOfLines={2} 
+                                <Typography
+                                    variant="caption"
+                                    weight={isSelected ? "bold" : "medium"}
+                                    numberOfLines={2}
                                     align="center"
                                 >
                                     {cat}
@@ -286,7 +286,7 @@ export default function HomeScreen() {
 
             {/* Location Header - outside FlatList so it stays stable */}
             <View style={[styles.locationHeader, { backgroundColor: colors.background }]}>
-                <TouchableOpacity style={styles.locationLeft} onPress={() => {}}>
+                <TouchableOpacity style={styles.locationLeft} onPress={() => { }}>
                     <Ionicons name="location" size={24} color={colors.primary} />
                     <View style={styles.locationText}>
                         <Typography variant="bodySmall" weight="bold">
@@ -298,7 +298,7 @@ export default function HomeScreen() {
                     </View>
                 </TouchableOpacity>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3] }}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         onPress={() => navigation.navigate('Notifications')}
                         style={{ position: 'relative', padding: 4 }}
                     >
@@ -325,7 +325,7 @@ export default function HomeScreen() {
                         )}
                     </TouchableOpacity>
 
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         onPress={() => navigation.navigate('Main', { screen: 'Profile' } as any)}
                         activeOpacity={0.8}
                     >

@@ -41,7 +41,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
                 {title}
             </Typography>
 
-            {description && (
+            {!!description && (
                 <Typography
                     variant="body"
                     color="secondary"

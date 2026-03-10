@@ -42,7 +42,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
                 </Typography>
             </View>
 
-            {review.comment && (
+            {!!review.comment && (
                 <Typography variant="body" style={styles.comment}>
                     {review.comment}
                 </Typography>

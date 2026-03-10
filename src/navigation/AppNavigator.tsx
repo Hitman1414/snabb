@@ -11,22 +11,23 @@ import { OfflineBanner } from '../design-system/components';
 import { registerForPushNotificationsAsync, updatePushTokenOnServer } from '../services/notifications';
 
 // Screens
-import { 
-    LoginScreen, 
-    RegisterScreen, 
-    HomeScreen, 
-    CreateAskScreen, 
-    AskDetailScreen, 
-    MyAsksScreen, 
-    ProfileScreen, 
-    PrivacyPolicyScreen, 
-    TermsOfServiceScreen, 
-    InterestedAsksScreen, 
-    MessagesScreen, 
-    ChatScreen, 
+import {
+    LoginScreen,
+    RegisterScreen,
+    HomeScreen,
+    CreateAskScreen,
+    AskDetailScreen,
+    MyAsksScreen,
+    ProfileScreen,
+    PrivacyPolicyScreen,
+    TermsOfServiceScreen,
+    InterestedAsksScreen,
+    MessagesScreen,
+    ChatScreen,
     ProLandingScreen,
     NotificationsScreen,
-    TrackingScreen
+    TrackingScreen,
+    ProApplicationScreen
 } from '../screens';
 
 export type RootStackParamList = {
@@ -39,6 +40,7 @@ export type RootStackParamList = {
     PrivacyPolicy: undefined;
     TermsOfService: undefined;
     ProLanding: undefined;
+    ProApplication: undefined;
     Notifications: undefined;
     Tracking: { askId: number; helperId: number; askerLocation: { latitude: number; longitude: number }; initialHelperLocation?: { latitude: number; longitude: number } };
     Chat: { otherUserId: number; otherUserName: string; askId: number; askTitle: string };
@@ -173,6 +175,7 @@ export const AppNavigator = () => {
                             <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="CreateAsk" component={CreateAskScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="ProLanding" component={ProLandingScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="ProApplication" component={ProApplicationScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="Tracking" component={TrackingScreen} options={{ headerShown: false }} />
                         </>

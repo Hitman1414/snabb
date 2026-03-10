@@ -7,7 +7,7 @@
 export const colors = {
     light: {
         // Primary - Vibrant Orange (Matches Dark Mode's Coral/Orange aesthetic)
-        primary: '#F97316', 
+        primary: '#F97316',
         primaryDark: '#EA580C',
         primaryLight: '#FFEDD5',
 
@@ -128,10 +128,10 @@ export const spacing = {
 // Typography
 export const typography = {
     fontFamily: {
-        regular: 'System',
-        medium: 'System',
-        semibold: 'System',
-        bold: 'System',
+        regular: 'Inter-Regular',
+        medium: 'Inter-Medium',
+        semibold: 'Inter-SemiBold',
+        bold: 'Inter-Bold',
     },
     fontSize: {
         xs: 12,

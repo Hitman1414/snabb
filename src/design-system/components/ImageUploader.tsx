@@ -69,7 +69,7 @@ export const ImageUploader: React.FC<ImagePickerProps> = ({
                 )}
             </TouchableOpacity>
 
-            {image && (
+            {!!image && (
                 <TouchableOpacity
                     style={[styles.removeButton, { backgroundColor: colors.error }]}
                     onPress={() => {

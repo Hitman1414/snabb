@@ -150,7 +150,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
 
     return (
         <View style={styles.container}>
-            {label && (
+            {!!label && (
                 <View style={styles.labelContainer}>
                     <Typography variant="bodySmall" weight="medium">
                         {label}
@@ -204,7 +204,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
                 )}
             </ScrollView>
 
-            {error && (
+            {!!error && (
                 <Typography variant="caption" color="error" style={styles.error}>
                     {error}
                 </Typography>

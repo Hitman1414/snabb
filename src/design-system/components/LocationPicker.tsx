@@ -116,7 +116,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
         } catch (error: any) {
             console.error('Location detection failed:', error);
             const errorMessage = error.message || '';
-            
+
             if (errorMessage.includes('Location services are disabled')) {
                 Alert.alert(
                     'Location Disabled',
@@ -137,7 +137,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
 
     return (
         <View style={styles.container}>
-            {label && (
+            {!!label && (
                 <Typography variant="bodySmall" weight="medium" style={styles.label}>
                     {label}
                 </Typography>

@@ -77,6 +77,7 @@ def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
     logger.info(f"User {current_user.id} fetching profile")
     return current_user
 
+@router.patch("/me", response_model=schemas.User)
 @router.put("/me", response_model=schemas.User)
 def update_user(
     user_update: schemas.UserUpdate,
@@ -84,10 +85,10 @@ def update_user(
     db: Session = Depends(get_db)
 ):
     logger.info(f"User {current_user.id} updating profile")
-    if user_update.phone_number is not None:
-        current_user.phone_number = user_update.phone_number
-    if user_update.location is not None:
-        current_user.location = user_update.location
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
     
     db.commit()
     db.refresh(current_user)

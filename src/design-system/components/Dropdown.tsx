@@ -66,7 +66,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
     return (
         <View style={styles.container}>
-            {label && (
+            {!!label && (
                 <Typography variant="bodySmall" weight="medium" style={styles.label}>
                     {label}
                 </Typography>
@@ -99,7 +99,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 />
             </TouchableOpacity>
 
-            {error && (
+            {!!error && (
                 <Typography variant="caption" color="error" style={styles.error}>
                     {error}
                 </Typography>
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         paddingVertical: spacing[2],
-        fontSize: fontSize.md,
+        fontSize: fontSize.base,
     },
     optionsList: {
         maxHeight: 400,

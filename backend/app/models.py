@@ -17,6 +17,17 @@ class User(Base):
     bot_role = Column(String, nullable=True)  # e.g., 'server', 'matchmaker', 'support'
     bot_prompt = Column(String, nullable=True)  # System prompt for the bot
     expo_push_token = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
+    
+    # Pro Features
+    is_pro = Column(Boolean, default=False)
+    pro_category = Column(String, nullable=True)
+    pro_bio = Column(String, nullable=True)
+    pro_verified = Column(Boolean, default=False)
+    pro_rating = Column(Float, default=0.0)
+    pro_completed_tasks = Column(Integer, default=0)
+    
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     asks = relationship("Ask", foreign_keys="Ask.user_id", back_populates="user")

@@ -8,10 +8,18 @@ class UserBase(BaseModel):
     email: EmailStr
     phone_number: Optional[str] = None
     location: Optional[str] = None
-    is_bot: bool = False
+    is_bot: Optional[bool] = False
     bot_role: Optional[str] = None
     bot_prompt: Optional[str] = None
     expo_push_token: Optional[str] = None
+    
+    # Pro Fields
+    is_pro: Optional[bool] = False
+    pro_category: Optional[str] = None
+    pro_bio: Optional[str] = None
+    pro_verified: Optional[bool] = False
+    pro_rating: Optional[float] = 0.0
+    pro_completed_tasks: Optional[int] = 0
 
 class UserCreate(UserBase):
     password: str
@@ -23,12 +31,18 @@ class UserUpdate(BaseModel):
     bot_role: Optional[str] = None
     bot_prompt: Optional[str] = None
     expo_push_token: Optional[str] = None
+    
+    # Pro Status Update (for application)
+    is_pro: Optional[bool] = None
+    pro_category: Optional[str] = None
+    pro_bio: Optional[str] = None
 
 class User(UserBase):
     id: int
     avatar_url: Optional[str] = None
-    created_at: datetime
-    is_active: bool = True
+    created_at: Optional[datetime] = None
+    is_active: Optional[bool] = True
+    is_admin: Optional[bool] = False
     model_config = ConfigDict(from_attributes=True)
 
 class BotCreate(UserBase):

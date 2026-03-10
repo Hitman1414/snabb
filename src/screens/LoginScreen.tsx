@@ -7,6 +7,7 @@ import {
     ScrollView,
     TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../hooks/useAuth';
@@ -59,7 +60,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         >
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={[styles.hero, { backgroundColor: colors.primary }]}>
-                    <Typography variant="h1" style={styles.heroLogo}>⚡</Typography>
+                    <Ionicons name="flash" size={80} color="#FFD700" style={{ marginBottom: spacing[2] }} />
                     <Typography variant="h1" weight="bold" style={{ color: colors.textInverse }}>
                         Snabb
                     </Typography>
@@ -132,7 +133,6 @@ const styles = StyleSheet.create({
         paddingTop: spacing[12],
     },
     heroLogo: {
-        fontSize: 72,
         marginBottom: spacing[2],
     },
     formCard: {

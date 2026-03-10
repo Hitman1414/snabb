@@ -7,6 +7,14 @@ export interface User {
     avatar_url?: string;
     created_at: string;
     is_active: boolean;
+    is_admin: boolean;
+    // Pro Fields
+    is_pro: boolean;
+    pro_category?: string;
+    pro_bio?: string;
+    pro_verified: boolean;
+    pro_rating: number;
+    pro_completed_tasks: number;
 }
 
 export interface Ask {

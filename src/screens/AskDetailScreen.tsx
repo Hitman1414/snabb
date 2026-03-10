@@ -108,7 +108,7 @@ export default function AskDetailScreen() {
                 reviewee_id: computedRevieweeId,
                 ...validatedData
             });
-            
+
             setIsReviewing(false);
             setRating(0);
             setReviewComment('');
@@ -212,8 +212,8 @@ export default function AskDetailScreen() {
                             size="sm"
                         />
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                           <Ionicons name="time-outline" size={14} color={colors.textTertiary} />
-                           <Typography variant="caption" color="tertiary" style={{ marginLeft: 4 }}>
+                            <Ionicons name="time-outline" size={14} color={colors.textTertiary} />
+                            <Typography variant="caption" color="tertiary" style={{ marginLeft: 4 }}>
                                 {new Date(ask.created_at).toLocaleDateString()}
                             </Typography>
                         </View>
@@ -225,11 +225,11 @@ export default function AskDetailScreen() {
 
                     <View style={styles.categoryRow}>
                         <View style={[styles.categoryPill, { backgroundColor: colors.infoLight + '30' }]}>
-                             <Typography variant="caption" weight="bold" style={{ color: colors.info }}>{ask.category}</Typography>
+                            <Typography variant="caption" weight="bold" style={{ color: colors.info }}>{ask.category}</Typography>
                         </View>
                         <View style={styles.locationMeta}>
-                           <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-                           <Typography variant="bodySmall" color="secondary" style={{ marginLeft: 4 }}>
+                            <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                            <Typography variant="bodySmall" color="secondary" style={{ marginLeft: 4 }}>
                                 {ask.location}
                             </Typography>
                         </View>
@@ -242,7 +242,7 @@ export default function AskDetailScreen() {
                     {ask.images && ask.images.length > 0 && (
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: spacing[3] }}>
                             {ask.images.map((imgUrl, index) => (
-                                <Image 
+                                <Image
                                     key={index}
                                     source={{ uri: getFullImageUrl(imgUrl) as string }}
                                     style={{
@@ -257,7 +257,7 @@ export default function AskDetailScreen() {
                         </ScrollView>
                     )}
 
-                    {ask.budget_min && ask.budget_max && (
+                    {(ask.budget_min !== undefined && ask.budget_max !== undefined) && (
                         <View style={[styles.budgetModern, { backgroundColor: colors.primaryLight + '15' }]}>
                             <View>
                                 <Typography variant="caption" color="secondary" weight="medium">Proposed Budget</Typography>
@@ -291,9 +291,9 @@ export default function AskDetailScreen() {
                                 onPress={() => navigation.navigate('Tracking', {
                                     askId: ask.id,
                                     helperId: ask.server_id,
-                                    askerLocation: { 
-                                        latitude: ask.latitude || 28.4595, 
-                                        longitude: ask.longitude || 77.0266 
+                                    askerLocation: {
+                                        latitude: ask.latitude || 28.4595,
+                                        longitude: ask.longitude || 77.0266
                                     }
                                 } as any)}
                             />
@@ -321,8 +321,8 @@ export default function AskDetailScreen() {
                                 <View style={styles.responseUser}>
                                     <View style={[styles.avatarPlaceholder, { backgroundColor: colors.surfaceVariant, overflow: 'hidden' }]}>
                                         {response.user?.avatar_url ? (
-                                            <Image 
-                                                source={{ uri: getFullImageUrl(response.user.avatar_url) as string }} 
+                                            <Image
+                                                source={{ uri: getFullImageUrl(response.user.avatar_url) as string }}
                                                 style={{ width: '100%', height: '100%' }}
                                             />
                                         ) : (
@@ -349,7 +349,7 @@ export default function AskDetailScreen() {
                                 {response.message}
                             </Typography>
 
-                            {response.bid_amount && (
+                            {response.bid_amount !== undefined && response.bid_amount !== null && (
                                 <View style={[styles.bidContainer, { backgroundColor: colors.surfaceVariant }]}>
                                     <Typography variant="caption" color="secondary">Bid Amount:</Typography>
                                     <Typography variant="body" weight="bold" color="primary">

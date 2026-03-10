@@ -9,7 +9,7 @@ import { spacing, borderRadius, colors as themeColors } from '../design-system/t
 
 export default function ProLandingScreen() {
     const { colors, colorScheme } = useTheme();
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
 
     const benefits = [
         {
@@ -37,8 +37,8 @@ export default function ProLandingScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Header Image/Banner */}
                 <View style={[styles.banner, { backgroundColor: colorScheme === 'dark' ? colors.surfaceVariant : '#ECFDF5' }]}>
-                    <TouchableOpacity 
-                        style={[styles.backButton, { backgroundColor: colors.surface }]} 
+                    <TouchableOpacity
+                        style={[styles.backButton, { backgroundColor: colors.surface }]}
                         onPress={() => navigation.goBack()}
                     >
                         <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -73,9 +73,9 @@ export default function ProLandingScreen() {
                     ))}
 
                     <View style={styles.ctaContainer}>
-                        <LoadingButton 
-                            title="Apply Now" 
-                            onPress={() => {}} 
+                        <LoadingButton
+                            title="Apply Now"
+                            onPress={() => navigation.navigate('ProApplication' as any)}
                             style={styles.button}
                         />
                         <Typography variant="caption" color="tertiary" align="center" style={{ marginTop: spacing[4] }}>

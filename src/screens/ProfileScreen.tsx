@@ -3,8 +3,9 @@
  * Displays user profile information and stats with theme support
  */
 import React from 'react';
-import { View, ScrollView, StyleSheet, Alert, Switch, Image, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, Switch, Image, TouchableOpacity, Platform, ActivityIndicator, Linking } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
+import { storageService } from '../services/storage';
 import { useTheme } from '../design-system/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -177,9 +178,9 @@ export default function ProfileScreen() {
                         <Typography variant="h5" weight="bold">
                             {ratingData?.average_rating?.toFixed(1) || '0.0'}
                         </Typography>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
                             <Ionicons name="star" size={12} color="#F7C301" />
-                            <Typography variant="caption" color="tertiary" style={{ marginLeft: 2 }}>Rating</Typography>
+                            <Typography variant="caption" color="tertiary" style={{ marginLeft: 2 }} align="center">Rating</Typography>
                         </View>
                     </View>
                     <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
@@ -187,17 +188,43 @@ export default function ProfileScreen() {
                         <Typography variant="h5" weight="bold">
                             {ratingData?.review_count || 0}
                         </Typography>
-                        <Typography variant="caption" color="tertiary">Reviews</Typography>
+                        <Typography variant="caption" color="tertiary" align="center">Reviews</Typography>
                     </View>
                     <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-                    <TouchableOpacity style={styles.statBox} onPress={() => navigation.navigate('ProLanding')}>
-                        <Typography variant="h5" weight="bold" color="primary">PRO</Typography>
-                        <Typography variant="caption" color="tertiary">Status</Typography>
+                    <TouchableOpacity
+                        style={styles.statBox}
+                        onPress={() => navigation.navigate(user.is_pro ? 'Main' : 'ProLanding')}
+                    >
+                        {user.is_pro ? (
+                            <Badge label="PRO" variant="success" size="sm" style={{ alignSelf: 'center', marginBottom: 2 }} />
+                        ) : (
+                            <Typography variant="h5" weight="bold" color="primary" align="center">JOIN</Typography>
+                        )}
+                        <Typography variant="caption" color="tertiary" align="center">Status</Typography>
                     </TouchableOpacity>
                 </View>
             </View>
 
             <View style={styles.content}>
+                {/* Pro CTA Banner */}
+                {!user.is_pro && (
+                    <TouchableOpacity
+                        style={[styles.proBanner, { backgroundColor: colors.primary }]}
+                        onPress={() => navigation.navigate('ProLanding')}
+                        activeOpacity={0.9}
+                    >
+                        <View style={styles.proBannerContent}>
+                            <View style={styles.proBannerText}>
+                                <Typography variant="h5" weight="bold" color="inverse">Earn Money with Snabb</Typography>
+                                <Typography variant="caption" color="inverse" style={{ opacity: 0.9 }}>
+                                    Join Snabb Pro and start getting paid for your skills.
+                                </Typography>
+                            </View>
+                            <Ionicons name="arrow-forward-circle" size={40} color="white" />
+                        </View>
+                    </TouchableOpacity>
+                )}
+
                 <View style={styles.sectionHeader}>
                     <Typography variant="h6" weight="bold">Experience Settings</Typography>
                 </View>
@@ -263,6 +290,40 @@ export default function ProfileScreen() {
                         <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
                     </TouchableOpacity>
                 </View>
+
+                {user.is_admin && (
+                    <>
+                        <View style={styles.sectionHeader}>
+                            <Typography variant="h6" weight="bold">Administrative</Typography>
+                        </View>
+                        <View style={[styles.settingsContainer, { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1.5, ...elevation.sm }]}>
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={async () => {
+                                    try {
+                                        const token = await storageService.getItem('access_token');
+                                        const url = `${getApiUrl()}/admin/dashboard?token=${token}`;
+                                        await Linking.openURL(url);
+                                    } catch (error) {
+                                        console.error('Failed to open admin dashboard:', error);
+                                        Alert.alert('Error', 'Could not open Admin Dashboard. Please ensure you have a browser installed.');
+                                    }
+                                }}
+                            >
+                                <View style={styles.menuItemLeft}>
+                                    <View style={[styles.iconBox, { backgroundColor: colors.primary + '20' }]}>
+                                        <Ionicons name="speedometer-outline" size={20} color={colors.primary} />
+                                    </View>
+                                    <View>
+                                        <Typography variant="body" weight="bold">Admin Control Center</Typography>
+                                        <Typography variant="caption" color="tertiary">Real-time API & App Metrics</Typography>
+                                    </View>
+                                </View>
+                                <Ionicons name="open-outline" size={20} color={colors.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    </>
+                )}
 
                 <TouchableOpacity
                     style={[styles.logoutButton, { borderColor: colors.error }]}
@@ -404,5 +465,20 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
         borderRadius: 20,
         borderStyle: 'dashed',
+    },
+    proBanner: {
+        marginTop: spacing[4],
+        padding: spacing[5],
+        borderRadius: 24,
+        ...elevation.md,
+    },
+    proBannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    proBannerText: {
+        flex: 1,
+        marginRight: spacing[4],
     },
 });

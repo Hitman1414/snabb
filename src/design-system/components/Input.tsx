@@ -33,7 +33,7 @@ export const Input: React.FC<InputProps> = ({
 
     return (
         <View style={[styles.container, containerStyle]}>
-            {label && (
+            {!!label && (
                 <Typography variant="bodySmall" weight="medium" style={styles.label}>
                     {label}
                 </Typography>
@@ -55,7 +55,7 @@ export const Input: React.FC<InputProps> = ({
                 />
                 {rightIcon && <View style={styles.iconRight}>{rightIcon}</View>}
             </View>
-            {error && (
+            {!!error && (
                 <Typography variant="caption" color="error" style={styles.errorText}>
                     {error}
                 </Typography>

@@ -10,6 +10,7 @@ export { default as InterestedAsksScreen } from './InterestedAsksScreen';
 export { default as MessagesScreen } from './MessagesScreen';
 export { default as ChatScreen } from './ChatScreen';
 export { default as ProLandingScreen } from './ProLandingScreen';
+export { default as ProApplicationScreen } from './ProApplicationScreen';
 export { default as PrivacyPolicyScreen } from './PrivacyPolicyScreen';
 export { default as TrackingScreen } from './TrackingScreen';
 export { default as TermsOfServiceScreen } from './TermsOfServiceScreen';

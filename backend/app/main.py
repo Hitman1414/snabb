@@ -13,6 +13,7 @@ from .middleware import (
     api_error_handler,
     APIError,
     RateLimitMiddleware,
+    MonitoringMiddleware,
 )
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -89,6 +90,9 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # Add rate limiting (60 requests per minute per IP)
 if settings.RATE_LIMIT_ENABLED:
     app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.RATE_LIMIT_PER_MINUTE)
+
+# Add monitoring middleware
+app.add_middleware(MonitoringMiddleware)
 
 # Register exception handlers
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)

@@ -46,3 +46,19 @@ def update_push_token(
     current_user.expo_push_token = token_data.token
     db.commit()
     return {"message": "Push token updated successfully"}
+
+@router.patch("/me", response_model=schemas.User)
+def update_profile(
+    user_update: schemas.UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Update current user's profile information"""
+    update_data = user_update.model_dump(exclude_unset=True)
+    
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
