@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-import uuid
 
 from app.main import app
 from app.database import Base, get_db
@@ -117,13 +116,13 @@ def test_create_ask_and_geo_filter(user1_data):
 
     # Filter Asks via GET /asks with Geo
     # This should match (radius 30km around NY is inclusive of 40.7128, -74.0060)
-    resp_geo = client.get(f"/asks/?lat=40.7128&lng=-74.0060&radius_km=10")
+    resp_geo = client.get("/asks/?lat=40.7128&lng=-74.0060&radius_km=10")
     assert resp_geo.status_code == 200
     assert len(resp_geo.json()["items"]) > 0
     assert resp_geo.json()["items"][0]["id"] == ask_id
     
     # Ask 100km away should NOT match
-    resp_geo_far = client.get(f"/asks/?lat=41.7128&lng=-74.0060&radius_km=10")
+    resp_geo_far = client.get("/asks/?lat=41.7128&lng=-74.0060&radius_km=10")
     assert resp_geo_far.status_code == 200
     assert len(resp_geo_far.json()["items"]) == 0
 

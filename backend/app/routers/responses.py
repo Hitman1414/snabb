@@ -6,8 +6,6 @@ from fastapi import BackgroundTasks
 from .. import models, schemas, auth
 from ..database import get_db
 from ..config import settings
-from ..cache import cache_service
-from ..push_service import send_push_message
 from ..notification_service import create_notification
 
 logger = logging.getLogger(__name__)

@@ -3,8 +3,7 @@ Cache Service
 Redis-based caching with graceful fallback
 """
 import logging
-from typing import Optional, Any
-from functools import wraps
+from typing import Optional
 from .config import settings
 
 logger = logging.getLogger(__name__)

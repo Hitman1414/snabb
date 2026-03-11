@@ -27,7 +27,6 @@ def get_dashboard(
 
     total_asks = db.query(models.Ask).count()
     active_users = db.query(models.User).count()
-    total_responses = db.query(models.Response).count()
     
     recent_asks = db.query(models.Ask).order_by(models.Ask.created_at.desc()).limit(8).all()
     

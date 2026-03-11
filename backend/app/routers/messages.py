@@ -10,12 +10,10 @@ from ..database import get_db
 from ..auth import get_current_user
 from ..bot_service import process_support_message_sync
 from ..websocket_manager import manager
-from ..push_service import send_push_message
 from ..notification_service import create_notification
 from fastapi import BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 import logging
-import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +132,7 @@ def mark_messages_read(
     unread_messages = db.query(models.Message).filter(
         models.Message.ask_id == ask_id,
         models.Message.receiver_id == current_user.id,
-        models.Message.is_read == False
+        ~models.Message.is_read
     ).all()
 
     for msg in unread_messages:

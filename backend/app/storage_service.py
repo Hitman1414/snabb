@@ -18,7 +18,6 @@ class StorageService:
         elif self.provider == "s3":
             try:
                 import boto3
-                from botocore.exceptions import NoCredentialsError
                 self.s3_client = boto3.client(
                     's3',
                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,

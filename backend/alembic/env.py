@@ -17,7 +17,6 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from app.database import Base
-from app import models  # Ensure all models are loaded
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -57,7 +56,6 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    import os
     from app.config import settings
 
     configuration = config.get_section(config.config_ini_section)

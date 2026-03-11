@@ -152,7 +152,7 @@ def get_interested_asks(
     # We use a subquery to get unique ask IDs efficiently
     interested_ask_ids = db.query(models.Response.ask_id).filter(
         models.Response.user_id == current_user.id,
-        models.Response.is_interested == True
+        models.Response.is_interested
     ).distinct().subquery()
     
     # Fetch the asks with pagination
@@ -197,7 +197,6 @@ async def create_ask(
         for image in images:
             if image and image.filename:
                 # Use original filename for extension check
-                extension = image.filename.split(".")[-1] if "." in image.filename else "jpg"
                 url = storage.upload_file(image.file, image.filename, image.content_type)
                 if url:
                     image_urls.append(url)

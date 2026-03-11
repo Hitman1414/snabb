@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas, auth
@@ -43,7 +43,7 @@ def mark_all_notifications_read(
     """Mark all notifications as read for current user"""
     db.query(models.Notification).filter(
         models.Notification.user_id == current_user.id,
-        models.Notification.is_read == False
+        ~models.Notification.is_read
     ).update({"is_read": True})
     
     db.commit()

@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #F97316;
+  --primary-dark: #EA580C;
+  --primary-light: #FFEDD5;
+  --secondary: #3B82F6;
+  --secondary-dark: #2563EB;
+  --secondary-light: #DBEAFE;
+
+  --background: #ffffff;
+  --background-secondary: #F8FAFC;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-variant: #F1F5F9;
+
+  --foreground: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --text-inverse: #ffffff;
+
+  --success: #1AB64F;
+  --error: #FF3B30;
+  --warning: #FF9500;
+  --info: #007AFF;
+  
+  --border: #E8EBF0;
+  --border-light: #F3F5F7;
+  --divider: #EAEEF2;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #FF8A5C;
+    --primary-dark: #FF6B35;
+    --primary-light: #FFA07A;
+    --secondary: #1A6BA8;
+    --secondary-dark: #004E89;
+    --secondary-light: #3B8DC9;
+
+    --background: #0F172A;
+    --background-secondary: #1E293B;
+    --surface: #1E293B;
+    --surface-elevated: #334155;
+    --surface-variant: #334155;
+
+    --foreground: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-tertiary: #64748B;
+    --text-inverse: #0F172A;
+
+    --success: #34D399;
+    --error: #F87171;
+    --warning: #FBBF24;
+    --info: #60A5FA;
+    
+    --border: #334155;
+    --border-light: #475569;
+    --divider: #334155;
+  }
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-light: var(--primary-light);
+  --color-secondary: var(--secondary);
+  --color-secondary-dark: var(--secondary-dark);
+  --color-secondary-light: var(--secondary-light);
+  
+  --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-variant: var(--surface-variant);
+  
+  --color-foreground: var(--foreground);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-inverse: var(--text-inverse);
+  
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  
+  --color-border: var(--border);
+  --color-border-light: var(--border-light);
+  --color-divider: var(--divider);
+  
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

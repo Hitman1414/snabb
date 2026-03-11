@@ -1,6 +1,11 @@
 import os
+import asyncio
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+
+from . import models
+from .database import SessionLocal
 
 load_dotenv()
 
@@ -51,11 +56,7 @@ async def analyze_match(ask_description: str, user_profile: str) -> float:
         print(f"Error generating match score: {e}")
         return 0.0
 
-import asyncio
-from sqlalchemy.orm import Session
-from . import models
 
-from .database import SessionLocal
 
 def process_new_ask_sync(ask_id: int):
     """
@@ -79,7 +80,7 @@ async def process_new_ask(ask_id: int, db: Session):
             
         # Get all server bots
         bots = db.query(models.User).filter(
-            models.User.is_bot == True, 
+            models.User.is_bot, 
             models.User.bot_role == 'server'
         ).all()
         
@@ -106,14 +107,14 @@ async def process_new_ask(ask_id: int, db: Session):
             
         # Get all matchmaker bots
         matchmakers = db.query(models.User).filter(
-            models.User.is_bot == True, 
+            models.User.is_bot, 
             models.User.bot_role == 'matchmaker'
         ).all()
         
         for mm_bot in matchmakers:
             # Find human users in the same location
             users_in_area = db.query(models.User).filter(
-                models.User.is_bot == False,
+                ~models.User.is_bot,
                 models.User.location == ask.location,
                 models.User.id != ask.user_id
             ).all()

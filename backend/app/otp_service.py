@@ -25,9 +25,9 @@ def send_otp(identifier: str) -> bool:
     }
     
     # Mock sending
-    logger.info(f"========== OTP MOCK ==========")
+    logger.info("========== OTP MOCK ==========")
     logger.info(f"Sending OTP {code} to {identifier}")
-    logger.info(f"==============================")
+    logger.info("==============================")
     
     return True
 

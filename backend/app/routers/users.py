@@ -4,7 +4,6 @@ from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
 from ..storage_service import storage
-import os
 import uuid
 
 router = APIRouter(prefix="/users", tags=["users"])

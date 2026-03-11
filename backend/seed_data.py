@@ -1,5 +1,3 @@
-import sys
-from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app import models
 from app.auth import get_password_hash
