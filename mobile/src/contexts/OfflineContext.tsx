@@ -22,8 +22,9 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [syncInProgress, setSyncInProgress] = useState(false);
 
     // Update queue size
-    const updateQueueSize = useCallback(() => {
-        setQueueSize(offlineQueueService.getQueueSize());
+    const updateQueueSize = useCallback(async () => {
+        const size = await offlineQueueService.getQueueSize();
+        setQueueSize(size);
     }, []);
 
     // Sync queued actions
@@ -31,7 +32,7 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
         if (!isConnected || syncInProgress) return;
 
         setSyncInProgress(true);
-        const queue = offlineQueueService.getQueue();
+        const queue = await offlineQueueService.getQueue();
 
         for (const action of queue) {
             try {

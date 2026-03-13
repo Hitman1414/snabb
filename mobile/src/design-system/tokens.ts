@@ -54,6 +54,11 @@ export const colors = {
         accentGreen: '#34C759',
         accentPink: '#FF2D55',
         accentPurple: '#AF52DE',
+
+        // Category-specific
+        foodRating: '#F59E0B',
+        discount: '#EF4444',
+        delivery: '#10B981',
     },
 
     dark: {
@@ -101,17 +106,24 @@ export const colors = {
         link: '#60A5FA',
         linkHover: '#93C5FD',
 
-        // Food-specific
+        // Category-specific
         foodRating: '#FBBF24',
         discount: '#EF4444',
         delivery: '#10B981',
+
+        // Premium Details
+        accentGreen: '#34D399',
+        accentPink: '#FB7185',
+        accentPurple: '#C084FC',
     },
 };
 
 // Spacing scale (4px base)
-export const spacing = {
+export const spacing: Record<number, number> = {
     0: 0,
+    0.5: 2,
     1: 4,
+    1.5: 6,
     2: 8,
     3: 12,
     4: 16,

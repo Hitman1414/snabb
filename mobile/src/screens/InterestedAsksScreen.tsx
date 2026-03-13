@@ -2,6 +2,7 @@ import React from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../design-system/ThemeContext';
 import { Typography, SkeletonGroup, EmptyState, Badge } from '../design-system/components';
@@ -10,9 +11,14 @@ import { useInterestedAsks } from '../hooks/useAsks';
 import { Ask } from '../types';
 import { CATEGORY_ICONS } from '../constants/categories';
 
+type RootStackParamList = {
+    AskDetail: { askId: number };
+    [key: string]: any;
+};
+
 export default function InterestedAsksScreen() {
     const { colors } = useTheme();
-    const navigation = useNavigation();
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const insets = useSafeAreaInsets();
     
     const {

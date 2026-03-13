@@ -282,28 +282,59 @@ def get_dashboard(
     </html>
     """
     return HTMLResponse(content=html_content)
-    return HTMLResponse(content=html_content)
 
 @router.get("/stats")
-def get_stats(db: Session = Depends(get_db)):
-    """API endpoint for stats with monitoring details"""
+def get_stats(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """API endpoint for stats with monitoring details and platform analysis"""
+    current_user = auth.get_current_user(token, db)
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Not an admin")
+
+    import json
+    from datetime import datetime
     from ..cache import cache_service
+    from .. import models
     
     db_stats = {
         "total_asks": db.query(models.Ask).count(),
         "total_users": db.query(models.User).count(),
-        "total_responses": db.query(models.Response).count()
+        "total_responses": db.query(models.Response).count(),
+        "unassigned_asks": db.query(models.Ask).filter(models.Ask.status == "open").count()
     }
     
-    api_stats = {}
+    api_stats = {
+        "total_requests": 0,
+        "status_codes": {},
+        "avg_latency_ms": 0,
+        "platforms": {"browser": 0, "mobile": 0},
+        "top_endpoints": [],
+        "recent_traffic": []
+    }
+
     if cache_service.enabled:
-        api_stats = {
-            "total_requests": int(cache_service.redis_client.get("stats:total_requests") or 0),
-            "status_codes": cache_service.redis_client.hgetall("stats:status_codes"),
-            "avg_latency_ms": 0
-        }
+        api_stats["total_requests"] = int(cache_service.redis_client.get("stats:total_requests") or 0)
+        api_stats["status_codes"] = cache_service.redis_client.hgetall("stats:status_codes")
+        api_stats["platforms"] = cache_service.redis_client.hgetall("stats:platforms") or {"browser": 0, "mobile": 0}
+        
+        # Responses times
         resp_times = cache_service.redis_client.lrange("stats:response_times", 0, 99)
         if resp_times:
              api_stats["avg_latency_ms"] = round((sum([float(t) for t in resp_times]) / len(resp_times)) * 1000, 2)
+        
+        # Top endpoints
+        raw_hits = cache_service.redis_client.hgetall("stats:endpoint_hits")
+        api_stats["top_endpoints"] = sorted(raw_hits.items(), key=lambda x: int(x[1]), reverse=True)[:10]
+        
+        # Recent traffic
+        raw_recent = cache_service.redis_client.lrange("stats:recent_requests", 0, 19)
+        api_stats["recent_traffic"] = [json.loads(r) for r in raw_recent]
              
-    return {**db_stats, "api_monitor": api_stats}
+    return {
+        "success": True,
+        "db": db_stats, 
+        "monitoring": api_stats,
+        "server_time": datetime.now().isoformat()
+    }

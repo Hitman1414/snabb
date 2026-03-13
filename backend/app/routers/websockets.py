@@ -5,7 +5,7 @@ import logging
 from ..database import get_db
 from ..config import settings
 from ..websocket_manager import manager
-from .. import models
+from .. import models, schemas
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,14 @@ async def get_current_user_ws(token: str, db: Session):
         return user
     except JWTError:
         return None
+
+@router.get("/online", response_model=list[schemas.User])
+def get_online_users(db: Session = Depends(get_db)):
+    """Get list of currently connected users"""
+    online_ids = list(manager.active_connections.keys())
+    if not online_ids:
+        return []
+    return db.query(models.User).filter(models.User.id.in_(online_ids)).all()
 
 @router.websocket("/chat")
 async def websocket_endpoint(

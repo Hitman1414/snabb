@@ -37,13 +37,19 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
                 endpoint = f"{request.method} {request.url.path}"
                 cache_service.redis_client.hincrby("stats:endpoint_hits", endpoint, 1)
                 
+                # Track platform (Mobile vs Browser)
+                user_agent = request.headers.get("User-Agent", "").lower()
+                platform = "mobile" if any(x in user_agent for x in ["okhttp", "expo", "cfnetwork", "darwin", "ios", "android"]) else "browser"
+                cache_service.redis_client.hincrby("stats:platforms", platform, 1)
+
                 # Store recent requests (last 50)
                 request_data = {
                     "method": request.method,
                     "path": request.url.path,
                     "status": status_code,
                     "duration": round(process_time, 4),
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
+                    "platform": platform
                 }
                 cache_service.redis_client.lpush("stats:recent_requests", json.dumps(request_data))
                 cache_service.redis_client.ltrim("stats:recent_requests", 0, 49)
