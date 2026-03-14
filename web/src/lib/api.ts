@@ -1,4 +1,4 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://snabb-api.onrender.com';
 
 export const getFullImageUrl = (path: string) => {
     if (!path) return '';
