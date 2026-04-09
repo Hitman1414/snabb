@@ -31,8 +31,9 @@ export default function DashboardLayout({
     const [searchMode, setSearchMode] = useState<'all' | 'pros' | 'asks'>('all');
 
     useEffect(() => {
-        const handleOpenSearch = (e: any) => {
-            setSearchMode(e.detail?.mode || 'all');
+        const handleOpenSearch = (e: CustomEvent | Event) => {
+            const mode = 'detail' in e ? (e as CustomEvent).detail?.mode : undefined;
+            setSearchMode(mode || 'all');
             setIsSearchOpen(true);
         };
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -138,7 +139,7 @@ export default function DashboardLayout({
                     >
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-hover:text-primary transition-colors" />
                         <div className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-400 group-hover:bg-white group-hover:border-primary/20 transition-all flex items-center justify-between">
-                            <span>Search for "plumbing", "delivery" or "cleaning"</span>
+                            <span>Search for &quot;plumbing&quot;, &quot;delivery&quot; or &quot;cleaning&quot;</span>
                             <div className="flex items-center gap-1 text-[10px] bg-white border border-slate-200 px-2 py-1 rounded-lg text-slate-300 font-black shadow-sm">
                                 <span className="text-[8px]">CTRL</span> K
                             </div>

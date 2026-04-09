@@ -136,7 +136,7 @@ export default function NotificationsScreen() {
                             No notifications yet
                         </Typography>
                         <Typography variant="body" color="tertiary" style={styles.emptyText}>
-                            We'll notify you when something important happens!
+                            We&apos;ll notify you when something important happens!
                         </Typography>
                     </View>
                 }

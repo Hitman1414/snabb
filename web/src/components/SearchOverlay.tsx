@@ -68,7 +68,7 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                 if (q.trim() === "") {
                     // "Browse All" mode logic
                     if (initialMode === 'asks' || initialMode === 'all') {
-                        setAsks(items.sort((a: any, b: any) => (b.response_count || 0) - (a.response_count || 0)).slice(0, 10));
+                        setAsks(items.sort((a: AskType, b: AskType) => (b.response_count || 0) - (a.response_count || 0)).slice(0, 10));
                     }
                     if (initialMode === 'pros' || initialMode === 'all') {
                         setPros(MOCK_PROS);
@@ -76,7 +76,7 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                     }
                 } else {
                     // Filter Asks
-                    setAsks(items.filter((a: any) => 
+                    setAsks(items.filter((a: AskType) => 
                         a.title.toLowerCase().includes(searchQ) || 
                         a.description.toLowerCase().includes(searchQ) ||
                         a.category.toLowerCase().includes(searchQ)
@@ -322,7 +322,7 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                             <div className="relative z-10">
                                                 <Sparkles className="w-8 h-8 mb-4 opacity-50" />
                                                 <h4 className="text-xl font-black mb-2 leading-tight">Need a Pro ASAP?</h4>
-                                                <p className="text-xs font-bold opacity-80 leading-relaxed mb-6">Filter by 'Real-time' to find locals currently online and ready to help.</p>
+                                                <p className="text-xs font-bold opacity-80 leading-relaxed mb-6">Filter by &apos;Real-time&apos; to find locals currently online and ready to help.</p>
                                                 <button className="bg-white text-primary px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-slate-900 hover:text-white transition-all">
                                                     Filter Online
                                                 </button>

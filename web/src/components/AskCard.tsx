@@ -19,7 +19,7 @@ export type AskType = {
         username: string;
         avatar_url?: string;
     };
-    [key: string]: any;
+    [key: string]: unknown;
 };
 
 type AskCardProps = {

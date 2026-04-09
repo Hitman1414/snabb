@@ -107,7 +107,7 @@ export default function MyAsksScreen() {
     const renderHeader = () => (
         <View style={styles.header}>
             <Typography variant="h3" weight="bold">My Asks</Typography>
-            <Typography variant="bodySmall" color="secondary">Manage the tasks you've posted</Typography>
+            <Typography variant="bodySmall" color="secondary">Manage the tasks you&apos;ve posted</Typography>
         </View>
     );
 
@@ -141,7 +141,7 @@ export default function MyAsksScreen() {
                 ListEmptyComponent={
                     <EmptyState
                         title="No Asks Yet"
-                        description="You haven't created any asks yet. Tap the + button to create one!"
+                        description="You haven&apos;t created any asks yet. Tap the + button to create one!"
                         icon="list-outline"
                         style={{ marginTop: spacing[10] }}
                     />

@@ -66,7 +66,7 @@ export default function ProfileScreen() {
                 const blob = await response.blob();
                 formData.append('file', blob, filename);
             } else {
-                // @ts-ignore - React Native FormData expects specific object structure
+                // @ts-expect-error - React Native FormData expects specific object structure
                 formData.append('file', {
                     uri,
                     name: filename,

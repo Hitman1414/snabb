@@ -26,7 +26,7 @@ export default function PrivacyPolicyScreen() {
                     1. Introduction
                 </Typography>
                 <Typography variant="body" style={styles.paragraph}>
-                    Welcome to Snabb ("we," "our," or "us"). We respect your privacy and are committed to protecting your personal data. This privacy policy informs you how we handle your personal data when you use the Snabb mobile application ("App") and any related services (collectively, the "Services"), and tells you about your privacy rights.
+                    Welcome to Snabb (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We respect your privacy and are committed to protecting your personal data. This privacy policy informs you how we handle your personal data when you use the Snabb mobile application (&quot;App&quot;) and any related services (collectively, the &quot;Services&quot;), and tells you about your privacy rights.
                 </Typography>
 
                 <Typography variant="h5" weight="semibold" style={styles.sectionTitle}>

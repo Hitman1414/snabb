@@ -1,6 +1,5 @@
 from sqlalchemy.orm import sessionmaker
-from backend.app.database import SessionLocal
-from backend.app import models, schemas
+from app import models, schemas
 from sqlalchemy import or_
 
 import os

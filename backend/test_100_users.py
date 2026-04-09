@@ -9,6 +9,7 @@ from app.database import Base, get_db
 
 # Mock dummy OpenAI key so bot_service doesn't crash during imports
 os.environ["OPENAI_API_KEY"] = "dummy"
+os.environ["DEBUG"] = "False"
 
 # Setup Test Database
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"

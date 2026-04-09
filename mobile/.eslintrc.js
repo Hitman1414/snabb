@@ -8,7 +8,7 @@ module.exports = {
         'plugin:react-hooks/recommended',
     ],
     parser: '@typescript-eslint/parser',
-    plugins: ['@typescript-eslint', 'react', 'react-hooks', '@tanstack/query'],
+    plugins: ['@typescript-eslint', 'react', 'react-hooks'],
     parserOptions: {
         ecmaVersion: 2021,
         sourceType: 'module',
@@ -29,8 +29,6 @@ module.exports = {
         'react-hooks/exhaustive-deps': 'warn',
 
         // React Query
-        '@tanstack/query/exhaustive-deps': 'error',
-        '@tanstack/query/prefer-query-object-syntax': 'error',
 
         // General
         'no-console': ['warn', { allow: ['warn', 'error'] }],

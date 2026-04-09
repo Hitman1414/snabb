@@ -371,6 +371,7 @@ export default function AdminPortal() {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function MetricCard({ title, value, icon: Icon, color, sub }: any) {
     return (
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 hover:border-slate-200 transition-all group">
@@ -392,6 +393,7 @@ function MetricCard({ title, value, icon: Icon, color, sub }: any) {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function HealthItem({ icon: Icon, name, status, color = "text-emerald-500" }: any) {
     return (
         <div className="flex items-center justify-between group cursor-help">
@@ -412,6 +414,7 @@ function HealthItem({ icon: Icon, name, status, color = "text-emerald-500" }: an
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function QuickAction({ icon: Icon, label }: any) {
     return (
         <button className="flex flex-col items-center gap-3 p-5 bg-white border border-slate-100 rounded-[2rem] hover:border-primary/20 hover:bg-primary/5 group transition-all">

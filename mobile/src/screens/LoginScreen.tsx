@@ -105,7 +105,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
                     <View style={styles.footerStatus}>
                         <Typography variant="bodySmall" color="secondary">
-                            Don't have an account?{' '}
+                            Don&apos;t have an account?{' '}
                         </Typography>
                         <TouchableOpacity onPress={() => navigation.navigate('Register')}>
                             <Typography variant="bodySmall" weight="bold" color="primary">

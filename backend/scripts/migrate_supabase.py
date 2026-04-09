@@ -8,9 +8,9 @@ load_dotenv(os.path.join(os.getcwd(), 'backend', '.env'))
 # Add backend to path
 sys.path.append(os.path.join(os.getcwd(), 'backend'))
 
-from backend.app.database import engine, Base
-from backend.app.config import settings
-from sqlalchemy import text
+from backend.app.database import engine, Base  # noqa: E402
+from backend.app.config import settings  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 def add_column(conn, table, column, col_type):
     try:

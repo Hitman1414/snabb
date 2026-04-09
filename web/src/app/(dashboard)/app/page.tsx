@@ -101,7 +101,7 @@ function DashboardContent() {
                 });
                 if (convRes.ok) {
                     const convs = await convRes.json();
-                    const count = convs.reduce((acc: number, c: any) => acc + (c.unread_count || 0), 0);
+                    const count = convs.reduce((acc: number, c: { unread_count?: number }) => acc + (c.unread_count || 0), 0);
                     setUnreadMsgs(count);
                 }
             } catch (err) {
@@ -181,7 +181,7 @@ function DashboardContent() {
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Showing results for:</span>
                             <div className="bg-white px-4 py-2 rounded-xl border border-primary/20 flex items-center gap-3 shadow-sm">
-                                <span className="text-sm font-black text-primary">"{q}"</span>
+                                <span className="text-sm font-black text-primary">&quot;{q}&quot;</span>
                                 <button onClick={clearSearch} className="hover:bg-slate-50 p-1 rounded-md transition-colors cursor-pointer">
                                     <X className="w-4 h-4 text-slate-400" />
                                 </button>
@@ -276,7 +276,7 @@ function DashboardContent() {
                                 <Search className="w-10 h-10" />
                             </div>
                             <h3 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">No opportunities found</h3>
-                            <p className="text-slate-400 font-medium mb-8 max-w-xs">We couldn't find any asks matching your criteria. Try adjusting your filters.</p>
+                            <p className="text-slate-400 font-medium mb-8 max-w-xs">We couldn&apos;t find any asks matching your criteria. Try adjusting your filters.</p>
                             <button 
                                 onClick={() => {setSelectedCategory('All'); clearSearch(); router.push('/app');}}
                                 className="bg-primary text-white font-black uppercase tracking-[0.2em] text-[10px] px-10 py-5 rounded-2xl shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"

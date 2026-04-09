@@ -61,7 +61,7 @@ export default function ProApplicationScreen() {
                 return (
                     <View style={styles.stepContainer}>
                         <Typography variant="h4" weight="bold" style={{ marginBottom: spacing[2] }}>
-                            What's your expertise?
+                            What&apos;s your expertise?
                         </Typography>
                         <Typography variant="bodySmall" color="secondary" style={{ marginBottom: spacing[6] }}>
                             Select the primary category you want to provide services in.

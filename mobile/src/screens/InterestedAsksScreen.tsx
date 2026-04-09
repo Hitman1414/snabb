@@ -70,7 +70,7 @@ export default function InterestedAsksScreen() {
                 {item.is_interested && (
                     <View style={styles.shortlistedBanner}>
                         <Typography variant="caption" weight="bold" style={{ color: '#92400E', fontSize: 11 }}>
-                            ⭐ Shortlisted by the owner — you're a top pick!
+                            ⭐ Shortlisted by the owner — you&apos;re a top pick!
                         </Typography>
                     </View>
                 )}
@@ -103,7 +103,7 @@ export default function InterestedAsksScreen() {
     const renderHeader = () => (
         <View style={styles.header}>
             <Typography variant="h3" weight="bold">Interested Asks</Typography>
-            <Typography variant="bodySmall" color="secondary">Tasks where you've expressed interest</Typography>
+            <Typography variant="bodySmall" color="secondary">Tasks where you&apos;ve expressed interest</Typography>
         </View>
     );
 

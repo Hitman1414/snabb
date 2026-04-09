@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+import os
+os.environ["DEBUG"] = "False"
 
 from app.main import app
 from app.database import Base, get_db
@@ -109,7 +111,7 @@ def test_create_ask_and_geo_filter(user1_data):
         "budget_max": 200,
         "status": "open"
     }
-    resp_ask = client.post("/asks/", json=ask_payload, headers=headers)
+    resp_ask = client.post("/asks/", data=ask_payload, headers=headers)
     print(resp_ask.json())
     assert resp_ask.status_code == 201
     ask_id = resp_ask.json()["id"]

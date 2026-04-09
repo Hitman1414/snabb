@@ -26,7 +26,7 @@ export default function TermsOfServiceScreen() {
                     1. Agreement to Terms
                 </Typography>
                 <Typography variant="body" style={styles.paragraph}>
-                    Welcome to Snabb. By accessing or using the Snabb application ("App") and any related services (collectively, the "Services"), you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the Service.
+                    Welcome to Snabb. By accessing or using the Snabb application (&quot;App&quot;) and any related services (collectively, the &quot;Services&quot;), you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the Service.
                 </Typography>
 
                 <Typography variant="h5" weight="semibold" style={styles.sectionTitle}>
@@ -40,7 +40,7 @@ export default function TermsOfServiceScreen() {
                     3. Acceptable Use and Content
                 </Typography>
                 <Typography variant="body" style={styles.paragraph}>
-                    You agree not to use the Services for any unlawful purpose or in any way that interrupts, damages, or impairs the service. You are solely responsible for the content you post ("Content") and your interactions with other users. Snabb reserves the right to remove any Content that violates these Terms or is deemed inappropriate.
+                    You agree not to use the Services for any unlawful purpose or in any way that interrupts, damages, or impairs the service. You are solely responsible for the content you post (&quot;Content&quot;) and your interactions with other users. Snabb reserves the right to remove any Content that violates these Terms or is deemed inappropriate.
                 </Typography>
 
                 <Typography variant="h5" weight="semibold" style={styles.sectionTitle}>

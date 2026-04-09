@@ -2,8 +2,8 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 load_dotenv('backend/.env')
 
-from backend.app.database import SessionLocal
-from backend.app import models
+from app.database import SessionLocal  # noqa: E402
+from app import models  # noqa: E402
 
 def check_admin(email):
     db: Session = SessionLocal()

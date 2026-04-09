@@ -28,7 +28,7 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const [loading, setLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null);
     const [sending, setSending] = useState(false);
     
     const scrollRef = useRef<HTMLDivElement>(null);
