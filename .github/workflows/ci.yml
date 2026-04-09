@@ -27,7 +27,7 @@ jobs:
         run: npm ci
         
       - name: Run ESLint
-        run: npm run lint
+        run: npm run lint -- --quiet
         
       - name: TypeScript Check
         run: npx tsc --noEmit
@@ -55,7 +55,7 @@ jobs:
         run: npm ci
         
       - name: Run ESLint
-        run: npm run lint
+        run: npm run lint -- --quiet
         
       - name: Run tests
         run: npm run test:coverage || true
@@ -94,13 +94,13 @@ jobs:
         run: pip install -r requirements.txt
         
       - name: Run Ruff Linting
-        run: ruff check .
+        run: python -m ruff check .
         
       - name: Run Pytest
         env:
           DATABASE_URL: "sqlite:///:memory:"
           DEBUG: "False"
-        run: pytest
+        run: python -m pytest
 
   preview:
     name: EAS Preview Build

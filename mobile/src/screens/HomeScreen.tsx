@@ -53,13 +53,13 @@ export default function HomeScreen() {
     useEffect(() => {
         (async () => {
             try {
-                let { status } = await Location.requestForegroundPermissionsAsync();
+                const { status } = await Location.requestForegroundPermissionsAsync();
                 if (status !== 'granted') {
                     setLocationError('Permission to access location was denied');
                     return;
                 }
 
-                let loc = await Location.getCurrentPositionAsync({});
+                const loc = await Location.getCurrentPositionAsync({});
                 setLocation(loc);
                 setIsNearbyEnabled(true); // Default to nearby if location is found
             } catch (error) {
