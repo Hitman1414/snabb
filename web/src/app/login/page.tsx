@@ -136,7 +136,7 @@ export default function Login() {
                         <div className="space-y-2 group">
                             <div className="flex justify-between items-center px-1">
                                 <label className="text-xs font-black text-text-secondary uppercase tracking-[0.15em]">Password</label>
-                                <Link href="#" className="text-xs font-bold text-primary hover:underline">Forgot?</Link>
+                                <Link href="/forgot-password" className="text-xs font-bold text-primary hover:underline">Forgot?</Link>
                             </div>
                             <div className="relative">
                                 <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary group-focus-within/pass:text-primary transition-colors" />

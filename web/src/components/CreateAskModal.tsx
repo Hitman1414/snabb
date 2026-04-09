@@ -134,6 +134,7 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
             }
 
             const newAsk = await response.json();
+            alert("Your ask has been posted successfully!");
             onSuccess(newAsk);
             onClose();
             // Cleanup previews
@@ -225,7 +226,8 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                 }
             },
             (err) => {
-                setError(`Location error: ${err.message}`);
+                setError("Location access denied. Please add your location manually below.");
+                setShowManualAddress(true);
                 setDetectingLocation(false);
             },
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
