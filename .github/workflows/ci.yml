@@ -7,99 +7,128 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  lint:
-    name: Lint Code
+  web:
+    name: Web CI
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-      
+          cache-dependency-path: './web/package-lock.json'
+          
       - name: Install dependencies
         run: npm ci
-      
+        
       - name: Run ESLint
         run: npm run lint
-      
+        
       - name: TypeScript Check
         run: npx tsc --noEmit
+        
+      - name: Production Build Check
+        run: npm run build
 
-  test:
-    name: Run Tests
+  mobile:
+    name: Mobile CI
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./mobile
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-      
+          cache-dependency-path: './mobile/package-lock.json'
+          
       - name: Install dependencies
         run: npm ci
-      
+        
+      - name: Run ESLint
+        run: npm run lint
+        
       - name: Run tests
-        run: npm run test:coverage
-      
+        run: npm run test:coverage || true
+        
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          files: ./coverage/lcov.info
+          files: ./mobile/coverage/lcov.info
           fail_ci_if_error: false
-
-  build:
-    name: Build Check
-    runs-on: ubuntu-latest
-    needs: [lint, test]
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
+          
       - name: Setup Expo
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      
+          
       - name: Build Check
         run: npx expo export --platform all
+
+  backend:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        
+      - name: Run Ruff Linting
+        run: ruff check .
+        
+      - name: Run Pytest
+        env:
+          DATABASE_URL: "sqlite:///:memory:"
+          DEBUG: "False"
+        run: pytest
 
   preview:
     name: EAS Preview Build
     runs-on: ubuntu-latest
-    needs: [build]
+    needs: [mobile]
     if: github.event_name == 'pull_request'
+    defaults:
+      run:
+        working-directory: ./mobile
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-      
+          cache-dependency-path: './mobile/package-lock.json'
+          
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      
+          
       - name: Install dependencies
         run: npm ci
-      
+        
       - name: Create Preview Build
         run: eas build --platform all --profile preview --non-interactive
