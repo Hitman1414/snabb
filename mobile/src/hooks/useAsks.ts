@@ -25,10 +25,11 @@ export const useInfiniteAsks = (
     maxBudget?: number,
     lat?: number,
     lng?: number,
-    radiusKm?: number
+    radiusKm?: number,
+    sort?: string
 ) => {
     return useInfiniteQuery({
-        queryKey: ['asks', category, status, search, minBudget, maxBudget, lat, lng, radiusKm],
+        queryKey: ['asks', category, status, search, minBudget, maxBudget, lat, lng, radiusKm, sort],
         queryFn: async ({ pageParam = 0 }) => {
             const response = await apiClient.get<AsksResponse>('/asks', {
                 params: {
@@ -42,6 +43,7 @@ export const useInfiniteAsks = (
                     lat,
                     lng,
                     radius_km: radiusKm,
+                    sort,
                 },
             });
             return response.data;
@@ -113,6 +115,7 @@ export const useCreateAsk = () => {
             if (ask.budget_max !== undefined) formData.append('budget_max', ask.budget_max.toString());
             if (ask.latitude !== undefined) formData.append('latitude', ask.latitude.toString());
             if (ask.longitude !== undefined) formData.append('longitude', ask.longitude.toString());
+            if (ask.contact_phone !== undefined) formData.append('contact_phone', ask.contact_phone);
 
             if (ask.images && ask.images.length > 0) {
                 ask.images.forEach((imageUri, index) => {

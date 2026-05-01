@@ -5,7 +5,9 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../hooks/useAuth';
@@ -28,6 +30,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [location, setLocation] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleRegister = async () => {
         try {
@@ -102,21 +105,29 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                     />
 
                     <Input
-                        label="Password *"
+                        label="Password"
                         value={password}
                         onChangeText={setPassword}
-                        placeholder="Create a strong password"
-                        secureTextEntry
-                        autoCapitalize="none"
+                        placeholder="Choose a strong password"
+                        secureTextEntry={!showPassword}
+                        rightIcon={
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        }
                     />
 
                     <Input
-                        label="Confirm Password *"
+                        label="Confirm Password"
                         value={confirmPassword}
                         onChangeText={setConfirmPassword}
                         placeholder="Confirm your password"
-                        secureTextEntry
-                        autoCapitalize="none"
+                        secureTextEntry={!showPassword}
+                        rightIcon={
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        }
                     />
 
                     <Input

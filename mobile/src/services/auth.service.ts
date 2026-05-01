@@ -3,10 +3,12 @@ import { LoginCredentials, RegisterData, AuthTokens, User } from '../types';
 
 export const authService = {
     async login(credentials: LoginCredentials): Promise<AuthTokens> {
-        // Manual string construction for maximum compatibility
-        const params = `username=${encodeURIComponent(credentials.username)}&password=${encodeURIComponent(credentials.password)}`;
+        // Use URLSearchParams for maximum compatibility and to match web app behavior exactly
+        const params = new URLSearchParams();
+        params.append('username', credentials.username);
+        params.append('password', credentials.password);
 
-        const response = await apiClient.post<AuthTokens>('/auth/login', params, {
+        const response = await apiClient.post<AuthTokens>('/auth/login', params.toString(), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },

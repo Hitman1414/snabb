@@ -1,11 +1,14 @@
-import { Platform } from 'react-native';
-
 // API Configuration
 export const getApiUrl = () => {
-    if (__DEV__) {
-        // Local development IP for testing on physical devices/emulators
-        return 'http://192.168.31.250:8000';
+    const configuredUrl = process.env.EXPO_PUBLIC_API_URL;
+    if (configuredUrl) {
+        return configuredUrl.replace(/\/$/, '');
     }
+
+    if (__DEV__) {
+        return 'http://localhost:8001';
+    }
+
     // Production API
     return 'https://snabb-api.onrender.com';
 };
@@ -34,11 +37,6 @@ export const getFullImageUrl = (path: string | null | undefined, includeTimestam
     }
     return url;
 };
-
-// Log the API URL for debugging
-console.log('🔗 API Base URL:', getApiUrl());
-console.log('📱 Platform:', Platform.OS);
-console.log('🔧 Dev Mode:', __DEV__);
 
 // App Configuration
 export const APP_CONFIG = {

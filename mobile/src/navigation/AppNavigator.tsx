@@ -27,7 +27,10 @@ import {
     ProLandingScreen,
     NotificationsScreen,
     TrackingScreen,
-    ProApplicationScreen
+    ProApplicationScreen,
+    ForgotPasswordScreen,
+    AdminModerationScreen,
+    AdminDashboardScreen
 } from '../screens';
 
 export type RootStackParamList = {
@@ -44,6 +47,9 @@ export type RootStackParamList = {
     Notifications: undefined;
     Tracking: { askId: number; helperId: number; askerLocation: { latitude: number; longitude: number }; initialHelperLocation?: { latitude: number; longitude: number } };
     Chat: { otherUserId: number; otherUserName: string; askId: number; askTitle: string };
+    ForgotPassword: undefined;
+    AdminDashboard: undefined;
+    AdminModeration: undefined;
 };
 
 export type MainTabParamList = {
@@ -52,6 +58,7 @@ export type MainTabParamList = {
     Interested: undefined;
     Messages: undefined;
     Profile: undefined;
+    Admin: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -59,6 +66,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const MainTabNavigator = () => {
     const { colors } = useTheme();
+    const { user } = useAuth();
     const { data: conversations } = useConversations();
     const unreadCount = conversations?.reduce((sum, conv) => sum + conv.unread_count, 0) || 0;
 
@@ -86,6 +94,8 @@ const MainTabNavigator = () => {
                         iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
                     } else if (route.name === 'Profile') {
                         iconName = focused ? 'person' : 'person-outline';
+                    } else if (route.name === 'Admin') {
+                        iconName = focused ? 'speedometer' : 'speedometer-outline';
                     } else {
                         iconName = 'help-circle';
                     }
@@ -130,6 +140,15 @@ const MainTabNavigator = () => {
                     tabBarLabel: 'Profile',
                 }}
             />
+            {user?.is_admin && (
+                <Tab.Screen
+                    name="Admin"
+                    component={AdminDashboardScreen}
+                    options={{
+                        tabBarLabel: 'Admin',
+                    }}
+                />
+            )}
         </Tab.Navigator>
     );
 };
@@ -178,11 +197,14 @@ export const AppNavigator = () => {
                             <Stack.Screen name="ProApplication" component={ProApplicationScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="Tracking" component={TrackingScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} options={{ title: 'Admin Control Center', headerShown: true }} />
+                            <Stack.Screen name="AdminModeration" component={AdminModerationScreen} options={{ title: 'Moderation Logs', headerShown: true }} />
                         </>
                     ) : (
                         <>
                             <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="Register" component={RegisterScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
                         </>
                     )}
                     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'Privacy Policy' }} />

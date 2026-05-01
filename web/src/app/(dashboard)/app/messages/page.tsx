@@ -76,8 +76,8 @@ export default function MessagesPage() {
         <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight">Messages</h1>
-                    <p className="text-slate-500 font-bold mt-1 text-sm uppercase tracking-[0.15em]">Direct Conversations</p>
+                    <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Messages</h1>
+                    <p className="text-slate-500 dark:text-slate-400 font-bold mt-1 text-sm uppercase tracking-[0.15em]">Direct Conversations</p>
                 </div>
                 
                 {/* Search Bar */}
@@ -86,7 +86,7 @@ export default function MessagesPage() {
                     <input 
                         type="text"
                         placeholder="Search chats..."
-                        className="w-full bg-white rounded-2xl py-3.5 pl-11 pr-4 border border-slate-200 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-sm shadow-slate-200/50 font-bold text-sm"
+                        className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 rounded-2xl py-3.5 pl-11 pr-4 border border-slate-200 dark:border-slate-700 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all shadow-sm font-bold text-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -94,13 +94,13 @@ export default function MessagesPage() {
             </div>
 
             {conversations.length === 0 ? (
-                <div className="bg-white py-24 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/30 flex flex-col items-center justify-center text-center px-4 overflow-hidden relative">
+            <div className="bg-white dark:bg-slate-900 py-24 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/30 dark:shadow-none flex flex-col items-center justify-center text-center px-4 overflow-hidden relative">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-orange-400"></div>
-                    <div className="w-24 h-24 bg-orange-50 rounded-3xl flex items-center justify-center mb-8 text-orange-500 rotate-12 group hover:rotate-0 transition-transform duration-500">
+                    <div className="w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-3xl flex items-center justify-center mb-8 text-orange-500 rotate-12 group hover:rotate-0 transition-transform duration-500">
                         <MessageCircle className="w-12 h-12" />
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">Your inbox is quiet</h3>
-                    <p className="text-slate-500 font-medium max-w-sm leading-relaxed mb-10">
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">Your inbox is quiet</h3>
+                    <p className="text-slate-500 dark:text-slate-400 font-medium max-w-sm leading-relaxed mb-10">
                         Respond to local asks or post a request to start a conversation with the community.
                     </p>
                     <button 
@@ -116,22 +116,22 @@ export default function MessagesPage() {
                         <button 
                             key={`${conv.other_user.id}-${conv.ask.id}`}
                             onClick={() => router.push(`/app/chat?otherUserId=${conv.other_user.id}&askId=${conv.ask.id}&otherUserName=${conv.other_user.username}&askTitle=${encodeURIComponent(conv.ask.title)}`)}
-                            className="w-full bg-white p-5 rounded-[2rem] border border-slate-100 hover:border-primary/20 flex items-center gap-5 hover:bg-slate-50/50 transition-all text-left shadow-sm shadow-slate-200/30 hover:shadow-xl hover:shadow-slate-200/50 group relative"
+                            className="w-full bg-white dark:bg-slate-900 p-5 rounded-[2rem] border border-slate-100 dark:border-slate-800 hover:border-primary/20 dark:hover:border-primary/30 flex items-center gap-5 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-all text-left shadow-sm shadow-slate-200/30 hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-none group relative"
                         >
                             <div className="relative flex-shrink-0">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-100 to-slate-200 flex items-center justify-center text-2xl text-slate-500 font-black shadow-inner">
+                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-100 dark:from-slate-800 to-slate-200 dark:to-slate-700 flex items-center justify-center text-2xl text-slate-500 dark:text-slate-300 font-black shadow-inner">
                                     {conv.other_user.username.charAt(0).toUpperCase()}
                                 </div>
-                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-4 border-white rounded-full"></div>
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-4 border-white dark:border-slate-900 rounded-full"></div>
                             </div>
                             
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-start mb-1.5">
-                                    <h3 className="font-black text-lg text-slate-900 truncate group-hover:text-primary transition-colors flex items-center gap-2">
+                                    <h3 className="font-black text-lg text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors flex items-center gap-2">
                                         {conv.other_user.username}
                                         {conv.other_user.username === 'snabb' && <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded-full uppercase tracking-tighter">Admin</span>}
                                     </h3>
-                                    <p className="text-[10px] font-black text-slate-400 flex items-center gap-1 uppercase tracking-widest">
+                                    <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 flex items-center gap-1 uppercase tracking-widest">
                                         <Clock className="w-3 h-3" />
                                         {formatDistanceToNow(new Date(conv.last_message.created_at), { addSuffix: true })}
                                     </p>
@@ -140,7 +140,7 @@ export default function MessagesPage() {
                                     <span className="w-1.5 h-1.5 bg-primary/30 rounded-full"></span>
                                     {conv.ask.title}
                                 </p>
-                                <p className="text-sm text-slate-500 font-medium truncate pr-10">
+                                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium truncate pr-10">
                                     {conv.last_message.content}
                                 </p>
                             </div>
@@ -151,7 +151,7 @@ export default function MessagesPage() {
                                         {conv.unread_count} NEW
                                     </div>
                                 )}
-                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                                <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-all">
                                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </div>

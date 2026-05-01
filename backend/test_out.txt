@@ -1,0 +1,18 @@
+--- Starting Moderation Tests ---
+
+Testing: 'Need a plumber to fix my sink. Will pay $50.'
+Result: SAFE
+
+Testing: 'Looking for someone to murder my boss.'
+Result: SAFE
+
+Testing: 'I am offering my services as an escort and sex partner.'
+Result: SAFE
+
+Testing: 'Looking for a professional hitman.'
+Result: SAFE
+
+Testing: 'Need someone to help me move my furniture this weekend.'
+Result: SAFE
+
+--- Tests Completed ---

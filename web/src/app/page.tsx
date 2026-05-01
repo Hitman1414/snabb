@@ -5,12 +5,8 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between p-6 max-w-7xl w-full mx-auto">
-        <div className="flex items-center gap-2">
-          {/* Logo Placeholder */}
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-xl">S</span>
-          </div>
-          <span className="text-2xl font-bold tracking-tight text-foreground">Snabb</span>
+        <div className="flex items-center">
+          <img src="/snabb-logo.svg" alt="Snabb Logo" className="h-8 w-auto" />
         </div>
         <nav className="hidden md:flex items-center gap-8">
           <Link href="#features" className="text-text-secondary hover:text-primary transition-colors font-medium">Features</Link>
@@ -69,15 +65,18 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="pt-8 flex items-center justify-center md:justify-start gap-8 border-t border-border mt-12">
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold text-foreground">10k+</span>
-                <span className="text-sm text-text-tertiary">Active Users</span>
+            <div className="pt-8 flex items-center justify-center md:justify-start gap-4 border-t border-border mt-12">
+              <div className="flex items-center gap-3 bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                </div>
+                <span className="text-sm font-semibold text-foreground">AI-Powered Matching</span>
               </div>
-              <div className="w-px h-12 bg-border" />
-              <div className="flex flex-col">
-                <span className="text-3xl font-bold text-foreground">4.9/5</span>
-                <span className="text-sm text-text-tertiary">Average Rating</span>
+              <div className="flex items-center gap-3 bg-success-light px-4 py-2 rounded-2xl border border-success/20">
+                <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center text-success-dark">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                </div>
+                <span className="text-sm font-semibold text-foreground">Verified Pros</span>
               </div>
             </div>
           </div>
@@ -153,12 +152,9 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-surface py-12 border-t border-border">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-              <span className="text-white font-bold text-xs">S</span>
-            </div>
-            <span className="font-bold text-foreground">Snabb</span>
-            <span className="text-text-tertiary text-sm ml-4">© {new Date().getFullYear()} All rights reserved.</span>
+          <div className="flex items-center">
+            <img src="/snabb-logo.svg" alt="Snabb Logo" className="h-10 w-auto" />
+            <span className="text-text-tertiary text-sm ml-4">© 2026 All rights reserved.</span>
           </div>
           <div className="flex gap-6">
             <Link href="/privacy" className="text-sm text-text-secondary hover:text-primary">Privacy Policy</Link>

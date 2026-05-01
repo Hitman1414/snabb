@@ -108,6 +108,7 @@ export interface CreateAskData {
     images?: string[];
     latitude?: number;
     longitude?: number;
+    contact_phone?: string;
 }
 
 // Type alias for consistency with backend

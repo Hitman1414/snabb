@@ -63,3 +63,4 @@ sentry-sdk
 mixpanel
 redis
 gunicorn
+google-genai

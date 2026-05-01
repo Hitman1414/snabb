@@ -6,7 +6,7 @@ import { API_URL, getFullImageUrl } from "@/lib/api";
 import { MapPin, DollarSign, MessageSquare, ChevronLeft, Send, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { AskType } from "@/components/AskCard";
+import { Ask as AskType } from "@/types";
 
 type ResponseType = {
     id: number;
@@ -149,7 +149,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
             </button>
 
             {/* Ask Details Main Card */}
-            <div className="bg-surface rounded-3xl shadow-sm border border-border overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
                 <div className="p-8">
                     <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
                         <div className="space-y-2">
@@ -161,20 +161,20 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                                     {ask.category}
                                 </span>
                             </div>
-                            <h1 className="text-3xl font-bold text-foreground leading-tight">
+                            <h1 className="text-3xl font-bold text-slate-900 dark:text-white leading-tight">
                                 {ask.title}
                             </h1>
                         </div>
                         
-                        <div className="bg-background-secondary p-4 rounded-2xl border border-border min-w-[150px]">
-                            <p className="text-xs text-text-tertiary font-bold uppercase tracking-wider mb-1">Budget Range</p>
+                        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 min-w-[150px]">
+                            <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Budget Range</p>
                             <p className="text-xl font-bold text-primary">
                                 ${ask.budget_min} - ${ask.budget_max || "Flexible"}
                             </p>
                         </div>
                     </div>
 
-                    <p className="text-text-secondary text-lg leading-relaxed mb-8 whitespace-pre-wrap">
+                    <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed mb-8 whitespace-pre-wrap">
                         {ask.description}
                     </p>
 
@@ -218,7 +218,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
             {/* Responses Section */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold flex items-center gap-3">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
                         <MessageSquare className="w-6 h-6 text-primary" />
                         Responses ({responses.length})
                     </h2>
@@ -226,14 +226,14 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
 
                 {/* Submit Response Form (for non-owners) */}
                 {!isOwner && ask.status === 'open' && (
-                    <div className="bg-surface rounded-3xl p-8 border border-border shadow-sm">
-                        <h3 className="text-lg font-bold mb-4">Send your proposal</h3>
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">Send your proposal</h3>
                         <form onSubmit={handleSubmitResponse} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="md:col-span-3">
                                     <textarea 
                                         placeholder="Explain how you can help..."
-                                        className="w-full bg-background-secondary rounded-2xl p-4 border border-border focus:ring-2 focus:ring-primary outline-none min-h-[100px] transition-all"
+                                        className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl p-4 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none min-h-[100px] transition-all"
                                         value={responseMessage}
                                         onChange={(e) => setResponseMessage(e.target.value)}
                                         required
@@ -245,7 +245,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                                         <input 
                                             type="number"
                                             placeholder="Bid (Optional)"
-                                            className="w-full bg-background-secondary rounded-2xl py-4 pl-10 pr-4 border border-border focus:ring-2 focus:ring-primary outline-none transition-all"
+                                            className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl py-4 pl-10 pr-4 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition-all"
                                             value={bidAmount}
                                             onChange={(e) => setBidAmount(e.target.value)}
                                             min="0"
@@ -278,7 +278,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                                 key={resp.id}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="bg-surface rounded-3xl p-6 border border-border shadow-sm flex flex-col md:flex-row gap-6 items-start"
+                                className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col md:flex-row gap-6 items-start"
                             >
                                 <div className="flex-1 space-y-3">
                                     <div className="flex items-center justify-between">
@@ -287,19 +287,19 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                                                 {resp.user?.username.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="font-bold">{resp.user?.username}</p>
-                                                <p className="text-xs text-text-tertiary">{formatDistanceToNow(new Date(resp.created_at), { addSuffix: true })}</p>
+                                                <p className="font-bold text-slate-900 dark:text-white">{resp.user?.username}</p>
+                                                <p className="text-xs text-slate-400 dark:text-slate-500">{formatDistanceToNow(new Date(resp.created_at), { addSuffix: true })}</p>
                                             </div>
                                         </div>
                                         {resp.is_accepted && (
                                             <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold uppercase">Accepted</span>
                                         )}
                                     </div>
-                                    <p className="text-text-secondary leading-relaxed">{resp.message}</p>
+                                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{resp.message}</p>
                                 </div>
                                 <div className="w-full md:w-auto flex md:flex-col gap-3 min-w-[120px]">
-                                    <div className="bg-background-secondary p-4 rounded-2xl border border-border text-center flex-1">
-                                        <p className="text-[10px] text-text-tertiary font-bold uppercase mb-1">Bid</p>
+                                    <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 text-center flex-1">
+                                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mb-1">Bid</p>
                                         <p className="font-bold text-primary">${resp.bid_amount || "N/A"}</p>
                                     </div>
                                     {isOwner && (

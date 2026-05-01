@@ -11,8 +11,11 @@ from ..notification_service import create_notification
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/responses", tags=["responses"])
 
-@router.get("/asks/{ask_id}/responses", response_model=List[schemas.Response])
-@router.get("/ask/{ask_id}", response_model=List[schemas.Response])  # Alternative route for frontend compatibility
+# Audit #23: standardized on /responses/ask/{ask_id}. The
+# /responses/asks/{ask_id}/responses alias was unused by any client and
+# has been removed. If anything external depended on it, surface a 404
+# and update — the canonical route is /responses/ask/{ask_id}.
+@router.get("/ask/{ask_id}", response_model=List[schemas.Response])
 def get_responses_for_ask(
     ask_id: int,
     skip: int = Query(0, ge=0),
@@ -32,8 +35,7 @@ def get_responses_for_ask(
     # Invalidate cache when new response is added
     return responses
 
-@router.post("/asks/{ask_id}/responses", response_model=schemas.Response, status_code=status.HTTP_201_CREATED)
-@router.post("/ask/{ask_id}", response_model=schemas.Response, status_code=status.HTTP_201_CREATED)  # Alternative route for frontend compatibility
+@router.post("/ask/{ask_id}", response_model=schemas.Response, status_code=status.HTTP_201_CREATED)
 def create_response(
     ask_id: int,
     response: schemas.ResponseCreate,

@@ -9,12 +9,12 @@ export default function DashboardBanners() {
 
     const banners = [
         {
-            title: "ZERO FEES",
-            subtitle: "On your first 3 requests",
-            description: "Get help for free this week. No service charges, just pure community help.",
+            title: "NEED HELP?",
+            subtitle: "Post an ask",
+            description: "Post an ask and get help instantly from people nearby!",
             icon: Megaphone,
-            gradient: "from-indigo-600 to-violet-600",
-            badge: "PROMO",
+            gradient: "from-red-600 to-rose-500",
+            badge: "POST NOW",
             action: () => {
                 const btn = document.getElementById('new-request-btn');
                 if (btn) btn.click();
@@ -22,24 +22,24 @@ export default function DashboardBanners() {
             cta: "Request Now"
         },
         {
-            title: "EVERYDAY LOWEST",
-            subtitle: "Verified Snabb Pros",
-            description: "Connect with the best helpers in your city with guaranteed lowest service fees.",
+            title: "SNABB PRO",
+            subtitle: "Join our pro network",
+            description: "Join our pro network and start helping others to earn.",
             icon: Sparkles,
-            gradient: "from-rose-500 to-orange-500",
-            badge: "VERIFIED",
-            action: () => window.dispatchEvent(new CustomEvent('open-search', { detail: { mode: 'pros' } })),
+            gradient: "from-emerald-600 to-teal-500",
+            badge: "JOIN PRO",
+            action: () => window.dispatchEvent(new CustomEvent('open-snabb-pro')),
             cta: "Join Network"
         },
         {
-            title: "SMART AI",
-            subtitle: "Every task, simplified",
-            description: "Not sure how to describe your task? Let our AI draft it for you in seconds.",
+            title: "SNABB AI",
+            subtitle: "AI Agents",
+            description: "Need quick data or file help? Our AI agents are ready!",
             icon: Cpu,
-            gradient: "from-emerald-500 to-teal-600",
-            badge: "NEW",
-            action: () => router.push('/app/chat'),
-            cta: "Try Snabb AI"
+            gradient: "from-violet-600 to-purple-500",
+            badge: "COMING SOON",
+            action: () => {},
+            cta: "Coming Soon"
         }
     ];
 

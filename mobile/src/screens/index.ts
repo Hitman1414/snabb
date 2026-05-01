@@ -14,3 +14,6 @@ export { default as ProApplicationScreen } from './ProApplicationScreen';
 export { default as PrivacyPolicyScreen } from './PrivacyPolicyScreen';
 export { default as TrackingScreen } from './TrackingScreen';
 export { default as TermsOfServiceScreen } from './TermsOfServiceScreen';
+export { default as ForgotPasswordScreen } from './ForgotPasswordScreen';
+export { default as AdminModerationScreen } from './AdminModerationScreen';
+export { default as AdminDashboardScreen } from './AdminDashboardScreen';

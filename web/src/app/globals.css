@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
 :root {
   --primary: #F97316;
   --primary-dark: #EA580C;
@@ -30,7 +32,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light) {
     --primary: #FF8A5C;
     --primary-dark: #FF6B35;
     --primary-light: #FFA07A;
@@ -58,6 +60,35 @@
     --border-light: #475569;
     --divider: #334155;
   }
+}
+
+.dark {
+    --primary: #FF8A5C;
+    --primary-dark: #FF6B35;
+    --primary-light: #FFA07A;
+    --secondary: #1A6BA8;
+    --secondary-dark: #004E89;
+    --secondary-light: #3B8DC9;
+
+    --background: #0F172A;
+    --background-secondary: #1E293B;
+    --surface: #1E293B;
+    --surface-elevated: #334155;
+    --surface-variant: #334155;
+
+    --foreground: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-tertiary: #64748B;
+    --text-inverse: #0F172A;
+
+    --success: #34D399;
+    --error: #F87171;
+    --warning: #FBBF24;
+    --info: #60A5FA;
+    
+    --border: #334155;
+    --border-light: #475569;
+    --divider: #334155;
 }
 
 @theme inline {
@@ -107,4 +138,75 @@ body {
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Driver.js Tour Customisation ───────────────────────────────────── */
+.driver-popover {
+  background: #ffffff !important;
+  border-radius: 1.5rem !important;
+  box-shadow: 0 32px 64px -12px rgba(0,0,0,0.18) !important;
+  border: 1px solid #f1f5f9 !important;
+  padding: 1.5rem !important;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif !important;
+  max-width: 320px !important;
+}
+.driver-popover-title {
+  font-size: 1rem !important;
+  font-weight: 900 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em !important;
+  margin-bottom: 0.35rem !important;
+}
+.driver-popover-description {
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  line-height: 1.6 !important;
+}
+.driver-popover-progress-text {
+  font-size: 0.625rem !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+  color: #94a3b8 !important;
+}
+.driver-popover-footer {
+  margin-top: 1.25rem !important;
+  gap: 0.5rem !important;
+}
+.driver-popover-next-btn,
+.driver-popover-prev-btn,
+.driver-popover-close-btn {
+  border-radius: 0.75rem !important;
+  font-weight: 900 !important;
+  font-size: 0.75rem !important;
+  padding: 0.6rem 1.2rem !important;
+  letter-spacing: 0.05em !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+.driver-popover-next-btn {
+  background: #F97316 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 16px -4px rgba(249,115,22,0.35) !important;
+}
+.driver-popover-next-btn:hover {
+  background: #EA580C !important;
+  transform: translateY(-1px) !important;
+}
+.driver-popover-prev-btn {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.driver-popover-close-btn {
+  color: #94a3b8 !important;
+  background: transparent !important;
+  font-size: 1rem !important;
+}
+/* Snabb-orange highlight ring around target element */
+.driver-active-element {
+  box-shadow: 0 0 0 3px #F97316, 0 0 0 6px rgba(249,115,22,0.15) !important;
+  border-radius: 1rem !important;
 }

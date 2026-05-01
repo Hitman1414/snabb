@@ -11,12 +11,16 @@ load_dotenv()
 
 # Initialize OpenAI async client
 # Requires OPENAI_API_KEY in .env
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+api_key = os.getenv("OPENAI_API_KEY")
+client = AsyncOpenAI(api_key=api_key) if api_key else None
 
 async def generate_bot_response(prompt: str, context: str) -> str:
     """
     Generate a response from the bot based on its system prompt and the context (Ask description).
     """
+    if not client:
+        print("AI features are disabled because OPENAI_API_KEY is not set.")
+        return "I am experiencing technical difficulties at the moment. (AI Disabled)"
     try:
         completion = await client.chat.completions.create(
             model="gpt-4o-mini",
@@ -38,6 +42,9 @@ async def analyze_match(ask_description: str, user_profile: str) -> float:
     Here we just ask the LLM to score the match on a scale of 0.0 to 1.0.
     """
     try:
+        if not client:
+            return 0.0
+            
         sys_prompt = "You are an AI Matchmaker. Given an Ask and a User Profile, output ONLY a float between 0.0 and 1.0 representing how good a match they are."
         completion = await client.chat.completions.create(
             model="gpt-4o-mini",
@@ -58,21 +65,11 @@ async def analyze_match(ask_description: str, user_profile: str) -> float:
 
 
 
-def process_new_ask_sync(ask_id: int):
-    """
-    Synchronous wrapper to run the async bot processing in FastAPI BackgroundTasks.
-    Creates its own session.
-    """
-    db = SessionLocal()
-    try:
-        asyncio.run(process_new_ask(ask_id, db))
-    finally:
-        db.close()
-
-async def process_new_ask(ask_id: int, db: Session):
+async def process_new_ask(ask_id: int):
     """
     Background worker that checks if any Bots should respond to a newly created Ask.
     """
+    db = SessionLocal()
     try:
         ask = db.query(models.Ask).filter(models.Ask.id == ask_id).first()
         if not ask:
@@ -140,11 +137,11 @@ async def process_new_ask(ask_id: int, db: Session):
 
     except Exception as e:
         print(f"Background Bot Task Error: {e}")
+    finally:
+        db.close()
 
-def process_support_message_sync(message_id: int, db: Session):
-    asyncio.run(process_support_message(message_id, db))
-
-async def process_support_message(message_id: int, db: Session):
+async def process_support_message(message_id: int):
+    db = SessionLocal()
     try:
         msg = db.query(models.Message).filter(models.Message.id == message_id).first()
         if not msg:
@@ -173,3 +170,5 @@ async def process_support_message(message_id: int, db: Session):
         
     except Exception as e:
         print(f"Support Bot Task Error: {e}")
+    finally:
+        db.close()

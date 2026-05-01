@@ -6,6 +6,7 @@ import {
     Platform,
     ScrollView,
     TouchableOpacity,
+    Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,6 +18,7 @@ import { spacing, elevation } from '../design-system/tokens';
 import { toastService } from '../services/toast.service';
 import { loginSchema } from '../lib/validation';
 import { z } from 'zod';
+import { AxiosError } from 'axios';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -26,6 +28,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async () => {
         try {
@@ -42,9 +45,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             if (error instanceof z.ZodError) {
                 toastService.error(error.issues[0].message);
             } else {
-                console.error('Login error:', error);
-                const errorMessage = error.response?.data?.detail ||
-                    error.message ||
+                const axiosError = error as AxiosError<{ detail?: string; error?: { message?: string } }>;
+                const errorMessage = axiosError.response?.data?.detail ||
+                    axiosError.response?.data?.error?.message ||
+                    axiosError.message ||
                     'Invalid credentials. Please try again.';
                 toastService.error(errorMessage);
             }
@@ -60,10 +64,11 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         >
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={[styles.hero, { backgroundColor: colors.primary }]}>
-                    <Ionicons name="flash" size={80} color="#FFD700" style={{ marginBottom: spacing[2] }} />
-                    <Typography variant="h1" weight="bold" style={{ color: colors.textInverse }}>
-                        Snabb
-                    </Typography>
+                    <Image 
+                        source={require('../../assets/snabb-logo.svg')} 
+                        style={{ width: 250, height: 80, marginBottom: spacing[4] }} 
+                        resizeMode="contain" 
+                    />
                     <Typography variant="body" style={{ color: colors.textInverse, opacity: 0.9 }}>
                         Get help instantly, anywhere.
                     </Typography>
@@ -90,9 +95,23 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                         value={password}
                         onChangeText={setPassword}
                         placeholder="Enter your password"
-                        secureTextEntry
+                        secureTextEntry={!showPassword}
                         autoCapitalize="none"
+                        rightIcon={
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={24} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        }
                     />
+                    
+                    <TouchableOpacity 
+                        style={{ alignSelf: 'flex-end', marginBottom: spacing[2] }}
+                        onPress={() => navigation.navigate('ForgotPassword')}
+                    >
+                        <Typography variant="bodySmall" weight="bold" color="primary">
+                            Forgot Password?
+                        </Typography>
+                    </TouchableOpacity>
 
                     <LoadingButton
                         title="Login"

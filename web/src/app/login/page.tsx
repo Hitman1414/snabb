@@ -11,11 +11,23 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+        
+        // Match mobile generic validation
+        if (!email.trim()) {
+            setError("Username or Email is required");
+            return;
+        }
+        if (!password) {
+            setError("Password is required");
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -76,19 +88,18 @@ export default function Login() {
                         </div>
                     </div>
 
-                    <div className="relative z-10 p-6 bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20">
-                        <div className="flex -space-x-3 mb-4">
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-surface-variant flex items-center justify-center text-[10px] font-bold text-primary">
-                                    U{i}
-                                </div>
-                            ))}
-                            <div className="w-10 h-10 rounded-full border-2 border-white bg-primary flex items-center justify-center text-[10px] font-bold">
-                                +9k
+                    <div className="relative z-10 w-full max-w-sm bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-2xl mt-4">
+                        <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                            </div>
+                            <div>
+                                <h3 className="text-white font-bold text-lg mb-1">AI-Powered Matching</h3>
+                                <p className="text-white/80 text-sm leading-relaxed">
+                                    Our intelligent algorithms connect you with the perfect professionals for your specific needs in seconds.
+                                </p>
                             </div>
                         </div>
-                        <p className="text-sm font-bold">&quot;Snabb changed how I manage my errands. It&apos;s a lifesaver!&quot;</p>
-                        <p className="text-xs opacity-70 mt-1">— Sarah K., Pro Member</p>
                     </div>
 
                     {/* Decorative abstract shapes */}
@@ -98,11 +109,8 @@ export default function Login() {
 
                 {/* Form Side */}
                 <div className="p-8 md:p-16 flex flex-col justify-center">
-                    <div className="mb-10 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
-                            <span className="text-white font-extrabold text-xl italic">S</span>
-                        </div>
-                        <span className="text-2xl font-black tracking-tighter text-foreground uppercase">Snabb</span>
+                    <div className="mb-10 flex items-center">
+                        <img src="/snabb-logo.svg" alt="Snabb Logo" className="h-16 w-auto" />
                     </div>
 
                     <div className="mb-10">
@@ -141,13 +149,32 @@ export default function Login() {
                             <div className="relative">
                                 <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary group-focus-within/pass:text-primary transition-colors" />
                                 <input 
-                                    type="password" 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-[1.25rem] pl-14 pr-6 py-4 text-foreground font-bold focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-text-tertiary placeholder:font-medium" 
+                                    type={showPassword ? "text" : "password"} 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-[1.25rem] pl-14 pr-12 py-4 text-foreground font-bold focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-text-tertiary placeholder:font-medium" 
                                     placeholder="••••••••" 
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                 />
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        {showPassword ? (
+                                            <>
+                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </>
+                                        )}
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 

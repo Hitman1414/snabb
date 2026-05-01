@@ -29,6 +29,7 @@ const apiClient = axios.create({
     timeout: API_CONFIG.TIMEOUT,
     headers: {
         'Accept': 'application/json',
+        'X-Client-Platform': 'mobile',
     },
 });
 
@@ -51,15 +52,21 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {
-        console.error('API Response Error:', {
-            url: error.config?.url,
-            method: error.config?.method,
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
-        });
+        const isUnauthorized = error.response?.status === 401;
+        const url = error.config?.url || '';
+        const isLoginRequest = url.includes('/auth/login');
 
-        if (error.response?.status === 401) {
+        if (!isUnauthorized) {
+            console.error('API Response Error:', {
+                url,
+                method: error.config?.method,
+                status: error.response?.status,
+                data: error.response?.data,
+                message: error.message
+            });
+        }
+
+        if (isUnauthorized && !isLoginRequest) {
             // Handle unauthorized access (token expired)
             await storageService.removeItem('access_token');
             // Emit event to trigger logout in AuthProvider

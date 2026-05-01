@@ -3,9 +3,8 @@
  * Displays user profile information and stats with theme support
  */
 import React from 'react';
-import { View, ScrollView, StyleSheet, Alert, Switch, Image, TouchableOpacity, Platform, ActivityIndicator, Linking } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, Switch, Image, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
-import { storageService } from '../services/storage';
 import { useTheme } from '../design-system/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,9 +13,10 @@ import { spacing, borderRadius, elevation } from '../design-system/tokens';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserRating } from '../hooks/useReviews';
 import apiClient from '../services/api';
-import { getApiUrl, getFullImageUrl } from '../constants/config';
+import { getFullImageUrl } from '../constants/config';
 import * as ImagePicker from 'expo-image-picker';
 import { getInitials } from '../utils/helpers';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileScreen() {
     const { user, logout, refreshUser } = useAuth();
@@ -43,7 +43,6 @@ export default function ProfileScreen() {
         try {
             setIsUploading(true);
 
-            // Validate file size (max 5MB)
             const response = await fetch(uri);
             const blob = await response.blob();
             const sizeMB = blob.size / (1024 * 1024);
@@ -55,8 +54,6 @@ export default function ProfileScreen() {
             }
 
             const formData = new FormData();
-
-            // Append file
             const filename = uri.split('/').pop() || 'avatar.jpg';
             const match = /\.(\w+)$/.exec(filename);
             const type = match ? `image/${match[1]}` : 'image/jpeg';
@@ -67,18 +64,12 @@ export default function ProfileScreen() {
                 formData.append('file', blob, filename);
             } else {
                 // @ts-expect-error - React Native FormData expects specific object structure
-                formData.append('file', {
-                    uri,
-                    name: filename,
-                    type,
-                });
+                formData.append('file', { uri, name: filename, type });
             }
 
             await apiClient.post('/users/me/avatar', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-                transformRequest: (data) => data, // This prevents Axios from stringifying FormData in React Native 
+                headers: { 'Content-Type': 'multipart/form-data' },
+                transformRequest: (data) => data,
             });
 
             await refreshUser();
@@ -113,6 +104,11 @@ export default function ProfileScreen() {
             console.error('Error picking image:', error);
             Alert.alert('Error', 'Failed to pick image');
         }
+    };
+
+    const handleReplayTour = async () => {
+        await AsyncStorage.removeItem('hasSeenTour');
+        Alert.alert('Tour Reset', 'Go back to the Home tab to replay the onboarding tour.');
     };
 
     if (!user) {
@@ -261,6 +257,18 @@ export default function ProfileScreen() {
                             thumbColor={colors.surface}
                         />
                     </View>
+
+                    <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleReplayTour}>
+                        <View style={styles.menuItemLeft}>
+                            <View style={[styles.iconBox, { backgroundColor: colors.primaryLight + '20' }]}>
+                                <Ionicons name="compass-outline" size={20} color={colors.primary} />
+                            </View>
+                            <Typography variant="body" weight="medium">Replay App Tour</Typography>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.sectionHeader}>
@@ -301,12 +309,10 @@ export default function ProfileScreen() {
                                 style={styles.menuItem}
                                 onPress={async () => {
                                     try {
-                                        const token = await storageService.getItem('access_token');
-                                        const url = `${getApiUrl()}/admin/dashboard?token=${token}`;
-                                        await Linking.openURL(url);
+                                        navigation.navigate('AdminDashboard');
                                     } catch (error) {
                                         console.error('Failed to open admin dashboard:', error);
-                                        Alert.alert('Error', 'Could not open Admin Dashboard. Please ensure you have a browser installed.');
+                                        Alert.alert('Error', 'Could not open Admin Dashboard.');
                                     }
                                 }}
                             >
@@ -320,6 +326,24 @@ export default function ProfileScreen() {
                                     </View>
                                 </View>
                                 <Ionicons name="open-outline" size={20} color={colors.primary} />
+                            </TouchableOpacity>
+
+                            <View style={[styles.menuDivider, { backgroundColor: colors.primary + '20' }]} />
+
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => navigation.navigate('AdminModeration')}
+                            >
+                                <View style={styles.menuItemLeft}>
+                                    <View style={[styles.iconBox, { backgroundColor: colors.errorLight + '20' }]}>
+                                        <Ionicons name="shield-checkmark" size={20} color={colors.error} />
+                                    </View>
+                                    <View>
+                                        <Typography variant="body" weight="bold">Content Moderation</Typography>
+                                        <Typography variant="caption" color="tertiary">Review flagged requests natively</Typography>
+                                    </View>
+                                </View>
+                                <Ionicons name="chevron-forward" size={20} color={colors.textTertiary} />
                             </TouchableOpacity>
                         </View>
                     </>
@@ -344,9 +368,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
     header: {
         alignItems: 'center',
         paddingVertical: spacing[10],
@@ -357,10 +379,7 @@ const styles = StyleSheet.create({
     },
     headerBackground: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        top: 0, left: 0, right: 0, bottom: 0,
     },
     circleDeco: {
         position: 'absolute',
@@ -412,18 +431,9 @@ const styles = StyleSheet.create({
         marginTop: spacing[2],
         borderWidth: 1,
     },
-    statBox: {
-        alignItems: 'center',
-        flex: 1,
-    },
-    statDivider: {
-        width: 1,
-        height: 30,
-    },
-    content: {
-        padding: spacing[4],
-        paddingBottom: spacing[12],
-    },
+    statBox: { alignItems: 'center', flex: 1 },
+    statDivider: { width: 1, height: 30 },
+    content: { padding: spacing[4], paddingBottom: spacing[12] },
     sectionHeader: {
         marginBottom: spacing[3],
         marginTop: spacing[6],

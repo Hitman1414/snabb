@@ -38,8 +38,7 @@ export default function ProApplicationScreen() {
 
         try {
             setLoading(true);
-            await apiClient.patch('/auth/me', {
-                is_pro: true, // Auto-approve for now or handle as request
+            await apiClient.post('/users/me/apply-pro', {
                 pro_category: selectedCategory,
                 pro_bio: bio
             });

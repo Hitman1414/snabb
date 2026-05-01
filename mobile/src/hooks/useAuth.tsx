@@ -46,7 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setUser(userData);
             }
         } catch (error) {
-            console.error('Auth check failed:', error);
+            // Expected if token is expired or invalid
+            console.warn('Auth check failed:', error);
             await storageService.removeItem('access_token');
         } finally {
             setLoading(false);

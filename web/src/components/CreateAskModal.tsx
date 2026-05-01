@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { X, Loader2, MapPin } from "lucide-react";
+import { X, Loader2, MapPin, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { API_URL } from "@/lib/api";
-import { AskType } from "./AskCard";
+import { Ask as AskType } from "@/types";
 
 type CreateAskModalProps = {
     isOpen: boolean;
@@ -21,6 +21,7 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
         location: "",
         budget_min: "",
         budget_max: "",
+        contact_phone: "",
     });
 
     const [images, setImages] = useState<File[]>([]);
@@ -32,6 +33,84 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
     const [locationSearch, setLocationSearch] = useState("");
     const [locationResults, setLocationResults] = useState<{display_name: string, lat: string, lon: string}[]>([]);
     const [searchingLocation, setSearchingLocation] = useState(false);
+
+    const [magicText, setMagicText] = useState("");
+    const [isMagicLoading, setIsMagicLoading] = useState(false);
+    const [isEnhancing, setIsEnhancing] = useState(false);
+
+    const handleMagicAsk = async () => {
+        if (!magicText.trim()) return;
+        setIsMagicLoading(true);
+        setError("");
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/ai/magic-ask`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ text: magicText })
+            });
+            if (!res.ok) {
+                if (res.status === 429) {
+                    throw new Error("AI is temporarily busy. Please wait a minute and try again.");
+                }
+                throw new Error("Failed to process Magic Ask");
+            }
+            const data = await res.json();
+            
+            setFormData(prev => ({
+                ...prev,
+                title: data.title || prev.title,
+                description: data.description || prev.description,
+                category: data.category || prev.category,
+                budget_min: data.budget_min !== null ? String(data.budget_min) : prev.budget_min,
+                budget_max: data.budget_max !== null ? String(data.budget_max) : prev.budget_max,
+            }));
+            setMagicText("");
+        } catch (err) {
+            console.error(err);
+            setError(err instanceof Error ? err.message : "Magic Ask failed. Please try again.");
+        } finally {
+            setIsMagicLoading(false);
+        }
+    };
+
+    const handleEnhanceDescription = async () => {
+        if (!formData.description.trim() || formData.description.length < 10) {
+            setError("Please write a few words in the description first to enhance it.");
+            return;
+        }
+        setIsEnhancing(true);
+        setError("");
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/ai/enhance-description`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ description: formData.description })
+            });
+            if (!res.ok) {
+                let errorMsg = "Failed to enhance description";
+                try {
+                    const errData = await res.json();
+                    errorMsg = errData.detail || errData.error?.message || errorMsg;
+                } catch (e) {}
+                throw new Error(errorMsg);
+            }
+            const data = await res.json();
+            setFormData(prev => ({ ...prev, description: data.enhanced_text }));
+        } catch (err) {
+            console.error(err);
+            setError("Failed to enhance description.");
+        } finally {
+            setIsEnhancing(false);
+        }
+    };
 
     const categories = [
         "Electronics", "Furniture", "Vehicles", "Real Estate", 
@@ -115,6 +194,9 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                 submitData.append('latitude', coordinates.latitude.toString());
                 submitData.append('longitude', coordinates.longitude.toString());
             }
+            if (formData.contact_phone && formData.contact_phone.trim() !== "") {
+                submitData.append('contact_phone', formData.contact_phone.trim());
+            }
 
             images.forEach((img) => {
                 submitData.append('images', img);
@@ -148,7 +230,7 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
             // Reset form
             setFormData({
                 title: "", description: "", category: "Services",
-                location: "", budget_min: "", budget_max: ""
+                location: "", budget_min: "", budget_max: "", contact_phone: ""
             });
         } catch (err) {
             if (err instanceof Error) {
@@ -226,7 +308,6 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                 }
             },
             (err) => {
-                setError("Location access denied. Please add your location manually below.");
                 setShowManualAddress(true);
                 setDetectingLocation(false);
             },
@@ -287,6 +368,39 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                             </div>
                         )}
 
+                        {/* Magic Ask Section (Commented out for next phase) */}
+                        {/* 
+                        <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20 rounded-2xl p-4 mb-2">
+                            <label className="flex items-center gap-2 text-sm font-bold text-primary mb-2">
+                                <Sparkles className="w-4 h-4" />
+                                Magic Auto-fill
+                            </label>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    value={magicText}
+                                    onChange={(e) => setMagicText(e.target.value)}
+                                    placeholder="e.g. Need a plumber tomorrow for $50..."
+                                    className="flex-1 bg-white dark:bg-surface-variant border border-primary/20 rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleMagicAsk();
+                                        }
+                                    }}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleMagicAsk}
+                                    disabled={isMagicLoading || !magicText.trim()}
+                                    className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                                >
+                                    {isMagicLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Auto-fill"}
+                                </button>
+                            </div>
+                        </div>
+                        */}
+
                         <div>
                             <label className="block text-sm font-semibold text-foreground mb-1">Title</label>
                             <input 
@@ -300,7 +414,20 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold text-foreground mb-1">Description</label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-sm font-semibold text-foreground">Description</label>
+                                {/* AI Enhance description feature temporarily disabled
+                                <button
+                                    type="button"
+                                    onClick={handleEnhanceDescription}
+                                    disabled={isEnhancing || !formData.description}
+                                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1 disabled:opacity-50 disabled:no-underline"
+                                >
+                                    {isEnhancing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                    Enhance with AI
+                                </button>
+                                */}
+                            </div>
                             <textarea 
                                 required
                                 value={formData.description}
@@ -308,6 +435,17 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                                 className="w-full bg-surface-variant border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 min-h-[100px] resize-y" 
                                 placeholder="Looking for a licensed plumber. Must have tools..."
                             ></textarea>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-foreground mb-1">Contact Phone (Optional)</label>
+                            <input 
+                                type="tel" 
+                                value={formData.contact_phone}
+                                onChange={e => setFormData({...formData, contact_phone: e.target.value})}
+                                className="w-full bg-surface-variant border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" 
+                                placeholder="+91 98765 43210" 
+                            />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">

@@ -15,18 +15,11 @@ import {
     X, 
     Loader2,
     CheckCircle2,
-    Lock
+    Lock,
+    Compass
 } from "lucide-react";
 
-type User = {
-    id: number;
-    username: string;
-    email: string;
-    is_pro: boolean;
-    pro_category?: string;
-    pro_bio?: string;
-    created_at: string;
-};
+import { User } from "@/types";
 
 const PRO_CATEGORIES = [
     'Technical Support',
@@ -46,7 +39,7 @@ export default function ProfilePage() {
     const [successMessage, setSuccessMessage] = useState("");
 
     // Form states
-    const [editForm, setEditForm] = useState({ username: "", email: "" });
+    const [editForm, setEditForm] = useState({ username: "", email: "", phone_number: "", location: "" });
     const [proForm, setProForm] = useState({ category: "", bio: "", experience: "" });
     const [proStep, setProStep] = useState(1);
 
@@ -65,7 +58,12 @@ export default function ProfilePage() {
                 if (res.ok) {
                     const data = await res.json();
                     setUser(data);
-                    setEditForm({ username: data.username, email: data.email });
+                    setEditForm({ 
+                        username: data.username, 
+                        email: data.email, 
+                        phone_number: data.phone_number || "", 
+                        location: data.location || "" 
+                    });
                 } else {
                     localStorage.removeItem('token');
                     router.push('/login');
@@ -91,19 +89,76 @@ export default function ProfilePage() {
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (!token) return;
         setSaving(true);
-        // Mock update
-        setTimeout(() => {
-            if (user) {
-                setUser({ ...user, username: editForm.username, email: editForm.email });
+        try {
+            const res = await fetch(`${API_URL}/users/me`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    username: editForm.username,
+                    phone_number: editForm.phone_number || null,
+                    location: editForm.location || null
+                }),
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setUser(updated);
                 setSuccessMessage("Profile updated successfully!");
-                setTimeout(() => {
-                    setSuccessMessage("");
-                    setActiveModal(null);
-                }, 2000);
+                setTimeout(() => { setSuccessMessage(""); setActiveModal(null); }, 2000);
+            } else {
+                const err = await res.json();
+                alert(err.detail || "Failed to update profile.");
             }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred. Please try again.");
+        } finally {
             setSaving(false);
-        }, 1000);
+        }
+    };
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size must be less than 5MB');
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            setSaving(true);
+            const res = await fetch(`${API_URL}/users/me/avatar`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+
+            if (res.ok) {
+                const updated = await res.json();
+                setUser(updated);
+                setSuccessMessage("Avatar updated successfully!");
+                setTimeout(() => setSuccessMessage(""), 2000);
+            } else {
+                alert("Failed to upload avatar");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred during upload.");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleUpgradePro = async () => {
@@ -117,14 +172,13 @@ export default function ProfilePage() {
 
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/auth/me`, {
-                method: 'PATCH',
+            const res = await fetch(`${API_URL}/users/me/apply-pro`, {
+                method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    is_pro: true,
                     pro_category: proForm.category,
                     pro_bio: proForm.bio
                 })
@@ -169,26 +223,36 @@ export default function ProfilePage() {
     return (
         <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div>
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight">Account Profile</h1>
-                <p className="text-slate-500 font-bold mt-1 text-sm uppercase tracking-[0.15em]">Manage your presence</p>
+                <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">Account Profile</h1>
+                <p className="text-slate-500 dark:text-slate-400 font-bold mt-1 text-sm uppercase tracking-[0.15em]">Manage your presence</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Profile Card */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-xl shadow-slate-200/40 text-center relative overflow-hidden group">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none text-center relative overflow-hidden group">
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-orange-400"></div>
                         <div className="relative z-10">
-                            <div className="w-28 h-28 bg-gradient-to-tr from-slate-50 to-slate-100 rounded-[2rem] mx-auto flex items-center justify-center text-5xl text-primary font-black mb-6 shadow-inner border border-slate-100 relative overflow-hidden">
-                                {user.username.charAt(0).toUpperCase()}
-                                <div className="absolute inset-0 bg-primary/5"></div>
+                            <div 
+                                className="w-28 h-28 bg-gradient-to-tr from-slate-50 dark:from-slate-800 to-slate-100 dark:to-slate-700 rounded-[2rem] mx-auto flex items-center justify-center text-5xl text-primary font-black mb-6 shadow-inner border border-slate-100 dark:border-slate-700 relative overflow-hidden group/avatar cursor-pointer"
+                                onClick={() => document.getElementById('avatar-upload')?.click()}
+                            >
+                                {user.avatar_url ? (
+                                    <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `${API_URL.replace('/api/v1', '')}${user.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    user.username.charAt(0).toUpperCase()
+                                )}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center">
+                                    <span className="text-white text-xs font-bold">Upload</span>
+                                </div>
+                                <input type="file" id="avatar-upload" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
                             </div>
-                            <h2 className="text-2xl font-black text-slate-900 mb-1">{user.username}</h2>
-                            <p className="text-slate-400 font-bold text-xs mb-8 flex items-center justify-center gap-2 uppercase tracking-widest">
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-1">{user.username}</h2>
+                            <p className="text-slate-400 dark:text-slate-500 font-bold text-xs mb-8 flex items-center justify-center gap-2 uppercase tracking-widest">
                                 <Mail className="w-3 h-3 text-primary" /> {user.email}
                             </p>
                             
-                            <div className="pt-8 border-t border-slate-50">
+                            <div className="pt-8 border-t border-slate-50 dark:border-slate-800">
                                 {user.is_pro ? (
                                     <div className="space-y-3">
                                         <div className="bg-primary/10 text-primary px-4 py-3 rounded-2xl text-xs font-black flex items-center justify-center gap-2 border border-primary/20 uppercase tracking-widest">
@@ -216,28 +280,28 @@ export default function ProfilePage() {
 
                 {/* Right Column: Settings Sections */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
-                        <div className="p-8 border-b border-slate-50">
-                            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
+                        <div className="p-8 border-b border-slate-50 dark:border-slate-800">
+                            <h3 className="text-sm font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Settings className="w-4 h-4 text-primary" />
                                 Account Settings
                             </h3>
                         </div>
-                        <div className="divide-y divide-slate-50">
+                        <div className="divide-y divide-slate-50 dark:divide-slate-800">
                             {sections.map((item) => (
                                 <button 
                                     key={item.id} 
                                     onClick={() => setActiveModal(item.id)}
-                                    className="w-full p-8 flex items-center gap-6 hover:bg-slate-50/50 transition-all text-left group"
+                                    className="w-full p-8 flex items-center gap-6 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all text-left group"
                                 >
-                                    <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
+                                    <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
                                         <item.icon className="w-6 h-6" />
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-lg font-black text-slate-900 group-hover:text-primary transition-colors tracking-tight">{item.label}</p>
-                                        <p className="text-sm text-slate-400 font-bold">{item.sub}</p>
+                                        <p className="text-lg font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors tracking-tight">{item.label}</p>
+                                        <p className="text-sm text-slate-400 dark:text-slate-500 font-bold">{item.sub}</p>
                                     </div>
-                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-primary transition-colors">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors">
                                         <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                     </div>
                                 </button>
@@ -245,13 +309,34 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex items-center justify-between px-8">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between px-8">
                         <div>
-                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1">Member Since</p>
-                            <p className="font-bold text-slate-900">{new Date(user.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-[0.2em] mb-1">Member Since</p>
+                            <p className="font-bold text-slate-900 dark:text-white">{new Date(user.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
                         </div>
                         <button className="text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-50 py-3 px-6 rounded-2xl transition-all active:scale-95">
                             Delete Account
+                        </button>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <button
+                            onClick={() => {
+                                localStorage.removeItem('hasSeenTour');
+                                window.location.reload();
+                            }}
+                            className="w-full p-6 flex items-center gap-5 hover:bg-primary/5 transition-all text-left group px-8"
+                        >
+                            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary transition-all shadow-inner">
+                                <Compass className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-lg font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors tracking-tight">Replay App Tour</p>
+                                <p className="text-sm text-slate-400 dark:text-slate-500 font-bold">Re-watch the guided onboarding walkthrough</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 group-hover:text-primary transition-colors">
+                                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </div>
                         </button>
                     </div>
                 </div>
@@ -272,19 +357,19 @@ export default function ProfilePage() {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="bg-white w-full max-w-xl rounded-[3rem] shadow-2xl border border-white/20 overflow-hidden relative z-10"
+                            className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[3rem] shadow-2xl border border-white/20 dark:border-slate-800 overflow-hidden relative z-10"
                         >
-                            <div className="flex justify-between items-center p-10 border-b border-slate-50">
+                            <div className="flex justify-between items-center p-10 border-b border-slate-50 dark:border-slate-800">
                                 <div>
-                                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                                         {activeModal === 'edit' && "Edit Profile"}
                                         {activeModal === 'notifications' && "Notifications"}
                                         {activeModal === 'privacy' && "Privacy"}
                                         {activeModal === 'pro' && "Snabb Pro"}
                                     </h2>
-                                    <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Configure your account</p>
+                                    <p className="text-slate-400 dark:text-slate-500 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Configure your account</p>
                                 </div>
-                                <button onClick={() => setActiveModal(null)} className="w-12 h-12 bg-slate-50 hover:bg-slate-100 rounded-2xl flex items-center justify-center transition-colors">
+                                <button onClick={() => setActiveModal(null)} className="w-12 h-12 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl flex items-center justify-center transition-colors">
                                     <X className="w-6 h-6 text-slate-400" />
                                 </button>
                             </div>
@@ -307,8 +392,28 @@ export default function ProfilePage() {
                                                         type="text" 
                                                         value={editForm.username}
                                                         onChange={e => setEditForm({...editForm, username: e.target.value})}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-slate-900"
+                                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] p-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-slate-900 dark:text-white"
                                                     />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Phone Number</label>
+                                                        <input 
+                                                            type="tel" 
+                                                            value={editForm.phone_number}
+                                                            onChange={e => setEditForm({...editForm, phone_number: e.target.value})}
+                                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] p-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-slate-900 dark:text-white"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Location</label>
+                                                        <input 
+                                                            type="text" 
+                                                            value={editForm.location}
+                                                            onChange={e => setEditForm({...editForm, location: e.target.value})}
+                                                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] p-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-slate-900 dark:text-white"
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Email Address</label>
@@ -316,7 +421,7 @@ export default function ProfilePage() {
                                                         type="email" 
                                                         value={editForm.email}
                                                         onChange={e => setEditForm({...editForm, email: e.target.value})}
-                                                        className="w-full bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-slate-900"
+                                                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-[1.5rem] p-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-slate-900 dark:text-white"
                                                     />
                                                 </div>
                                                 <button 

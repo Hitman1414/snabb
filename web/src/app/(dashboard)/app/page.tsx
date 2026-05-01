@@ -22,18 +22,11 @@ import {
     ArrowRight,
     X
 } from "lucide-react";
-import AskCard, { AskType } from "@/components/AskCard";
+import AskCard from "@/components/AskCard";
 import DashboardBanners from "@/components/DashboardBanners";
 import CreateAskModal from "@/components/CreateAskModal";
-
-export type User = {
-    id: string;
-    username: string;
-    email: string;
-    is_pro: boolean;
-    created_at: string;
-    updated_at: string;
-};
+import SnabbProModal from "@/components/SnabbProModal";
+import { User, Ask } from "@/types";
 
 const CATEGORIES = [
     { title: 'All', icon: Globe, color: 'text-blue-500' },
@@ -48,29 +41,61 @@ const CATEGORIES = [
     { title: 'Freelance Tasks', icon: Briefcase, color: 'text-slate-600' },
 ];
 
-const MOCK_PROS = [
-    { name: "Expert Helper 1", rating: 5.0, reviews: 21, initial: "A", category: "Digital & Support" },
-    { name: "Expert Helper 2", rating: 5.0, reviews: 22, initial: "B", category: "Home & Repairs" },
-    { name: "Expert Helper 3", rating: 5.0, reviews: 23, initial: "C", category: "Freelance Tasks" },
-    { name: "Expert Helper 4", rating: 5.0, reviews: 24, initial: "D", category: "Ride & Transport" },
-    { name: "Expert Helper 5", rating: 5.0, reviews: 25, initial: "E", category: "Errands & Shopping" },
-];
+type ProUser = {
+    id: number;
+    username: string;
+    pro_category: string;
+    pro_rating: number;
+    pro_completed_tasks: number;
+    avatar_url?: string;
+};
 
 function DashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const q = searchParams.get('q') || "";
     const [user, setUser] = useState<User | null>(null);
-    const [allAsks, setAllAsks] = useState<AskType[]>([]);
-    const [filteredAsks, setFilteredAsks] = useState<AskType[]>([]);
-    const [filteredPros, setFilteredPros] = useState(MOCK_PROS);
+    const [allAsks, setAllAsks] = useState<Ask[]>([]);
+    const [filteredAsks, setFilteredAsks] = useState<Ask[]>([]);
+    const [allPros, setAllPros] = useState<ProUser[]>([]);
+    const [filteredPros, setFilteredPros] = useState<ProUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [unreadMsgs, setUnreadMsgs] = useState(0);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+    const [sortFilter, setSortFilter] = useState('latest');
+    const [locationParams, setLocationParams] = useState<{lat?: number, lng?: number}>({});
+    const [locationError, setLocationError] = useState<string | null>(null);
+
+    const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setLocationError(null);
+        const newSort = e.target.value;
+        if (newSort === 'nearby') {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        setLocationParams({ lat: position.coords.latitude, lng: position.coords.longitude });
+                        setSortFilter('nearby');
+                    },
+                    () => {
+                        setLocationError('Enable location access in browser settings to use Nearby.');
+                        setSortFilter('latest');
+                        setTimeout(() => setLocationError(null), 4000);
+                    }
+                );
+            } else {
+                setLocationError('Geolocation not supported in this browser.');
+                setSortFilter('latest');
+                setTimeout(() => setLocationError(null), 4000);
+            }
+        } else {
+            setSortFilter(newSort);
+        }
+    };
+
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        const fetchUserData = async () => {
             const token = localStorage.getItem('token');
             if (!token) {
                 router.push('/login');
@@ -86,16 +111,6 @@ function DashboardContent() {
                 const userData = await userRes.json();
                 setUser(userData);
 
-                const asksRes = await fetch(`${API_URL}/asks/?skip=0&limit=100`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (asksRes.ok) {
-                    const asksData = await asksRes.json();
-                    const items = asksData.items || [];
-                    setAllAsks(items);
-                    setFilteredAsks(items);
-                }
-
                 const convRes = await fetch(`${API_URL}/messages/conversations`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -104,47 +119,80 @@ function DashboardContent() {
                     const count = convs.reduce((acc: number, c: { unread_count?: number }) => acc + (c.unread_count || 0), 0);
                     setUnreadMsgs(count);
                 }
+
+                const prosRes = await fetch(`${API_URL}/users/pros?limit=20`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (prosRes.ok) {
+                    const prosData: ProUser[] = await prosRes.json();
+                    setAllPros(prosData);
+                    setFilteredPros(prosData);
+                }
             } catch (err) {
                 console.error(err);
                 localStorage.removeItem('token');
                 router.push('/login');
+            }
+        };
+
+        fetchUserData();
+    }, [router]);
+
+    useEffect(() => {
+        const fetchAsks = async () => {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            try {
+                let url = `${API_URL}/asks/?skip=0&limit=100&sort=${sortFilter}`;
+                if (sortFilter === 'nearby' && locationParams.lat && locationParams.lng) {
+                    url += `&lat=${locationParams.lat}&lng=${locationParams.lng}&radius_km=30`;
+                }
+                if (selectedCategory !== 'All') {
+                    url += `&category=${encodeURIComponent(selectedCategory)}`;
+                }
+                if (q) {
+                    url += `&search=${encodeURIComponent(q)}`;
+                }
+
+                const asksRes = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (asksRes.ok) {
+                    const asksData = await asksRes.json();
+                    const items = asksData.items || [];
+                    setAllAsks(items);
+                    setFilteredAsks(items);
+                }
+            } catch (err) {
+                console.error(err);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchDashboardData();
-    }, [router]);
+        fetchAsks();
+    }, [sortFilter, locationParams, selectedCategory, q]);
 
     useEffect(() => {
-        let result = allAsks;
-        let proResult = MOCK_PROS;
+        let proResult = allPros;
 
         if (selectedCategory !== 'All') {
-            result = result.filter(ask => ask.category === selectedCategory);
-            // Also filter pros by category if selected
-            proResult = proResult.filter(pro => pro.category === selectedCategory);
+            proResult = proResult.filter(pro => pro.pro_category === selectedCategory);
         }
 
         if (q) {
             const query = q.toLowerCase();
-            result = result.filter(ask => 
-                ask.title.toLowerCase().includes(query) || 
-                ask.description.toLowerCase().includes(query) ||
-                ask.location.toLowerCase().includes(query) ||
-                ask.category.toLowerCase().includes(query)
-            );
-
-            proResult = proResult.filter(pro => 
-                pro.name.toLowerCase().includes(query) ||
-                pro.category.toLowerCase().includes(query)
+            proResult = proResult.filter(pro =>
+                pro.username.toLowerCase().includes(query) ||
+                (pro.pro_category || '').toLowerCase().includes(query)
             );
         }
-        setFilteredAsks(result);
         setFilteredPros(proResult);
-    }, [selectedCategory, allAsks, q]);
+    }, [selectedCategory, allPros, q]);
 
-    const handleAskCreated = (newAsk: AskType) => {
+    const handleAskCreated = (newAsk: Ask) => {
         setAllAsks(prev => [newAsk, ...prev]);
         setIsCreateModalOpen(false);
     };
@@ -188,7 +236,7 @@ function DashboardContent() {
                             </div>
                         </div>
                         <p className="mt-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Found {filteredAsks.length} asks and {filteredPros.length} professionals
+                            Found {filteredAsks.length} asks and {filteredPros.length} pro{filteredPros.length !== 1 ? 's' : ''}
                         </p>
                     </div>
                 </div>
@@ -198,7 +246,7 @@ function DashboardContent() {
             {!isSearching && (
                 <div className="animate-in fade-in slide-in-from-top-4 duration-700">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-black text-slate-900 tracking-tight">Shop by Category</h2>
+                        <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Shop by Category</h2>
                         <button 
                             onClick={() => window.dispatchEvent(new CustomEvent('open-search', { detail: { mode: 'all' } }))}
                             className="text-primary font-black text-[10px] uppercase tracking-widest hover:text-primary/70 transition-colors cursor-pointer flex items-center gap-1 group"
@@ -206,7 +254,7 @@ function DashboardContent() {
                             View All <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
                         </button>
                     </div>
-                    <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-10 gap-x-4 gap-y-6 justify-center items-start">
+                    <div id="tour-categories" className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-10 gap-x-4 gap-y-6 justify-center items-start">
                         {CATEGORIES.map((cat) => {
                             const isSelected = selectedCategory === cat.title;
                             return (
@@ -218,11 +266,11 @@ function DashboardContent() {
                                     <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center border-[3px] shadow-sm transition-all duration-300 ${
                                         isSelected 
                                         ? 'bg-primary border-primary/20 scale-105 shadow-lg shadow-primary/20' 
-                                        : 'bg-white border-slate-50 group-hover:border-primary/20 group-hover:scale-105 group-hover:shadow-md'
+                                        : 'bg-white dark:bg-slate-800 border-slate-50 dark:border-slate-700 group-hover:border-primary/20 group-hover:scale-105 group-hover:shadow-md'
                                     }`}>
                                         <cat.icon className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors ${isSelected ? 'text-white' : cat.color}`} />
                                     </div>
-                                    <span className={`text-[8px] font-black uppercase tracking-widest text-center leading-tight transition-colors px-1 ${isSelected ? 'text-primary' : 'text-slate-500 group-hover:text-slate-900'}`}>
+                                    <span className={`text-[8px] font-black uppercase tracking-widest text-center leading-tight transition-colors px-1 ${isSelected ? 'text-primary' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
                                         {cat.title}
                                     </span>
                                 </button>
@@ -234,16 +282,16 @@ function DashboardContent() {
 
             {!isSearching && <DashboardBanners />}
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                {/* Left Column: Asks (8/12) */}
-                <div className="lg:col-span-8 space-y-6 animate-in fade-in slide-in-from-left-4 duration-700 delay-200">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mt-12">
+                {/* Left Column: Asks (Full Width Now) */}
+                <div id="tour-opportunities" className="lg:col-span-12 space-y-6 animate-in fade-in slide-in-from-left-4 duration-700 delay-200 max-w-6xl mx-auto w-full">
                     <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
                                 <Activity className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black text-slate-900 tracking-tight">
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                                     {isSearching ? 'Matching Opportunities' : 'Active Opportunities'}
                                 </h2>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
@@ -251,19 +299,21 @@ function DashboardContent() {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 relative">
                             {!isSearching && (
-                                <button 
-                                    onClick={() => window.dispatchEvent(new CustomEvent('open-search', { detail: { mode: 'asks' } }))}
-                                    className="text-primary font-black text-[10px] uppercase tracking-widest hover:text-primary/70 transition-colors cursor-pointer flex items-center gap-1 group whitespace-nowrap"
+                                <select 
+                                    value={sortFilter}
+                                    onChange={handleSortChange}
+                                    className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                                 >
-                                    See More <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-                                </button>
+                                    <option value="latest">All Asks (Latest)</option>
+                                    <option value="nearby">Nearby</option>
+                                    <option value="most_rated">Most Rated</option>
+                                </select>
                             )}
-                            {!isSearching && (
-                                <div className="hidden sm:flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 shadow-inner">
-                                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                                    32+ Online
+                            {locationError && (
+                                <div className="absolute top-full mt-2 right-0 bg-red-50 text-red-600 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-red-100 shadow-sm whitespace-nowrap z-10">
+                                    {locationError}
                                 </div>
                             )}
                         </div>
@@ -293,65 +343,6 @@ function DashboardContent() {
                     )}
                 </div>
 
-                {/* Right Column: Professionals (4/12) */}
-                <div className="lg:col-span-4 space-y-6 animate-in fade-in slide-in-from-right-4 duration-700 delay-300">
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 sticky top-24 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] border-t-primary/10">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-primary/5 rounded-2xl flex items-center justify-center text-primary shadow-sm border border-primary/5">
-                                    <Users className="w-5 h-5" />
-                                </div>
-                                <h2 className="text-lg font-black text-slate-900 tracking-tight">
-                                    {isSearching ? 'Matching Pros' : 'Professionals'}
-                                </h2>
-                            </div>
-                            <button 
-                                onClick={() => window.dispatchEvent(new CustomEvent('open-search', { detail: { mode: 'pros' } }))}
-                                className="text-primary font-black text-[9px] uppercase tracking-widest hover:text-primary/70 transition-colors cursor-pointer underline underline-offset-4 decoration-2 decoration-primary/20"
-                            >
-                                View All
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {filteredPros.length === 0 ? (
-                                <div className="py-10 text-center text-slate-400">
-                                    <p className="text-xs font-bold uppercase tracking-widest">No matching pros</p>
-                                </div>
-                            ) : (
-                                filteredPros.map((pro, i) => (
-                                    <div 
-                                        key={pro.name} 
-                                        onClick={() => router.push(`/app/profile?user=${pro.name.replace(' ', '')}`)}
-                                        className="group p-4 bg-slate-50/50 hover:bg-white rounded-[2rem] border border-transparent hover:border-slate-100 transition-all cursor-pointer flex items-center gap-4 hover:shadow-xl hover:shadow-slate-200/50 active:scale-[0.98]"
-                                    >
-                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary/10 to-primary/20 flex items-center justify-center text-primary font-black text-lg group-hover:scale-110 transition-transform shadow-inner">
-                                            {pro.initial}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-black text-slate-900 text-[13px] truncate group-hover:text-primary transition-colors">{pro.name}</h4>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-[10px] text-amber-500 font-black tracking-tight">{pro.rating} ★</span>
-                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">{pro.reviews} Reviews</span>
-                                            </div>
-                                        </div>
-                                        <div className="w-8 h-8 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-300 group-hover:text-primary group-hover:border-primary/20 transition-colors shadow-sm group-hover:rotate-12">
-                                            <Users className="w-4 h-4" />
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-
-                        <button 
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-search', { detail: { mode: 'pros' } }))}
-                            className="w-full mt-8 bg-slate-900 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 hover:bg-primary hover:shadow-primary/20 transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 group"
-                        >
-                            Join the Network
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <button id="new-request-btn" className="hidden" onClick={() => setIsCreateModalOpen(true)}></button>
@@ -360,6 +351,7 @@ function DashboardContent() {
                 onClose={() => setIsCreateModalOpen(false)} 
                 onSuccess={handleAskCreated} 
             />
+            <SnabbProModal />
         </div>
     );
 }

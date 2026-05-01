@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Activity, Users, ArrowRight, MapPin, DollarSign, Clock, Sparkles, User as UserIcon, ShieldCheck, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/api";
-import { AskType } from "./AskCard";
+import { Ask as AskType } from "@/types";
 
 type SearchOverlayProps = {
     isOpen: boolean;

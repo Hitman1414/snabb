@@ -30,6 +30,8 @@ import { Typography, Card, SkeletonGroup, Badge, SearchBar, FilterChip, EmptySta
 import { spacing, elevation } from '../design-system/tokens';
 import { CATEGORIES, CATEGORY_ICONS } from '../constants/categories';
 import { getInitials } from '../utils/helpers';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import OnboardingTour from '../components/OnboardingTour';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -38,7 +40,7 @@ const HOME_CATEGORIES = ['All', ...CATEGORIES];
 
 export default function HomeScreen() {
     const navigation = useNavigation<NavigationProp>();
-    const { colors, colorScheme } = useTheme();
+    const { colors, colorScheme, toggleTheme } = useTheme();
     const { user } = useAuth();
 
     usePerformanceMonitor('HomeScreen');
@@ -47,8 +49,36 @@ export default function HomeScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
-    const [isNearbyEnabled, setIsNearbyEnabled] = useState(false);
+    const [sortFilter, setSortFilter] = useState('latest');
     const [locationError, setLocationError] = useState<string | null>(null);
+    const [addressText, setAddressText] = useState('Fetching location...');
+    const [hasLocation, setHasLocation] = useState(false);
+    const [showTour, setShowTour] = useState(false);
+
+    // Show onboarding tour on first launch
+    useEffect(() => {
+        AsyncStorage.getItem('hasSeenTour').then(val => {
+            if (!val) setShowTour(true);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (location) {
+            Location.reverseGeocodeAsync(location.coords).then(res => {
+                if (res.length > 0) {
+                    setAddressText(`${res[0].city || res[0].district || res[0].name}, ${res[0].country}`);
+                } else {
+                    setAddressText(user?.location || 'Unknown Location');
+                }
+            }).catch(() => {
+                setAddressText(user?.location || 'Unknown Location');
+            });
+        } else if (user?.location) {
+            setAddressText(user.location);
+        } else {
+            setAddressText('Set Location');
+        }
+    }, [location, user]);
 
     useEffect(() => {
         (async () => {
@@ -56,12 +86,14 @@ export default function HomeScreen() {
                 const { status } = await Location.requestForegroundPermissionsAsync();
                 if (status !== 'granted') {
                     setLocationError('Permission to access location was denied');
+                    setAddressText(user?.location || 'Set Location');
                     return;
                 }
 
                 const loc = await Location.getCurrentPositionAsync({});
                 setLocation(loc);
-                setIsNearbyEnabled(true); // Default to nearby if location is found
+                setHasLocation(true);
+                // Do NOT auto-enable nearby — keep isNearbyEnabled = false so all asks show
             } catch (error) {
                 console.warn('Error fetching location:', error);
                 setLocationError('Could not fetch location');
@@ -83,9 +115,10 @@ export default function HomeScreen() {
         searchQuery || undefined,
         undefined,
         undefined,
-        isNearbyEnabled ? location?.coords.latitude : undefined,
-        isNearbyEnabled ? location?.coords.longitude : undefined,
-        isNearbyEnabled ? 10 : undefined // 10km radius
+        sortFilter === 'nearby' && hasLocation ? location?.coords.latitude : undefined,
+        sortFilter === 'nearby' && hasLocation ? location?.coords.longitude : undefined,
+        sortFilter === 'nearby' && hasLocation ? 25 : undefined, // 25km radius when nearby mode is on
+        sortFilter
     );
 
     const asks = data?.pages.flatMap((page) => page.items) ?? [];
@@ -222,8 +255,8 @@ export default function HomeScreen() {
                             <Typography variant="bodySmall" style={{ color: '#5B21B6', marginTop: 4 }}>
                                 Need quick data or file help? Our AI agents are ready!
                             </Typography>
-                            <View style={[styles.promoBadge, { backgroundColor: '#5B21B6' }]}>
-                                <Typography variant="caption" weight="bold" style={{ color: '#fff' }}>Try AI</Typography>
+                            <View style={[styles.promoBadge, { backgroundColor: '#5B21B6', opacity: 0.8 }]}>
+                                <Typography variant="caption" weight="bold" style={{ color: '#fff' }}>Coming Soon</Typography>
                             </View>
                         </View>
                         <Ionicons name="hardware-chip" size={80} color="#5B21B620" style={styles.promoIcon} />
@@ -274,15 +307,66 @@ export default function HomeScreen() {
                 </ScrollView>
             </View>
 
-            <View style={styles.listTitle}>
-                <Typography variant="h5" weight="bold">Nearby Asks</Typography>
+            {/* Filters Row */}
+            <View style={{ paddingHorizontal: spacing[4], marginBottom: spacing[2] }}>
+                <Typography variant="h5" weight="bold" style={{ marginBottom: spacing[3] }}>
+                    {sortFilter === 'nearby' ? 'Nearby Asks' : sortFilter === 'most_rated' ? 'Most Rated Asks' : 'All Asks'}
+                </Typography>
+                
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing[2] }}>
+                    {[
+                        { id: 'latest', label: 'Latest', icon: 'time-outline' },
+                        { id: 'nearby', label: 'Nearby', icon: 'location-outline' },
+                        { id: 'most_rated', label: 'Most Rated', icon: 'star-outline' },
+                    ].map((filter) => {
+                        const isActive = sortFilter === filter.id;
+                        return (
+                            <TouchableOpacity
+                                key={filter.id}
+                                onPress={() => {
+                                    if (filter.id === 'nearby' && !hasLocation) {
+                                        alert('Please allow location access to see nearby asks.');
+                                        return;
+                                    }
+                                    setSortFilter(filter.id);
+                                }}
+                                style={[
+                                    styles.nearbyToggle,
+                                    {
+                                        backgroundColor: isActive ? colors.primary : colors.surfaceVariant,
+                                        borderColor: isActive ? colors.primary : colors.border,
+                                        paddingHorizontal: spacing[3],
+                                        paddingVertical: spacing[1] + 2,
+                                        borderRadius: 20,
+                                        borderWidth: 1,
+                                    }
+                                ]}
+                            >
+                                <Ionicons
+                                    name={filter.icon as any}
+                                    size={14}
+                                    color={isActive ? '#fff' : colors.textSecondary}
+                                />
+                                <Typography
+                                    variant="caption"
+                                    weight="bold"
+                                    style={{ color: isActive ? '#fff' : colors.textSecondary, marginLeft: 4 }}
+                                >
+                                    {filter.label}
+                                </Typography>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
             </View>
         </View>
-    ), [colors, navigation, selectedCategory, setSelectedCategory]);
+    ), [colors, navigation, selectedCategory, setSelectedCategory, sortFilter, hasLocation]);
 
     return (
+        <View style={{ flex: 1 }}>
         <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <StatusBar barStyle={colorScheme === 'dark' ? 'light-content' : 'dark-content'} />
+
 
             {/* Location Header - outside FlatList so it stays stable */}
             <View style={[styles.locationHeader, { backgroundColor: colors.background }]}>
@@ -293,11 +377,18 @@ export default function HomeScreen() {
                             Current Location <Ionicons name="chevron-down" size={14} color={colors.text} />
                         </Typography>
                         <Typography variant="caption" color="secondary" numberOfLines={1}>
-                            Sector 43, Gurugram, India
+                            {addressText}
                         </Typography>
                     </View>
                 </TouchableOpacity>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3] }}>
+                    <TouchableOpacity
+                        onPress={toggleTheme}
+                        style={{ position: 'relative', padding: 4 }}
+                    >
+                        <Ionicons name={colorScheme === 'dark' ? 'sunny-outline' : 'moon-outline'} size={24} color={colors.text} />
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         onPress={() => navigation.navigate('Notifications')}
                         style={{ position: 'relative', padding: 4 }}
@@ -388,6 +479,8 @@ export default function HomeScreen() {
                 />
             )}
         </SafeAreaView>
+        {showTour && <OnboardingTour onDone={() => setShowTour(false)} />}
+    </View>
     );
 }
 
@@ -531,5 +624,13 @@ const styles = StyleSheet.create({
     },
     footer: {
         paddingVertical: spacing[4],
+    },
+    nearbyToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: spacing[3],
+        paddingVertical: spacing[1] + 2,
+        borderRadius: 20,
+        borderWidth: 1,
     },
 });

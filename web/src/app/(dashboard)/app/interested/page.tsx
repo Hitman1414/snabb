@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/api";
 import { Heart, Loader2 } from "lucide-react";
-import AskCard, { AskType } from "@/components/AskCard";
+import AskCard from "@/components/AskCard";
+import { Ask as AskType } from "@/types";
 
 export default function InterestedPage() {
     const router = useRouter();

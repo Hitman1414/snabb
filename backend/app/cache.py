@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 # Try to import redis, but don't fail if it's not available
 try:
     import redis
+    import redis.asyncio as aioredis
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
@@ -22,6 +23,7 @@ class CacheService:
     
     def __init__(self):
         self.redis_client = None
+        self.async_redis_client = None
         self.enabled = False
         
         if REDIS_AVAILABLE and settings.REDIS_ENABLED:
@@ -30,16 +32,25 @@ class CacheService:
                 client = redis.from_url(
                     settings.REDIS_URL, 
                     decode_responses=True,
-                    socket_connect_timeout=2
+                    socket_connect_timeout=2,
+                    socket_timeout=2
+                )
+                async_client = aioredis.from_url(
+                    settings.REDIS_URL,
+                    decode_responses=True,
+                    socket_connect_timeout=2,
+                    socket_timeout=2
                 )
                 # Test connection
                 if client.ping():
                     self.redis_client = client
+                    self.async_redis_client = async_client
                     self.enabled = True
                     logger.info("✅ Redis cache enabled")
             except Exception as e:
                 logger.warning(f"Redis connection failed: {e} - caching disabled")
                 self.redis_client = None
+                self.async_redis_client = None
                 self.enabled = False
     
     def get(self, key: str) -> Optional[str]:

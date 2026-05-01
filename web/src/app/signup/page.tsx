@@ -19,6 +19,7 @@ export default function Signup() {
     const [locationSearch, setLocationSearch] = useState("");
     const [locationResults, setLocationResults] = useState<{display_name: string, lat: string, lon: string}[]>([]);
     const [searchingLocation, setSearchingLocation] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
 
     const handleSignup = async (e: React.FormEvent) => {
@@ -107,9 +108,22 @@ export default function Signup() {
                         </div>
                     </div>
 
-                    <div className="relative z-10 p-6 bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20">
-                        <div className="flex items-center gap-4">
-                            <p className="text-sm font-bold">Join 10k+ users already using Snabb.</p>
+                    <div className="relative z-10 w-full max-w-sm aspect-video bg-black/40 backdrop-blur-lg rounded-2xl overflow-hidden border border-white/20 shadow-2xl flex items-center justify-center group mt-4">
+                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors z-10"></div>
+                        <video 
+                            className="absolute inset-0 w-full h-full object-cover opacity-60"
+                            autoPlay 
+                            loop 
+                            muted 
+                            playsInline
+                        >
+                            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+                        </video>
+                        <div className="relative z-20 flex flex-col items-center">
+                            <div className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform cursor-pointer border border-white/40 shadow-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            </div>
+                            <p className="text-white font-bold text-sm tracking-wide">Snabb App Tutorial</p>
                         </div>
                     </div>
 
@@ -120,6 +134,10 @@ export default function Signup() {
 
                 {/* Form Side */}
                 <div className="p-8 md:p-12 flex flex-col justify-center overflow-y-auto max-h-[90vh]">
+                    <div className="mb-8 flex items-center">
+                        <img src="/snabb-logo.svg" alt="Snabb Logo" className="h-16 w-auto" />
+                    </div>
+
                     <div className="mb-8">
                         <h1 className="text-4xl font-black text-foreground mb-3 tracking-tight">Create Account</h1>
                         <p className="text-text-secondary font-medium">Join us and start getting things done.</p>
@@ -221,13 +239,32 @@ export default function Signup() {
                             <div className="relative">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary group-focus-within/pass:text-primary transition-colors" />
                                 <input 
-                                    type="password" 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm text-foreground font-bold focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all transition-colors" 
+                                    type={showPassword ? "text" : "password"} 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-12 py-3 text-sm text-foreground font-bold focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all transition-colors" 
                                     placeholder="••••••••" 
                                     value={formData.password}
                                     onChange={(e) => setFormData({...formData, password: e.target.value})}
                                     required
                                 />
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        {showPassword ? (
+                                            <>
+                                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </>
+                                        )}
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 

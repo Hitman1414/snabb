@@ -22,6 +22,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# any log file (audit #22)
+*.log
+
 # local env files
 .env
 .env.local

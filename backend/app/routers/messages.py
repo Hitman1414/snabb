@@ -3,12 +3,12 @@ Messages Router
 Handles messaging between users
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
-from ..bot_service import process_support_message_sync
+from ..bot_service import process_support_message
 from ..websocket_manager import manager
 from ..notification_service import create_notification
 from fastapi import BackgroundTasks
@@ -60,9 +60,13 @@ def create_message(
     db.add(db_message)
     db.commit()
     db.refresh(db_message)
-    
-    # Trigger AI Support bot processing
-    background_tasks.add_task(process_support_message_sync, db_message.id, db)
+
+    # Audit #24: only spawn the support-bot coroutine when a bot is on
+    # either side of the conversation. Previously this fired for every
+    # human-to-human message, opening a DB session and running an LLM
+    # check just to early-return.
+    if getattr(receiver, "is_bot", False) or getattr(current_user, "is_bot", False):
+        background_tasks.add_task(process_support_message, db_message.id)
     
     # Send WebSocket notification to receiver
     ws_payload = {
@@ -154,50 +158,57 @@ def mark_messages_read(
 @router.get("/conversations", response_model=List[schemas.Conversation])
 def get_conversations(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
 ):
-    """Get all conversations grouped by user and ask"""
-    # Fetch all messages involving current user
-    messages = db.query(models.Message).filter(
-        (models.Message.sender_id == current_user.id) | 
-        (models.Message.receiver_id == current_user.id)
-    ).order_by(models.Message.created_at.desc()).all()
+    """Get all conversations grouped by (other_user, ask).
 
-    conversations_map = {}
+    Audit #14: previously this endpoint did 1 + 2N queries (one per
+    conversation, for User and Ask lookups). We now eager-load sender,
+    receiver, and ask in the single message query — total = 1 query
+    regardless of conversation count.
+    """
+    messages = (
+        db.query(models.Message)
+        .options(
+            joinedload(models.Message.sender),
+            joinedload(models.Message.receiver),
+            joinedload(models.Message.ask),
+        )
+        .filter(
+            (models.Message.sender_id == current_user.id)
+            | (models.Message.receiver_id == current_user.id)
+        )
+        .order_by(models.Message.created_at.desc())
+        .all()
+    )
 
+    # Group in memory; relationships are already loaded so no further
+    # database round-trips occur in this loop.
+    conversations: dict[tuple[int, int], dict] = {}
     for msg in messages:
-        other_user_id = msg.receiver_id if msg.sender_id == current_user.id else msg.sender_id
-        ask_id = msg.ask_id
-        
-        # Skip messages without ask_id for now as per requirement
-        if not ask_id:
+        if not msg.ask_id:
+            # We don't currently surface ask-less DMs in the conversation list.
             continue
 
-        key = (other_user_id, ask_id)
-        
-        if key not in conversations_map:
-            conversations_map[key] = {
+        other_user = msg.receiver if msg.sender_id == current_user.id else msg.sender
+        if other_user is None or msg.ask is None:
+            # Defensive: ignore orphaned messages whose related rows were
+            # deleted (e.g. ask deleted but message retained pre-cascade).
+            continue
+
+        key = (other_user.id, msg.ask_id)
+        bucket = conversations.get(key)
+        if bucket is None:
+            # First (= most recent due to DESC ordering) message wins.
+            conversations[key] = {
+                "other_user": other_user,
+                "ask": msg.ask,
                 "last_message": msg,
                 "unread_count": 0,
-                "other_user_id": other_user_id,
-                "ask_id": ask_id
             }
-        
-        # Count unread messages where current user is receiver
-        if msg.receiver_id == current_user.id and not msg.is_read:
-            conversations_map[key]["unread_count"] += 1
+            bucket = conversations[key]
 
-    result = []
-    for key, data in conversations_map.items():
-        other_user = db.query(models.User).filter(models.User.id == data["other_user_id"]).first()
-        ask = db.query(models.Ask).filter(models.Ask.id == data["ask_id"]).first()
-        
-        if other_user and ask:
-            result.append({
-                "other_user": other_user,
-                "ask": ask,
-                "last_message": data["last_message"],
-                "unread_count": data["unread_count"]
-            })
-            
-    return result
+        if msg.receiver_id == current_user.id and not msg.is_read:
+            bucket["unread_count"] += 1
+
+    return list(conversations.values())

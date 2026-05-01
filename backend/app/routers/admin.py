@@ -1,51 +1,82 @@
-from fastapi import APIRouter, Depends, HTTPException
+"""
+Admin endpoints.
+
+Audit #4: All admin endpoints now require Authorization: Bearer header
+(via the shared `auth.get_current_user` FastAPI dependency). The legacy
+`?token=...` query parameter is no longer accepted — it leaked tokens
+into server access logs, browser history, and Referer headers.
+"""
+from datetime import datetime
+import json
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
+
 from .. import models, auth
+from ..cache import cache_service
 from ..database import get_db
-import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+
+def require_admin(current_user: models.User = Depends(auth.get_current_user)) -> models.User:
+    """Shared dependency: 401 if not logged in, 403 if not admin."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    return current_user
+
+
+def require_admin_for_dashboard(
+    request: Request,
+    token: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> models.User:
+    """HTML dashboard auth, including legacy query-token support for old mobile bundles."""
+    bearer = request.headers.get("Authorization", "")
+    if bearer.startswith("Bearer "):
+        token = bearer.split(" ", 1)[1]
+
+    cookie_token = request.cookies.get("access_token")
+    if not token and cookie_token:
+        token = cookie_token.split(" ", 1)[1] if cookie_token.startswith("Bearer ") else cookie_token
+
+    current_user = auth.get_user_from_token(token, db) if token else None
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin only")
+    return current_user
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard(
-    token: str = None,
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(require_admin_for_dashboard),
+    db: Session = Depends(get_db),
 ):
-    if not token:
-        raise HTTPException(status_code=401, detail="Token required")
-        
-    current_user = auth.get_current_user(token, db)
-    
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Not an admin")
-    import json
-    from ..cache import cache_service
-    from datetime import datetime
-
     total_asks = db.query(models.Ask).count()
     active_users = db.query(models.User).count()
-    
     recent_asks = db.query(models.Ask).order_by(models.Ask.created_at.desc()).limit(8).all()
-    
+
     # API Metrics from Redis
     total_api_requests = 0
     recent_api_requests = []
     avg_resp_time = 0
     status_codes_html = "<i>No data yet</i>"
     endpoint_hits = []
-    
+
     if cache_service.enabled:
         total_api_requests = cache_service.redis_client.get("stats:total_requests") or 0
         raw_recent = cache_service.redis_client.lrange("stats:recent_requests", 0, 14)
         recent_api_requests = [json.loads(r) for r in raw_recent]
-        
+
         resp_times = cache_service.redis_client.lrange("stats:response_times", 0, 99)
         if resp_times:
             avg_resp_time = sum([float(t) for t in resp_times]) / len(resp_times)
-            
+
         status_codes = cache_service.redis_client.hgetall("stats:status_codes")
         if status_codes:
             status_codes_html = ""
@@ -53,10 +84,9 @@ def get_dashboard(
                 badge_class = "success" if code.startswith("2") else "warning" if code.startswith("4") else "danger"
                 status_codes_html += f'<span class="badge bg-{badge_class} me-2" style="font-size: 0.9rem;">{code}: {count}</span>'
 
-        # Endpoint popularity
         raw_hits = cache_service.redis_client.hgetall("stats:endpoint_hits")
         endpoint_hits = sorted(raw_hits.items(), key=lambda x: int(x[1]), reverse=True)[:5]
-    
+
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
@@ -65,276 +95,146 @@ def get_dashboard(
         <title>Snabb Control Center</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-        <style>
-            :root {{ --snabb-primary: #FF7E5F; --snabb-dark: #1A1C1E; }}
-            body {{ background-color: #f0f2f5; font-family: 'Inter', sans-serif; }}
-            .sidebar {{ min-height: 100vh; background: var(--snabb-dark); color: white; padding: 25px; }}
-            .nav-link {{ color: #adb5bd; transition: 0.3s; border-radius: 8px; margin-bottom: 5px; }}
-            .nav-link:hover, .nav-link.active {{ background: rgba(255,255,255,0.1); color: white; }}
-            .card {{ border: none; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); transition: transform 0.2s; }}
-            .card:hover {{ transform: translateY(-5px); }}
-            .stats-icon {{ width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }}
-            .table thead th {{ border-top: none; color: #6c757d; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }}
-        </style>
     </head>
-    <body>
-        <div class="container-fluid">
-            <div class="row">
-                <!-- Sidebar -->
-                <div class="col-md-2 d-none d-md-block sidebar shadow">
-                    <div class="d-flex align-items-center mb-4">
-                        <i class="bi bi-rocket-takeoff-fill me-2 fs-3 text-warning"></i>
-                        <h4 class="mb-0">Snabb Pro</h4>
-                    </div>
-                    <hr class="opacity-10">
-                    <ul class="nav flex-column">
-                        <li class="nav-item"><a class="nav-link active" href="#"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-people me-2"></i> User Manager</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-chat-left-dots me-2"></i> Moderation</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-graph-up me-2"></i> Analytics</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-gear me-2"></i> API Config</a></li>
-                    </ul>
+    <body class="bg-light">
+        <div class="container py-4">
+            <h2 class="fw-bold mb-3">System Control Center</h2>
+            <p class="text-muted">Logged in as <strong>{current_user.username}</strong></p>
+            <div class="row g-3 mb-4">
+                <div class="col-md-3"><div class="card p-3"><small>Total Asks</small><h3>{total_asks}</h3></div></div>
+                <div class="col-md-3"><div class="card p-3"><small>Total Requests</small><h3>{total_api_requests}</h3></div></div>
+                <div class="col-md-3"><div class="card p-3"><small>Avg Latency</small><h3>{avg_resp_time*1000:.1f}ms</h3></div></div>
+                <div class="col-md-3"><div class="card p-3"><small>Active Users</small><h3>{active_users}</h3></div></div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between">
+                    <strong>Recent API Traffic</strong>
+                    <span>{status_codes_html}</span>
                 </div>
-
-                <!-- Main Content -->
-                <div class="col-md-10 p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h2 class="fw-bold mb-0">System Control Center</h2>
-                            <p class="text-muted small">Real-time monitoring and management</p>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <div class="text-end me-3">
-                                <p class="mb-0 fw-semibold">{current_user.username}</p>
-                                <span class="badge bg-primary">ADMIN</span>
-                            </div>
-                            <img src="https://ui-avatars.com/api/?name={current_user.username}&background=random" class="rounded-circle" width="45">
-                        </div>
-                    </div>
-                    
-                    <!-- Top Stats -->
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-3">
-                            <div class="card p-3">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <p class="text-muted small mb-1">Total Asks</p>
-                                        <h3 class="fw-bold">{total_asks}</h3>
-                                    </div>
-                                    <div class="stats-icon bg-primary-subtle text-primary"><i class="bi bi-cart-check"></i></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card p-3">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <p class="text-muted small mb-1">Total Requests</p>
-                                        <h3 class="fw-bold">{total_api_requests}</h3>
-                                    </div>
-                                    <div class="stats-icon bg-success-subtle text-success"><i class="bi bi-activity"></i></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card p-3">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <p class="text-muted small mb-1">Avg Latency</p>
-                                        <h3 class="fw-bold">{avg_resp_time*1000:.1f}ms</h3>
-                                    </div>
-                                    <div class="stats-icon bg-info-subtle text-info"><i class="bi bi-clock-history"></i></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card p-3">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <p class="text-muted small mb-1">Active Users</p>
-                                        <h3 class="fw-bold">{active_users}</h3>
-                                    </div>
-                                    <div class="stats-icon bg-warning-subtle text-warning"><i class="bi bi-people"></i></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-4">
-                        <!-- Recent Activity -->
-                        <div class="col-md-8">
-                            <div class="card shadow-sm mb-4">
-                                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                                    <h5 class="mb-0 fw-bold">Recent API Traffic</h5>
-                                    <div id="status-badges">{status_codes_html}</div>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover align-middle mb-0">
-                                            <thead class="bg-light">
-                                                <tr>
-                                                    <th class="ps-4">Method</th>
-                                                    <th>Endpoint</th>
-                                                    <th>Status</th>
-                                                    <th>Latency</th>
-                                                    <th>Time</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {"".join([f'''
-                                                <tr>
-                                                    <td class="ps-4"><span class="badge bg-secondary-subtle text-dark border">{r['method']}</span></td>
-                                                    <td class="text-primary fw-medium">{r['path']}</td>
-                                                    <td><span class="badge bg-{'success' if str(r['status']).startswith('2') else 'danger' if str(r['status']).startswith('5') else 'warning'}">{r['status']}</span></td>
-                                                    <td>{r['duration']*1000:.1f}ms</td>
-                                                    <td class="text-muted small">{datetime.fromtimestamp(r['timestamp']).strftime('%H:%M:%S')}</td>
-                                                </tr>
-                                                ''' for r in recent_api_requests]) if recent_api_requests else '<tr><td colspan="5" class="text-center py-4 text-muted">No API logs available yet. Make some requests in the app!</td></tr>'}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="card shadow-sm">
-                                <div class="card-header bg-white py-3">
-                                    <h5 class="mb-0 fw-bold">Recent Asks Marketplace</h5>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover align-middle mb-0">
-                                            <thead class="bg-light">
-                                                <tr>
-                                                    <th class="ps-4">Ask Details</th>
-                                                    <th>Category</th>
-                                                    <th>Status</th>
-                                                    <th>Created</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {"".join([f'''
-                                                <tr>
-                                                    <td class="ps-4">
-                                                        <div class="fw-bold">{a.title[:40]}...</div>
-                                                        <div class="text-muted small">ID: #{a.id}</div>
-                                                    </td>
-                                                    <td><span class="badge rounded-pill bg-info-subtle text-info border border-info">{a.category}</span></td>
-                                                    <td><span class="badge bg-{'success' if a.status=='open' else 'secondary'}">{a.status}</span></td>
-                                                    <td class="text-muted small">{a.created_at.strftime("%b %d, %H:%M")}</td>
-                                                </tr>
-                                                ''' for a in recent_asks])}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Side Metrics -->
-                        <div class="col-md-4">
-                            <div class="card shadow-sm p-4 mb-4 bg-dark text-white">
-                                <h5 class="fw-bold mb-4"><i class="bi bi-fire me-2 text-warning"></i>Popular Endpoints</h5>
-                                {"".join([f'''
-                                <div class="mb-3">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="text-white-50 small">{path}</span>
-                                        <span class="fw-bold">{count}</span>
-                                    </div>
-                                    <div class="progress" style="height: 6px;">
-                                        <div class="progress-bar bg-warning" style="width: {(int(count)/int(total_api_requests)*100) if total_api_requests else 0}%"></div>
-                                    </div>
-                                </div>
-                                ''' for path, count in endpoint_hits]) if endpoint_hits else '<p class="text-muted">No traffic data</p>'}
-                            </div>
-
-                            <div class="card shadow-sm p-4">
-                                <h5 class="fw-bold mb-3">Service Health</h5>
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="flex-grow-1">
-                                        <div class="fw-bold">Database (Supabase)</div>
-                                        <div class="small text-success"><i class="bi bi-check-circle-fill me-1"></i>Connected</div>
-                                    </div>
-                                    <div class="ms-3 text-success fs-4"><i class="bi bi-database-check"></i></div>
-                                </div>
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="flex-grow-1">
-                                        <div class="fw-bold">Cache (Redis)</div>
-                                        <div class="small text-{'success' if cache_service.enabled else 'danger'}">
-                                            <i class="bi bi-{'check-circle-fill' if cache_service.enabled else 'exclamation-circle-fill'} me-1"></i>
-                                            {'Active' if cache_service.enabled else 'Offline'}
-                                        </div>
-                                    </div>
-                                    <div class="ms-3 text-{'success' if cache_service.enabled else 'danger'} fs-4">
-                                        <i class="bi bi-lightning-charge"></i>
-                                    </div>
-                                </div>
-                                <button class="btn btn-outline-primary w-100 mt-3" onclick="location.reload()">
-                                    <i class="bi bi-arrow-clockwise me-2"></i>Refresh Live Data
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <table class="table mb-0">
+                    <thead><tr><th>Method</th><th>Endpoint</th><th>Status</th><th>Latency</th><th>Time</th></tr></thead>
+                    <tbody>
+                        {"".join(f'<tr><td>{r["method"]}</td><td>{r["path"]}</td><td>{r["status"]}</td><td>{r["duration"]*1000:.1f}ms</td><td>{datetime.fromtimestamp(r["timestamp"]).strftime("%H:%M:%S")}</td></tr>' for r in recent_api_requests) or '<tr><td colspan="5" class="text-center text-muted py-3">No API logs yet</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card">
+                <div class="card-header"><strong>Recent Asks</strong></div>
+                <table class="table mb-0">
+                    <thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Created</th></tr></thead>
+                    <tbody>
+                        {"".join(f'<tr><td>{a.title[:40]}</td><td>{a.category}</td><td>{a.status}</td><td>{a.created_at.strftime("%b %d, %H:%M")}</td></tr>' for a in recent_asks)}
+                    </tbody>
+                </table>
             </div>
         </div>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     </body>
     </html>
     """
     return HTMLResponse(content=html_content)
 
+
 @router.get("/stats")
 def get_stats(
-    token: str,
-    db: Session = Depends(get_db)
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
-    """API endpoint for stats with monitoring details and platform analysis"""
-    current_user = auth.get_current_user(token, db)
-    if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Not an admin")
-
-    import json
-    from datetime import datetime
-    from ..cache import cache_service
-    from .. import models
-    
+    """API endpoint for stats with monitoring details and platform analysis."""
     db_stats = {
         "total_asks": db.query(models.Ask).count(),
         "total_users": db.query(models.User).count(),
         "total_responses": db.query(models.Response).count(),
-        "unassigned_asks": db.query(models.Ask).filter(models.Ask.status == "open").count()
+        "unassigned_asks": db.query(models.Ask).filter(models.Ask.status == "open").count(),
     }
-    
+
     api_stats = {
         "total_requests": 0,
         "status_codes": {},
         "avg_latency_ms": 0,
         "platforms": {"browser": 0, "mobile": 0},
         "top_endpoints": [],
-        "recent_traffic": []
+        "recent_traffic": [],
     }
 
     if cache_service.enabled:
         api_stats["total_requests"] = int(cache_service.redis_client.get("stats:total_requests") or 0)
         api_stats["status_codes"] = cache_service.redis_client.hgetall("stats:status_codes")
         api_stats["platforms"] = cache_service.redis_client.hgetall("stats:platforms") or {"browser": 0, "mobile": 0}
-        
-        # Responses times
+
         resp_times = cache_service.redis_client.lrange("stats:response_times", 0, 99)
         if resp_times:
-             api_stats["avg_latency_ms"] = round((sum([float(t) for t in resp_times]) / len(resp_times)) * 1000, 2)
-        
-        # Top endpoints
+            api_stats["avg_latency_ms"] = round((sum([float(t) for t in resp_times]) / len(resp_times)) * 1000, 2)
+
         raw_hits = cache_service.redis_client.hgetall("stats:endpoint_hits")
         api_stats["top_endpoints"] = sorted(raw_hits.items(), key=lambda x: int(x[1]), reverse=True)[:10]
-        
-        # Recent traffic
+
         raw_recent = cache_service.redis_client.lrange("stats:recent_requests", 0, 19)
         api_stats["recent_traffic"] = [json.loads(r) for r in raw_recent]
-             
+
     return {
         "success": True,
-        "db": db_stats, 
+        "db": db_stats,
         "monitoring": api_stats,
-        "server_time": datetime.now().isoformat()
+        "server_time": datetime.now().isoformat(),
     }
+
+
+@router.get("/moderation-logs")
+def get_moderation_logs(
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """API endpoint to fetch all flagged moderation attempts."""
+    logs = db.query(models.ModerationLog).order_by(models.ModerationLog.created_at.desc()).all()
+
+    result = []
+    for log in logs:
+        user = db.query(models.User).filter(models.User.id == log.user_id).first()
+        result.append({
+            "id": log.id,
+            "user_id": log.user_id,
+            "username": user.username if user else "Unknown",
+            "email": user.email if user else "Unknown",
+            "content_type": log.content_type,
+            "content_text": log.content_text,
+            "flagged_reason": log.flagged_reason,
+            "platform": log.platform,
+            "created_at": log.created_at.isoformat(),
+        })
+    return {"success": True, "logs": result}
+
+
+# ─── Pro verification (audit #9 part b) ───────────────────────────────────
+@router.post("/users/{user_id}/verify-pro")
+def verify_pro(
+    user_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin-only: mark a user's pro application as verified."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.is_pro:
+        raise HTTPException(status_code=400, detail="User has not applied as a Pro")
+
+    user.pro_verified = True
+    db.commit()
+    db.refresh(user)
+    logger.info(f"Admin {current_user.id} verified pro user {user_id}")
+    return {"success": True, "user_id": user.id, "pro_verified": user.pro_verified}
+
+
+@router.post("/users/{user_id}/unverify-pro")
+def unverify_pro(
+    user_id: int,
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin-only: revoke a user's pro verification."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.pro_verified = False
+    db.commit()
+    return {"success": True, "user_id": user.id, "pro_verified": user.pro_verified}

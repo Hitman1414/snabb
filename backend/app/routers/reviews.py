@@ -85,9 +85,26 @@ def create_review(
     db.add(db_review)
     db.commit()
     db.refresh(db_review)
-    
+
+    # Audit #7: keep User.pro_rating in sync with the reviews table so the
+    # /users/pros listing (which sorts on this column) reflects new reviews.
+    _recompute_pro_rating(db, review.reviewee_id)
+
     logger.info(f"Review created: {db_review.id} by user {current_user.id}")
     return db_review
+
+
+def _recompute_pro_rating(db: Session, user_id: int) -> None:
+    """Recompute and persist a user's pro_rating from the reviews table."""
+    from sqlalchemy import func
+
+    avg = db.query(func.avg(models.Review.rating)).filter(
+        models.Review.reviewee_id == user_id
+    ).scalar()
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is not None:
+        user.pro_rating = float(avg) if avg is not None else 0.0
+        db.commit()
 
 
 @router.get("/ask/{ask_id}", response_model=List[schemas.Review])
@@ -173,10 +190,13 @@ def update_review(
     update_data = review_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_review, field, value)
-    
+
     db.commit()
     db.refresh(db_review)
-    
+
+    # Audit #7: recompute averaged rating after edit.
+    _recompute_pro_rating(db, db_review.reviewee_id)
+
     logger.info(f"Review updated: {review_id} by user {current_user.id}")
     return db_review
 
@@ -205,8 +225,12 @@ def delete_review(
             detail="You can only delete your own reviews"
         )
     
+    reviewee_id = db_review.reviewee_id
     db.delete(db_review)
     db.commit()
-    
+
+    # Audit #7: recompute averaged rating after deletion.
+    _recompute_pro_rating(db, reviewee_id)
+
     logger.info(f"Review deleted: {review_id} by user {current_user.id}")
     return None

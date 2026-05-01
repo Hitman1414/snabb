@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { API_CONFIG } from '../constants/config';
 import { storageService } from '../services/storage';
 import { Message } from '../types';
+import apiClient from '../services/api';
 
 export const useChatSocket = (askId?: number) => {
     const queryClient = useQueryClient();
@@ -11,12 +12,26 @@ export const useChatSocket = (askId?: number) => {
     const [reconnectCount, setReconnectCount] = useState(0);
 
     const connect = useCallback(async () => {
+        // Audit #21: exchange the long-lived JWT for a short-lived (60s)
+        // single-use WS ticket via authenticated POST. The ticket is the
+        // only credential that travels in the WS URL, so even if logs leak
+        // the URL the credential is already invalid by the time anyone reads it.
         const token = await storageService.getItem('access_token');
         if (!token) return;
 
-        // Construct WS URL with token
-        const wsUrl = `${API_CONFIG.WS_URL}/ws/chat?token=${token}`;
-        
+        let ticket: string | undefined;
+        try {
+            const res = await apiClient.post<{ ticket: string; expires_in: number }>(
+                '/ws/ticket'
+            );
+            ticket = res.data.ticket;
+        } catch (err) {
+            console.error('Failed to obtain WS ticket', err);
+            return;
+        }
+
+        const wsUrl = `${API_CONFIG.WS_URL}/ws/chat?ticket=${ticket}`;
+
         ws.current = new WebSocket(wsUrl);
 
         ws.current.onopen = () => {

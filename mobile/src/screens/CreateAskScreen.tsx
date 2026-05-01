@@ -12,6 +12,7 @@ import {
     Alert,
     TouchableOpacity,
     ActivityIndicator,
+    TextInput,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -24,6 +25,7 @@ import { createAskSchema } from '../lib/validation';
 import { z } from 'zod';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import apiClient from '../services/api';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateAsk'>;
 
@@ -36,9 +38,11 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('');
     const [location, setLocation] = useState('');
+    const [manualAddress, setManualAddress] = useState('');
     const [houseNo, setHouseNo] = useState('');
     const [area, setArea] = useState('');
     const [landmark, setLandmark] = useState('');
+    const [contactPhone, setContactPhone] = useState('');
     const [budgetMin, setBudgetMin] = useState('');
     const [budgetMax, setBudgetMax] = useState('');
     const [images, setImages] = useState<string[]>([]);
@@ -46,26 +50,89 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
  
     // Manual address toggle
     const [showManualAddress, setShowManualAddress] = useState(false);
+    // Location detected feedback
+    const [locationDetected, setLocationDetected] = useState(false);
  
     // Optional: Store lat/lng if needed for backend
     const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
 
+    const [magicText, setMagicText] = useState('');
+    const [isMagicLoading, setIsMagicLoading] = useState(false);
+    const [isEnhancing, setIsEnhancing] = useState(false);
+
+    const handleMagicAsk = async () => {
+        if (!magicText.trim()) {
+            Alert.alert('Error', 'Please enter some text for Magic Auto-fill.');
+            return;
+        }
+        setIsMagicLoading(true);
+        try {
+            const response = await apiClient.post('/ai/magic-ask', { text: magicText });
+            const data = response.data;
+            
+            setTitle(data.title || title);
+            setDescription(data.description || description);
+            setCategory(data.category || category);
+            setBudgetMin(data.budget_min !== null ? String(data.budget_min) : budgetMin);
+            setBudgetMax(data.budget_max !== null ? String(data.budget_max) : budgetMax);
+            setMagicText('');
+        } catch (error: any) {
+            console.error('Magic Ask Error:', error);
+            const status = error?.response?.status;
+            if (status === 429) {
+                Alert.alert('Please Wait', 'AI is temporarily busy. Please wait a minute and try again.');
+            } else {
+                Alert.alert('Error', 'Magic Ask failed. Please try again.');
+            }
+        } finally {
+            setIsMagicLoading(false);
+        }
+    };
+
+    const handleEnhanceDescription = async () => {
+        if (!description.trim() || description.length < 10) {
+            Alert.alert('Error', 'Please write a few words in the description first to enhance it.');
+            return;
+        }
+        setIsEnhancing(true);
+        try {
+            const response = await apiClient.post('/ai/enhance-description', { description });
+            setDescription(response.data.enhanced_text);
+        } catch (error: any) {
+            console.error('Enhance Description Error:', error);
+            const status = error?.response?.status;
+            const backendDetail = error?.response?.data?.detail || error?.response?.data?.error?.message;
+            if (status === 429) {
+                Alert.alert('Please Wait', backendDetail || 'AI is temporarily busy. Please wait a minute and try again.');
+            } else {
+                Alert.alert('Error', backendDetail || 'Failed to enhance description.');
+            }
+        } finally {
+            setIsEnhancing(false);
+        }
+    };
+
     const handleLocationDetected = (locationData: { latitude: number; longitude: number; address: string }) => {
         setLocation(locationData.address);
         setCoordinates({ latitude: locationData.latitude, longitude: locationData.longitude });
+        setLocationDetected(true);
     };
 
     const handleSubmit = async () => {
         try {
             let finalLocation = location;
             if (showManualAddress) {
-                // Ensure we don't end up with an empty string if all fields are empty
-                const parts = [houseNo, area, landmark, location].filter(val => val && val.trim().length > 0);
-                finalLocation = parts.join(', ');
+                // Build from manual address fields
+                const parts = [houseNo, area, landmark, manualAddress].filter(val => val && val.trim().length > 0);
+                finalLocation = parts.length > 0 ? parts.join(', ') : location;
+            }
+            // If user typed a manual address but didn't use GPS
+            if (!finalLocation && manualAddress) {
+                finalLocation = manualAddress;
             }
             
             if (!finalLocation || finalLocation.trim().length === 0) {
-                Alert.alert('Error', 'Please enter a location or use a manual address.');
+                Alert.alert('Error', 'Please detect your location or enter an address manually.');
                 return;
             }
 
@@ -80,6 +147,7 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                 images,
                 latitude: coordinates?.latitude,
                 longitude: coordinates?.longitude,
+                contact_phone: contactPhone ? contactPhone.trim() : undefined,
             });
 
             setLoading(true);
@@ -126,6 +194,42 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
+                {/* AI Magic Auto-fill Section - Commented out for next phase */}
+                {/* 
+                <Card variant="elevated" elevation="base" style={[styles.aiCard, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
+                    <View style={styles.sectionHeaderRow}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Ionicons name="sparkles" size={18} color={colors.primary} />
+                            <Typography variant="body" weight="bold" style={{ marginLeft: spacing[2], color: colors.primary }}>
+                                Magic Auto-fill
+                            </Typography>
+                        </View>
+                    </View>
+                    <View style={styles.magicInputRow}>
+                        <TextInput
+                            style={[styles.magicInput, { borderColor: colors.primary + '30', color: colors.text }]}
+                            placeholder="e.g. Need a plumber for $50..."
+                            placeholderTextColor={colors.textSecondary}
+                            value={magicText}
+                            onChangeText={setMagicText}
+                        />
+                        <TouchableOpacity
+                            onPress={handleMagicAsk}
+                            disabled={isMagicLoading || !magicText.trim()}
+                            style={[styles.magicButton, { backgroundColor: colors.primary, opacity: (isMagicLoading || !magicText.trim()) ? 0.6 : 1 }]}
+                        >
+                            {isMagicLoading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Typography variant="caption" weight="bold" style={{ color: '#fff' }}>
+                                    Fill
+                                </Typography>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </Card>
+                */}
+
                 {/* Section 1: Task Details */}
                 <Card variant="elevated" elevation="base" style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
                     <Typography variant="body" weight="bold" style={[styles.sectionTitle, { color: colors.text }]}>
@@ -149,14 +253,38 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                         searchable
                     />
 
-                    <Input
-                        label="Description"
+                    <View style={[styles.sectionHeaderRow, { marginBottom: spacing[2], marginTop: spacing[4] }]}>
+                        <Typography variant="caption" weight="bold" style={{ color: colors.textSecondary }}>
+                            Description
+                        </Typography>
+                        {/* AI Enhance description feature temporarily disabled
+                        <TouchableOpacity 
+                            onPress={handleEnhanceDescription}
+                            disabled={isEnhancing || !description.trim()}
+                            style={styles.enhanceButton}
+                        >
+                            {isEnhancing ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                <>
+                                    <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
+                                    <Typography variant="caption" weight="bold" style={{ color: colors.primary, marginLeft: 4 }}>
+                                        Enhance with AI
+                                    </Typography>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                        */}
+                    </View>
+
+                    <TextInput
                         placeholder="Provide details about your request..."
                         value={description}
                         onChangeText={setDescription}
                         multiline
                         numberOfLines={4}
-                        style={[styles.input, styles.textArea]}
+                        placeholderTextColor={colors.textSecondary}
+                        style={[styles.input, styles.textArea, { borderColor: colors.border, color: colors.text }]}
                     />
                 </Card>
 
@@ -179,6 +307,28 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                         value={location}
                         onChangeText={setLocation}
                         onLocationDetected={handleLocationDetected}
+                    />
+
+                    {/* Location Feedback */}
+                    {locationDetected && (
+                        <View style={[styles.locationFeedback, { backgroundColor: '#E8F5E9', borderColor: '#81C784' }]}>
+                            <Ionicons name="checkmark-circle" size={16} color="#43A047" />
+                            <Typography variant="caption" weight="bold" style={{ color: '#2E7D32', marginLeft: 6, flex: 1 }}>
+                                Location detected: {location.length > 50 ? location.substring(0, 50) + '...' : location}
+                            </Typography>
+                        </View>
+                    )}
+
+                    {/* Manual Address Input (always visible as a simple text input) */}
+                    <Input
+                        label="Or type your address"
+                        placeholder="e.g. Sector 89, Gurgaon, Haryana"
+                        value={manualAddress}
+                        onChangeText={(text) => {
+                            setManualAddress(text);
+                            if (!locationDetected) setLocation(text);
+                        }}
+                        style={{ marginTop: spacing[3] }}
                     />
 
                     {showManualAddress && (
@@ -205,7 +355,21 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                     )}
                 </Card>
 
-                {/* Section 3: Budget */}
+                {/* Section 3: Contact */}
+                <Card variant="elevated" elevation="base" style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
+                    <Typography variant="body" weight="bold" style={[styles.sectionTitle, { color: colors.text }]}>
+                        Contact (Optional)
+                    </Typography>
+                    <Input
+                        label="Phone Number"
+                        placeholder="+91 98765 43210"
+                        value={contactPhone}
+                        onChangeText={setContactPhone}
+                        keyboardType="phone-pad"
+                    />
+                </Card>
+
+                {/* Section 4: Budget */}
                 <Card variant="elevated" elevation="base" style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
                     <Typography variant="body" weight="bold" style={[styles.sectionTitle, { color: colors.text }]}>
                         Estimated Budget
@@ -232,7 +396,7 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
                 </Card>
 
-                {/* Section 4: Photos */}
+                {/* Section 5: Photos */}
                 <Card variant="elevated" elevation="base" style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
                     <ImagePicker
                         label="Add Photos"
@@ -269,30 +433,46 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: spacing[4],
-        paddingBottom: spacing[3],
+        paddingBottom: spacing[4],
         backgroundColor: '#fff',
-        borderBottomWidth: 1,
+        borderBottomWidth: 1.5,
         borderBottomColor: '#F0F2F5',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 5,
+        elevation: 1,
     },
     backButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         backgroundColor: '#F5F7FA',
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
     scrollContent: {
         padding: spacing[4],
         paddingBottom: spacing[12],
     },
     sectionCard: {
-        marginBottom: spacing[4],
-        padding: spacing[4],
+        marginBottom: spacing[5],
+        padding: spacing[5],
+        borderRadius: 24,
+        borderWidth: 1.5,
+        borderColor: '#F0F2F5',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
     },
     sectionTitle: {
         marginBottom: spacing[4],
         color: '#1C1C1C',
+        fontSize: 18,
     },
     sectionHeaderRow: {
         flexDirection: 'row',
@@ -306,8 +486,8 @@ const styles = StyleSheet.create({
         borderRadius: borderRadius.full,
     },
     manualFields: {
-        marginTop: spacing[2],
-        gap: spacing[1],
+        marginTop: spacing[3],
+        gap: spacing[2],
     },
     manualInput: {
         marginBottom: spacing[2],
@@ -326,15 +506,55 @@ const styles = StyleSheet.create({
         minHeight: 120,
         textAlignVertical: 'top',
     },
+    locationFeedback: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: spacing[3],
+        paddingVertical: spacing[2],
+        borderRadius: borderRadius.md,
+        borderWidth: 1,
+        marginTop: spacing[2],
+    },
+    aiCard: {
+        marginBottom: spacing[4],
+        padding: spacing[4],
+        borderWidth: 1,
+        borderRadius: borderRadius.lg,
+    },
+    magicInputRow: {
+        flexDirection: 'row',
+        gap: spacing[2],
+    },
+    magicInput: {
+        flex: 1,
+        height: 44,
+        borderWidth: 1,
+        borderRadius: borderRadius.md,
+        paddingHorizontal: spacing[3],
+        fontSize: 14,
+    },
+    magicButton: {
+        height: 44,
+        paddingHorizontal: spacing[4],
+        borderRadius: borderRadius.md,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    enhanceButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: spacing[1],
+        paddingHorizontal: spacing[2],
+    },
     mainButton: {
-        marginTop: spacing[4],
-        height: 56,
-        borderRadius: 28,
-        shadowColor: '#F7C301',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        marginTop: spacing[6],
+        height: 60,
+        borderRadius: 30,
+        shadowColor: '#FF6B35',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
     },
     footerHint: {
         marginTop: spacing[4],
