@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
@@ -6,7 +8,7 @@ export default function Home() {
       {/* Header */}
       <header className="flex items-center justify-between p-6 max-w-7xl w-full mx-auto">
         <div className="flex items-center">
-          <img src="/snabb-logo.svg" alt="Snabb Logo" className="h-8 w-auto" />
+          <Logo className="h-16 w-auto" />
         </div>
         <nav className="hidden md:flex items-center gap-8">
           <Link href="#features" className="text-text-secondary hover:text-primary transition-colors font-medium">Features</Link>
@@ -149,20 +151,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-surface py-12 border-t border-border">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center">
-            <img src="/snabb-logo.svg" alt="Snabb Logo" className="h-10 w-auto" />
-            <span className="text-text-tertiary text-sm ml-4">© 2026 All rights reserved.</span>
-          </div>
-          <div className="flex gap-6">
-            <Link href="/privacy" className="text-sm text-text-secondary hover:text-primary">Privacy Policy</Link>
-            <Link href="/terms" className="text-sm text-text-secondary hover:text-primary">Terms of Service</Link>
-            <Link href="/contact" className="text-sm text-text-secondary hover:text-primary">Contact Us</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

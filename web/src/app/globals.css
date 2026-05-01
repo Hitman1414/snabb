@@ -120,6 +120,7 @@
   --color-divider: var(--divider);
   
   --font-sans: var(--font-inter);
+  --font-rounded: var(--font-fredoka);
 }
 
 @layer utilities {

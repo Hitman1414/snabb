@@ -6,8 +6,8 @@ import {
     Platform,
     ScrollView,
     TouchableOpacity,
-    Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -63,13 +63,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
             <ScrollView contentContainerStyle={styles.scrollContent}>
-                <View style={[styles.hero, { backgroundColor: colors.primary }]}>
+                <View style={[styles.hero, { backgroundColor: '#F97316' }]}>
                     <Image 
                         source={require('../../assets/snabb-logo.svg')} 
-                        style={{ width: 250, height: 80, marginBottom: spacing[4] }} 
-                        resizeMode="contain" 
+                        style={{ width: 280, height: 120, marginBottom: spacing[2] }} 
+                        contentFit="contain" 
                     />
-                    <Typography variant="body" style={{ color: colors.textInverse, opacity: 0.9 }}>
+                    <Typography variant="body" style={{ color: '#0F172A', opacity: 0.75 }}>
                         Get help instantly, anywhere.
                     </Typography>
                 </View>

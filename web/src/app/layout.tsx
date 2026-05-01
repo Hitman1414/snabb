@@ -1,11 +1,18 @@
+import React from "react";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Fredoka } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+});
+
+const fredoka = Fredoka({
+  variable: "--font-fredoka",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -51,7 +58,8 @@ export default function RootLayout({
         }} />
       </head>
       <body
-        className={`${inter.variable} antialiased bg-background text-foreground`}
+        className={`${inter.variable} ${fredoka.variable} antialiased bg-background text-foreground`}
+        style={{ '--font-fredoka': fredoka.style.fontFamily } as React.CSSProperties}
         suppressHydrationWarning
       >
         {children}

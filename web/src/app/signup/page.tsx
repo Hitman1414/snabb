@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/api";
@@ -135,7 +136,7 @@ export default function Signup() {
                 {/* Form Side */}
                 <div className="p-8 md:p-12 flex flex-col justify-center overflow-y-auto max-h-[90vh]">
                     <div className="mb-8 flex items-center">
-                        <img src="/snabb-logo.svg" alt="Snabb Logo" className="h-16 w-auto" />
+                        <Logo className="h-20 w-auto" />
                     </div>
 
                     <div className="mb-8">

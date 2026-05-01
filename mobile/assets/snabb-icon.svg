@@ -1,0 +1,10 @@
+<svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="orangeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FF8C00" />
+            <stop offset="100%" stop-color="#E65100" />
+        </linearGradient>
+    </defs>
+    <path transform="translate(80, 80) scale(0.9)" d="M37.5,-64.8C47.8,-53.4,54.7,-38.7,60.6,-23.4C66.5,-8.1,71.4,7.8,67.7,21.8C64,35.8,51.8,47.9,38.1,56.5C24.4,65.1,9.2,70.2,-5.9,71.4C-21,72.6,-36.1,69.9,-48.9,61.1C-61.7,52.3,-72.3,37.4,-76.5,20.8C-80.7,4.2,-78.6,-14,-70.7,-28.9C-62.8,-43.8,-49,-55.4,-34.5,-62.7C-20,-70,-4.7,-73,11,-72C26.7,-71,37.5,-64.8,37.5,-64.8Z" fill="url(#orangeGradient)" />
+    <text x="80" y="74" font-family="sans-serif" font-weight="bold" font-size="140" fill="#FFFFFF" dominant-baseline="middle" text-anchor="middle">s</text>
+</svg>

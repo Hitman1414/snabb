@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { Plus, LayoutDashboard, FileText, MessageCircle, User as UserIcon, LogOut, Heart, Search, MapPin, ShieldAlert, Moon, Sun } from "lucide-react";
 import { API_URL } from "@/lib/api";
 import CreateAskModal from "@/components/CreateAskModal";
@@ -171,7 +172,7 @@ export default function DashboardLayout({
                     {/* Logo & Location */}
                     <div className="flex items-center gap-6 flex-shrink-0">
                         <Link href="/app" className="flex items-center gap-2 group">
-                            <img src="/snabb-logo.svg" alt="Snabb Logo" className="h-12 w-auto group-hover:scale-105 transition-transform" />
+                            <Logo className="h-12 w-auto group-hover:scale-105 transition-transform" />
                         </Link>
                         
                         <button className="hidden lg:flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group">
