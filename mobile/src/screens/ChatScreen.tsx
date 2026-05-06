@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { logger } from '../services/logger';
 import {
     View, FlatList, StyleSheet, KeyboardAvoidingView, Platform,
     TouchableOpacity, TextInput, ScrollView, Animated, Pressable
@@ -179,7 +180,7 @@ export default function ChatScreen() {
             if (error instanceof z.ZodError) {
                 toastService.error(error.issues[0].message);
             } else {
-                console.error('Failed to send message', error);
+                logger.error('Failed to send message', error);
                 toastService.error('Failed to send message');
             }
         }

@@ -3,6 +3,7 @@ Authentication routes — register / login / logout / OTP / password reset.
 """
 from datetime import timedelta
 import logging
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -79,12 +80,13 @@ def login(
     )
 
     # HttpOnly cookie for the web client. Mobile uses the body token.
+    is_dev = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
     response.set_cookie(
         key="access_token",
         value=f"Bearer {access_token}",
         httponly=True,
-        secure=True,
-        samesite="none",
+        secure=not is_dev,
+        samesite="lax" if is_dev else "none",
         max_age=auth.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
@@ -127,14 +129,28 @@ def logout(
 
 
 @router.get("/me", response_model=schemas.User)
-def read_users_me(current_user: models.User = Depends(auth.get_current_user)):
+def read_users_me(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
+    completed_asks = db.query(models.Ask).filter(
+        models.Ask.user_id == current_user.id,
+        models.Ask.status == "closed"
+    ).count()
+    current_user.completed_asks_count = completed_asks
     return current_user
 
 
 # ─── OTP ──────────────────────────────────────────────────────────────────
 @router.post("/send-otp")
-def request_otp(otp_request: schemas.OTPRequest):
+def request_otp(otp_request: schemas.OTPRequest, request: Request):
     """Send a verification code to the given email or phone."""
+    from ..cache import cache_service
+    
+    rate_key = f"rl:send_otp:{otp_request.email_or_phone}"
+    if cache_service.enabled:
+        attempts = cache_service.get(rate_key)
+        if attempts and int(attempts) >= 3:
+            raise HTTPException(status_code=429, detail="Too many OTP requests. Please try again later.")
+        cache_service.set(rate_key, str(int(attempts or 0) + 1), ttl=300) # 5 minute window
+        
     success = send_otp(otp_request.email_or_phone)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to send OTP")

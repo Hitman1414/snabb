@@ -4,19 +4,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-    User as UserIcon, 
-    Mail, 
-    Shield, 
-    Award, 
-    Settings, 
-    Bell, 
-    ChevronRight, 
-    X, 
+import {
+    User as UserIcon,
+    Mail,
+    Shield,
+    Award,
+    Settings,
+    Bell,
+    ChevronRight,
+    X,
     Loader2,
     CheckCircle2,
     Lock,
-    Compass
+    Compass,
+    LogOut
 } from "lucide-react";
 
 import { User } from "@/types";
@@ -40,21 +41,15 @@ export default function ProfilePage() {
 
     // Form states
     const [editForm, setEditForm] = useState({ username: "", email: "", phone_number: "", location: "" });
-    const [proForm, setProForm] = useState({ category: "", bio: "", experience: "" });
+    const [proForm, setProForm] = useState({ category: "", bio: "", experience: "", idCardUrl: "" });
     const [proStep, setProStep] = useState(1);
 
     useEffect(() => {
         const fetchUser = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
 
             try {
-                const res = await fetch(`${API_URL}/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await fetch(`${API_URL}/auth/me`, { credentials: "include", 
+                    });
                 if (res.ok) {
                     const data = await res.json();
                     setUser(data);
@@ -65,12 +60,10 @@ export default function ProfilePage() {
                         location: data.location || "" 
                     });
                 } else {
-                    localStorage.removeItem('token');
                     router.push('/login');
                 }
             } catch (err) {
                 console.error(err);
-                localStorage.removeItem('token');
                 router.push('/login');
             } finally {
                 setLoading(false);
@@ -89,14 +82,11 @@ export default function ProfilePage() {
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
-        const token = localStorage.getItem('token');
-        if (!token) return;
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/users/me`, {
+            const res = await fetch(`${API_URL}/users/me`, { credentials: "include", 
                 method: 'PATCH',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ 
@@ -131,18 +121,15 @@ export default function ProfilePage() {
             return;
         }
 
-        const token = localStorage.getItem('token');
-        if (!token) return;
 
         const formData = new FormData();
         formData.append('file', file);
 
         try {
             setSaving(true);
-            const res = await fetch(`${API_URL}/users/me/avatar`, {
+            const res = await fetch(`${API_URL}/users/me/avatar`, { credentials: "include", 
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
+                                body: formData
             });
 
             if (res.ok) {
@@ -167,20 +154,18 @@ export default function ProfilePage() {
             return;
         }
 
-        const token = localStorage.getItem('token');
-        if (!token) return;
 
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/users/me/apply-pro`, {
+            const res = await fetch(`${API_URL}/users/me/apply-pro`, { credentials: "include", 
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     pro_category: proForm.category,
-                    pro_bio: proForm.bio
+                    pro_bio: proForm.bio,
+                    id_card_url: proForm.idCardUrl || null
                 })
             });
 
@@ -314,8 +299,26 @@ export default function ProfilePage() {
                             <p className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-[0.2em] mb-1">Member Since</p>
                             <p className="font-bold text-slate-900 dark:text-white">{new Date(user.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
                         </div>
-                        <button className="text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-50 py-3 px-6 rounded-2xl transition-all active:scale-95">
+                        <button className="text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-900/20 py-3 px-6 rounded-2xl transition-all active:scale-95">
                             Delete Account
+                        </button>
+                    </div>
+
+                    {/* Sign Out */}
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+                        <button
+                            onClick={() => {
+                                router.push('/login');
+                            }}
+                            className="w-full p-6 flex items-center gap-5 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all text-left group px-8"
+                        >
+                            <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 transition-all shadow-inner group-hover:scale-110">
+                                <LogOut className="w-6 h-6" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-lg font-black text-red-500 tracking-tight">Sign Out</p>
+                                <p className="text-sm text-slate-400 dark:text-slate-500 font-bold">Log out of your account</p>
+                            </div>
                         </button>
                     </div>
 
@@ -581,6 +584,40 @@ export default function ProfilePage() {
                                                                     onChange={e => setProForm({...proForm, experience: e.target.value})}
                                                                     className="w-full bg-slate-50 border border-slate-200 rounded-[1.5rem] p-5 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary font-bold text-slate-900"
                                                                 />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gov ID Verification (AWS S3)</label>
+                                                                <div className="relative">
+                                                                    <input 
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        onChange={async (e) => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (!file) return;
+                                                                            setSaving(true);
+                                                                            const formData = new FormData();
+                                                                            formData.append('file', file);
+                                                                            try {
+                                                                                const res = await fetch(`${API_URL}/users/me/id-card`, { credentials: "include", 
+                                                                                    method: 'POST',
+                                                                                                                                                                        body: formData
+                                                                                });
+                                                                                if(res.ok) {
+                                                                                    const updated = await res.json();
+                                                                                    setProForm({...proForm, idCardUrl: updated.id_card_url});
+                                                                                } else {
+                                                                                    alert("Failed to upload ID");
+                                                                                }
+                                                                            } catch(err) {
+                                                                                console.error(err);
+                                                                            } finally {
+                                                                                setSaving(false);
+                                                                            }
+                                                                        }}
+                                                                        className="w-full bg-slate-50 border border-slate-200 rounded-[1.5rem] p-4 text-xs font-bold text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer transition-all"
+                                                                    />
+                                                                </div>
+                                                                {proForm.idCardUrl && <p className="text-[10px] text-green-500 font-bold ml-2">✓ ID Card Uploaded</p>}
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-4 pt-4">

@@ -21,7 +21,7 @@ export default function ForgotPassword() {
         setError("");
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/auth/forgot-password`, {
+            const res = await fetch(`${API_URL}/auth/forgot-password`, { credentials: "include", 
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -44,7 +44,7 @@ export default function ForgotPassword() {
         setError("");
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/auth/reset-password`, {
+            const res = await fetch(`${API_URL}/auth/reset-password`, { credentials: "include", 
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, code, new_password: newPassword }),

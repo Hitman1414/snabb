@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import logging
-from .database import engine, Base
+from pythonjsonlogger import jsonlogger
+from .database import engine, Base, get_db
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 from .routers import auth, asks, responses, reviews, messages, users, websockets, payments, notifications, admin, ai
 from .config import settings
 from .cache import cache_service
@@ -15,6 +18,7 @@ from .middleware import (
     RateLimitMiddleware,
     MonitoringMiddleware,
 )
+from .middleware.request_id import RequestIDMiddleware
 from .websocket_manager import manager
 import asyncio
 from fastapi.exceptions import RequestValidationError
@@ -23,11 +27,13 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import sentry_sdk
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure JSON structured logging
+handler = logging.StreamHandler()
+fmt = jsonlogger.JsonFormatter(fmt="%(asctime)s %(name)s %(levelname)s %(message)s")
+handler.setFormatter(fmt)
+root_logger = logging.getLogger()
+root_logger.handlers = [handler]
+root_logger.setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Sentry — sample rates driven by env (audit #19).
@@ -47,6 +53,22 @@ if settings.DEBUG:
     if settings.DATABASE_URL.startswith("sqlite"):
         logger.info("🔧 Debug mode + SQLite: auto-creating tables")
         Base.metadata.create_all(bind=engine)
+        # Safe incremental migrations for dev — add missing columns without
+        # requiring a manual `alembic upgrade head` on every pull.
+        _SAFE_MIGRATIONS = [
+            ("users", "pro_status",    "ALTER TABLE users ADD COLUMN pro_status VARCHAR(32)"),
+            ("users", "id_card_url",   "ALTER TABLE users ADD COLUMN id_card_url VARCHAR(500)"),
+            ("users", "is_admin",      "ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"),
+            ("users", "is_deleted",    "ALTER TABLE users ADD COLUMN is_deleted BOOLEAN DEFAULT 0"),
+            ("users", "deleted_at",    "ALTER TABLE users ADD COLUMN deleted_at DATETIME"),
+        ]
+        with engine.connect() as _conn:
+            for _table, _col, _sql in _SAFE_MIGRATIONS:
+                _existing = [r[1] for r in _conn.execute(text(f"PRAGMA table_info({_table})"))]
+                if _col not in _existing:
+                    _conn.execute(text(_sql))
+                    _conn.commit()
+                    logger.info(f"🔧 Auto-migration: added {_table}.{_col}")
     else:
         logger.warning(
             "⚠️ DEBUG=True but DATABASE_URL is not SQLite — refusing to run "
@@ -111,6 +133,14 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Client-Platform"],
 )
 
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
+
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -120,6 +150,9 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 # Add rate limiting (60 requests per minute per IP)
 if settings.RATE_LIMIT_ENABLED:
     app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.RATE_LIMIT_PER_MINUTE)
+
+# Add request ID middleware (must be before MonitoringMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
 # Add monitoring middleware
 app.add_middleware(MonitoringMiddleware)
@@ -153,7 +186,13 @@ def read_root():
     }
 
 @app.get("/health")
-def health_check():
+def health_check(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        logger.error("Health check DB probe failed", exc_info=e)
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "reason": "db"})
     return {
         "status": "healthy",
         "version": settings.APP_VERSION,

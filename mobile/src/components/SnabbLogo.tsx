@@ -68,14 +68,12 @@ const styles = StyleSheet.create({
     sText: {
         color: '#FFFFFF',          // ← WHITE 's' on orange blob
         fontFamily: 'Inter-Bold',
-        fontWeight: '700',
         textAlign: 'center',
         includeFontPadding: false,
     },
     nabbText: {
         color: '#0F172A',          // dark navy 'nabb'
         fontFamily: 'Inter-Bold',
-        fontWeight: '700',
         includeFontPadding: false,
     },
 });

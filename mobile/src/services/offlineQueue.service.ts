@@ -1,3 +1,4 @@
+import { logger } from './logger';
 /**
  * Offline Queue Service
  * Manages queued actions when offline and syncs when back online
@@ -40,7 +41,7 @@ class OfflineQueueService {
             const queueJson = await storage.getItem(this.QUEUE_KEY);
             return queueJson ? JSON.parse(queueJson) : [];
         } catch (error) {
-            console.error('Failed to get queue', error);
+            logger.error('Failed to get queue', error);
             return [];
         }
     }

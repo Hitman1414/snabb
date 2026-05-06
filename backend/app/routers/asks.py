@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional, Annotated
 from datetime import datetime, timezone
 import logging
+import json
+import math
+import io
 
 from .. import models, schemas, auth
 from ..database import get_db
@@ -145,14 +148,19 @@ def get_asks(
             f"coordinates (lat={lat}, lng={lng})"
         )
 
-    total = query.count()
+    from sqlalchemy import func
+
+    count_query = query.add_columns(func.count().over().label('total_count'))
 
     if sort == "most_rated":
-        asks = query.join(models.User, models.Ask.user_id == models.User.id).order_by(
+        results = count_query.join(models.User, models.Ask.user_id == models.User.id).order_by(
             models.User.pro_rating.desc(), models.Ask.created_at.desc()
         ).offset(skip).limit(limit).all()
     else:
-        asks = query.order_by(models.Ask.created_at.desc()).offset(skip).limit(limit).all()
+        results = count_query.order_by(models.Ask.created_at.desc()).offset(skip).limit(limit).all()
+
+    asks = [r[0] for r in results] if results else []
+    total = results[0][1] if results else 0
 
     response_data = {
         "items": [jsonable_encoder(schemas.Ask.model_validate(ask)) for ask in asks],
@@ -264,13 +272,7 @@ async def create_ask(
     if not is_safe:
         logger.warning(f"Ask creation blocked by moderation for user {current_user.id}. Reason: {reason}")
 
-        platform = request.headers.get("x-client-platform")
-        if not platform:
-            user_agent = request.headers.get("user-agent", "").lower()
-            if "mozilla" in user_agent or "chrome" in user_agent or "safari" in user_agent:
-                platform = "web"
-            else:
-                platform = "unknown"
+        platform = get_client_platform(request)
 
         mod_log = models.ModerationLog(
             user_id=current_user.id,
@@ -336,7 +338,7 @@ async def create_ask(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database error: {str(e)}"
+            detail="An internal error occurred"
         )
 
 

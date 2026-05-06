@@ -32,7 +32,7 @@ export default function Login() {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/auth/login`, {
+            const response = await fetch(`${API_URL}/auth/login`, { credentials: "include", 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -49,7 +49,6 @@ export default function Login() {
             }
 
             const data = await response.json();
-            localStorage.setItem('token', data.access_token);
             router.push('/app');
         } catch (err) {
             if (err instanceof Error) {
@@ -80,8 +79,8 @@ export default function Login() {
                         
                         <div className="space-y-6">
                             <h2 className="text-5xl font-extrabold leading-tight tracking-tight">
-                                Get things done <br />
-                                <span className="opacity-70">efficiently.</span>
+                                Ask. Serve. <br />
+                                <span className="opacity-70">Earn.</span>
                             </h2>
                             <p className="text-white/80 text-lg font-medium max-w-sm">
                                 Join thousands of people getting instant help from local professionals every day.

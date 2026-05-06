@@ -17,3 +17,5 @@ export { default as TermsOfServiceScreen } from './TermsOfServiceScreen';
 export { default as ForgotPasswordScreen } from './ForgotPasswordScreen';
 export { default as AdminModerationScreen } from './AdminModerationScreen';
 export { default as AdminDashboardScreen } from './AdminDashboardScreen';
+export { default as HelpCenterScreen } from './HelpCenterScreen';
+export { default as AboutUsScreen } from './AboutUsScreen';

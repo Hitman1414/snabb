@@ -15,6 +15,7 @@ export interface User {
     pro_verified: boolean;
     pro_rating: number;
     pro_completed_tasks: number;
+    completed_asks_count?: number;
 }
 
 export interface Ask {

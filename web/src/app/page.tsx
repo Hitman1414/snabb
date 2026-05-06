@@ -11,9 +11,9 @@ export default function Home() {
           <Logo className="h-16 w-auto" />
         </div>
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="#features" className="text-text-secondary hover:text-primary transition-colors font-medium">Features</Link>
-          <Link href="#how-it-works" className="text-text-secondary hover:text-primary transition-colors font-medium">How it Works</Link>
-          <Link href="#pro" className="text-text-secondary hover:text-primary transition-colors font-medium">Become a Pro</Link>
+          <Link href="/#features" className="text-text-secondary hover:text-primary transition-colors font-medium">Features</Link>
+          <Link href="/how-it-works" className="text-text-secondary hover:text-primary transition-colors font-medium">How it Works</Link>
+          <Link href="/pro" className="text-text-secondary hover:text-primary transition-colors font-medium">Become a Pro</Link>
         </nav>
         <div className="flex items-center gap-4">
           <Link href="/login" className="hidden md:block text-text-secondary hover:text-foreground font-medium">
@@ -41,9 +41,9 @@ export default function Home() {
             </div>
 
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground leading-[1.1]">
-              Get things done, <br className="hidden md:block" />
+              Ask. Serve. <br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-dark">
-                faster than ever.
+                Earn.
               </span>
             </h1>
 
@@ -60,7 +60,7 @@ export default function Home() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
               </Link>
               <Link
-                href="#download"
+                href="/download"
                 className="w-full sm:w-auto bg-surface hover:bg-surface-variant text-foreground border border-border px-8 py-4 rounded-full font-bold text-lg transition-all flex items-center justify-center gap-2"
               >
                 Download App
@@ -95,17 +95,17 @@ export default function Home() {
                   <div className="w-8 h-8 bg-primary/20 rounded-full" />
                 </div>
                 <div className="p-4 space-y-4 flex-1 bg-background-secondary">
-                  <div className="w-full h-32 bg-surface rounded-xl border border-border shadow-sm p-4 space-y-3">
+                  <div className="w-full h-32 bg-surface rounded-xl border border-border shadow-sm p-4 space-y-3 animate-pulse">
                     <div className="w-1/3 h-5 bg-surface-variant rounded-md" />
                     <div className="w-full h-4 bg-surface-variant rounded-md" />
                     <div className="w-5/6 h-4 bg-surface-variant rounded-md" />
                   </div>
-                  <div className="w-full h-32 bg-surface rounded-xl border border-border shadow-sm p-4 space-y-3">
+                  <div className="w-full h-32 bg-surface rounded-xl border border-border shadow-sm p-4 space-y-3 animate-pulse" style={{ animationDelay: '150ms' }}>
                     <div className="w-1/4 h-5 bg-surface-variant rounded-md" />
                     <div className="w-full h-4 bg-surface-variant rounded-md" />
                     <div className="w-4/6 h-4 bg-surface-variant rounded-md" />
                   </div>
-                  <div className="w-full h-32 bg-surface rounded-xl border border-border shadow-sm p-4 space-y-3 opacity-50">
+                  <div className="w-full h-32 bg-surface rounded-xl border border-border shadow-sm p-4 space-y-3 opacity-50 animate-pulse" style={{ animationDelay: '300ms' }}>
                     <div className="w-1/2 h-5 bg-surface-variant rounded-md" />
                     <div className="w-full h-4 bg-surface-variant rounded-md" />
                   </div>

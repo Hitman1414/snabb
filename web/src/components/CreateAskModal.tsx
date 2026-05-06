@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { X, Loader2, MapPin, Sparkles } from "lucide-react";
+import { X, Loader2, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { API_URL } from "@/lib/api";
 import { Ask as AskType } from "@/types";
+import { useCreateAskForm } from "@/hooks/useCreateAskForm";
+import constants from "../../../shared/constants.json";
 
 type CreateAskModalProps = {
     isOpen: boolean;
@@ -10,338 +10,31 @@ type CreateAskModalProps = {
     onSuccess: (newAsk: AskType) => void;
 };
 
+const CATEGORIES = constants.CATEGORIES;
+
 export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAskModalProps) {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    
-    const [formData, setFormData] = useState({
-        title: "",
-        description: "",
-        category: "Services",
-        location: "",
-        budget_min: "",
-        budget_max: "",
-        contact_phone: "",
-    });
-
-    const [images, setImages] = useState<File[]>([]);
-    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-    const [showManualAddress, setShowManualAddress] = useState(false);
-    const [manualAddress, setManualAddress] = useState({ houseNo: "", area: "", landmark: "" });
-    const [coordinates, setCoordinates] = useState<{ latitude: number, longitude: number } | null>(null);
-    const [detectingLocation, setDetectingLocation] = useState(false);
-    const [locationSearch, setLocationSearch] = useState("");
-    const [locationResults, setLocationResults] = useState<{display_name: string, lat: string, lon: string}[]>([]);
-    const [searchingLocation, setSearchingLocation] = useState(false);
-
-    const [magicText, setMagicText] = useState("");
-    const [isMagicLoading, setIsMagicLoading] = useState(false);
-    const [isEnhancing, setIsEnhancing] = useState(false);
-
-    const handleMagicAsk = async () => {
-        if (!magicText.trim()) return;
-        setIsMagicLoading(true);
-        setError("");
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/ai/magic-ask`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ text: magicText })
-            });
-            if (!res.ok) {
-                if (res.status === 429) {
-                    throw new Error("AI is temporarily busy. Please wait a minute and try again.");
-                }
-                throw new Error("Failed to process Magic Ask");
-            }
-            const data = await res.json();
-            
-            setFormData(prev => ({
-                ...prev,
-                title: data.title || prev.title,
-                description: data.description || prev.description,
-                category: data.category || prev.category,
-                budget_min: data.budget_min !== null ? String(data.budget_min) : prev.budget_min,
-                budget_max: data.budget_max !== null ? String(data.budget_max) : prev.budget_max,
-            }));
-            setMagicText("");
-        } catch (err) {
-            console.error(err);
-            setError(err instanceof Error ? err.message : "Magic Ask failed. Please try again.");
-        } finally {
-            setIsMagicLoading(false);
-        }
-    };
-
-    const handleEnhanceDescription = async () => {
-        if (!formData.description.trim() || formData.description.length < 10) {
-            setError("Please write a few words in the description first to enhance it.");
-            return;
-        }
-        setIsEnhancing(true);
-        setError("");
-        try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/ai/enhance-description`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ description: formData.description })
-            });
-            if (!res.ok) {
-                let errorMsg = "Failed to enhance description";
-                try {
-                    const errData = await res.json();
-                    errorMsg = errData.detail || errData.error?.message || errorMsg;
-                } catch (e) {}
-                throw new Error(errorMsg);
-            }
-            const data = await res.json();
-            setFormData(prev => ({ ...prev, description: data.enhanced_text }));
-        } catch (err) {
-            console.error(err);
-            setError("Failed to enhance description.");
-        } finally {
-            setIsEnhancing(false);
-        }
-    };
-
-    const categories = [
-        "Electronics", "Furniture", "Vehicles", "Real Estate", 
-        "Services", "Jobs", "Education", "Fashion", "Sports", "Other"
-    ];
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError("");
-        
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setError("Authentication token not found. Please log in again.");
-            return;
-        }
-
-        setLoading(true);
-
-
-
-        if (!formData.title || formData.title.trim().length < 10) {
-            setError("Title must be at least 10 characters long for better clarity.");
-            setLoading(false);
-            return;
-        }
-
-        if (!formData.description || formData.description.trim().length < 30) {
-            setError("Please provide a more detailed description (at least 30 characters).");
-            setLoading(false);
-            return;
-        }
-
-        const bMin = formData.budget_min ? parseFloat(formData.budget_min) : 0;
-        const bMax = formData.budget_max ? parseFloat(formData.budget_max) : null;
-
-        if (bMin < 0) {
-            setError("Budget cannot be negative. Please enter a valid amount.");
-            setLoading(false);
-            return;
-        }
-
-        if (bMax !== null && bMax < 0) {
-            setError("Maximum budget cannot be negative.");
-            setLoading(false);
-            return;
-        }
-
-        if (bMax !== null && bMax < bMin) {
-            setError("Maximum budget must be greater than your minimum budget.");
-            setLoading(false);
-            return;
-        }
-
-        if (bMin === 0 && bMax === null) {
-            setError("Please specify a budget range or a minimum amount.");
-            setLoading(false);
-            return;
-        }
-
-        let finalLocation = formData.location;
-        if (showManualAddress) {
-            const parts = [manualAddress.houseNo, manualAddress.area, manualAddress.landmark, formData.location].filter(val => val && val.trim().length > 0);
-            finalLocation = parts.join(', ');
-        }
-        
-        if (!finalLocation || finalLocation.trim().length === 0) {
-            setError("Please enter a location or use a manual address.");
-            setLoading(false);
-            return;
-        }
-
-        try {
-            const submitData = new FormData();
-            submitData.append('title', formData.title);
-            submitData.append('description', formData.description);
-            submitData.append('category', formData.category);
-            submitData.append('location', finalLocation);
-            if (bMin !== null) submitData.append('budget_min', bMin.toString());
-            if (bMax !== null) submitData.append('budget_max', bMax.toString());
-            if (coordinates) {
-                submitData.append('latitude', coordinates.latitude.toString());
-                submitData.append('longitude', coordinates.longitude.toString());
-            }
-            if (formData.contact_phone && formData.contact_phone.trim() !== "") {
-                submitData.append('contact_phone', formData.contact_phone.trim());
-            }
-
-            images.forEach((img) => {
-                submitData.append('images', img);
-            });
-
-            const response = await fetch(`${API_URL}/asks`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                },
-                body: submitData
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.detail || "Failed to create ask");
-            }
-
-            const newAsk = await response.json();
-            alert("Your ask has been posted successfully!");
-            onSuccess(newAsk);
-            onClose();
-            // Cleanup previews
-            previewUrls.forEach(url => URL.revokeObjectURL(url));
-            setImages([]);
-            setPreviewUrls([]);
-            setCoordinates(null);
-            setShowManualAddress(false);
-            setManualAddress({ houseNo: "", area: "", landmark: "" });
-
-            // Reset form
-            setFormData({
-                title: "", description: "", category: "Services",
-                location: "", budget_min: "", budget_max: "", contact_phone: ""
-            });
-        } catch (err) {
-            if (err instanceof Error) {
-                setError(err.message);
-            } else {
-                setError("An unknown error occurred");
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files);
-            
-            // Check limits
-            if (images.length + newFiles.length > 5) {
-                setError("You can only upload a maximum of 5 images.");
-                return;
-            }
-
-            // Check sizes
-            const oversized = newFiles.find(file => file.size > 5 * 1024 * 1024);
-            if (oversized) {
-                setError("Each image must be smaller than 5MB.");
-                return;
-            }
-
-            setImages(prev => [...prev, ...newFiles]);
-            
-            // Generate Previews
-            const newUrls = newFiles.map(file => URL.createObjectURL(file));
-            setPreviewUrls(prev => [...prev, ...newUrls]);
-        }
-    };
-
-    const removeImage = (index: number) => {
-        setImages(prev => prev.filter((_, i) => i !== index));
-        URL.revokeObjectURL(previewUrls[index]);
-        setPreviewUrls(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const detectLocation = () => {
-        if (!navigator.geolocation) {
-            setError("Geolocation is not supported by your browser");
-            return;
-        }
-
-        setDetectingLocation(true);
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                setCoordinates({ latitude, longitude });
-                
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
-                    const data = await res.json();
-                    
-                    if (data && data.display_name) {
-                        setFormData(prev => ({ ...prev, location: data.display_name }));
-                        setLocationSearch(data.display_name);
-                    } else {
-                        const locStr = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                        setFormData(prev => ({ ...prev, location: locStr }));
-                        setLocationSearch(locStr);
-                    }
-                } catch (err) {
-                    console.error("Geocoding failed", err);
-                    const locStr = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                    setFormData(prev => ({ ...prev, location: locStr }));
-                    setLocationSearch(locStr);
-                } finally {
-                    setDetectingLocation(false);
-                }
-            },
-            (err) => {
-                setShowManualAddress(true);
-                setDetectingLocation(false);
-            },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
-    };
-
-    const handleLocationSearch = async (query: string) => {
-        setLocationSearch(query);
-        setFormData(prev => ({ ...prev, location: query }));
-        
-        if (query.length < 3) {
-            setLocationResults([]);
-            return;
-        }
-
-        setSearchingLocation(true);
-        try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
-            const data = await res.json();
-            setLocationResults(data);
-        } catch (err) {
-            console.error("Search failed", err);
-        } finally {
-            setSearchingLocation(false);
-        }
-    };
-
-    const selectLocation = (result: {display_name: string, lat: string, lon: string}) => {
-        setFormData(prev => ({ ...prev, location: result.display_name }));
-        setLocationSearch(result.display_name);
-        setCoordinates({ latitude: parseFloat(result.lat), longitude: parseFloat(result.lon) });
-        setLocationResults([]);
-    };
+    const {
+        loading,
+        error,
+        formData,
+        setFormData,
+        previewUrls,
+        showManualAddress,
+        setShowManualAddress,
+        manualAddress,
+        setManualAddress,
+        detectingLocation,
+        locationSearch,
+        locationResults,
+        searchingLocation,
+        setLocationResults,
+        handleLocationSearchInput,
+        selectLocation,
+        detectLocation,
+        handleImageSelect,
+        removeImage,
+        handleSubmit,
+    } = useCreateAskForm({ isOpen, onClose, onSuccess });
 
     if (!isOpen) return null;
 
@@ -368,39 +61,6 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                             </div>
                         )}
 
-                        {/* Magic Ask Section (Commented out for next phase) */}
-                        {/* 
-                        <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 border border-primary/20 rounded-2xl p-4 mb-2">
-                            <label className="flex items-center gap-2 text-sm font-bold text-primary mb-2">
-                                <Sparkles className="w-4 h-4" />
-                                Magic Auto-fill
-                            </label>
-                            <div className="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    value={magicText}
-                                    onChange={(e) => setMagicText(e.target.value)}
-                                    placeholder="e.g. Need a plumber tomorrow for $50..."
-                                    className="flex-1 bg-white dark:bg-surface-variant border border-primary/20 rounded-xl px-4 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            handleMagicAsk();
-                                        }
-                                    }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleMagicAsk}
-                                    disabled={isMagicLoading || !magicText.trim()}
-                                    className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm shadow-primary/20 hover:bg-primary-dark transition-all disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
-                                >
-                                    {isMagicLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Auto-fill"}
-                                </button>
-                            </div>
-                        </div>
-                        */}
-
                         <div>
                             <label className="block text-sm font-semibold text-foreground mb-1">Title</label>
                             <input 
@@ -416,17 +76,6 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                         <div>
                             <div className="flex items-center justify-between mb-1">
                                 <label className="block text-sm font-semibold text-foreground">Description</label>
-                                {/* AI Enhance description feature temporarily disabled
-                                <button
-                                    type="button"
-                                    onClick={handleEnhanceDescription}
-                                    disabled={isEnhancing || !formData.description}
-                                    className="text-xs font-bold text-primary hover:underline flex items-center gap-1 disabled:opacity-50 disabled:no-underline"
-                                >
-                                    {isEnhancing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                    Enhance with AI
-                                </button>
-                                */}
                             </div>
                             <textarea 
                                 required
@@ -456,7 +105,7 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                                     value={formData.category}
                                     onChange={e => setFormData({...formData, category: e.target.value})}
                                 >
-                                    {categories.map(cat => (
+                                    {CATEGORIES.map(cat => (
                                         <option key={cat} value={cat}>{cat}</option>
                                     ))}
                                 </select>
@@ -479,7 +128,7 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                                                 type="text" 
                                                 required
                                                 value={locationSearch}
-                                                onChange={e => handleLocationSearch(e.target.value)}
+                                                onChange={e => handleLocationSearchInput(e.target.value)}
                                                 onFocus={() => { if (locationResults.length > 0) setLocationResults([]); }}
                                                 className="w-full bg-surface-variant border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" 
                                                 placeholder="Search for an address..." 
@@ -556,7 +205,7 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-foreground mb-1">Min Budget ($)</label>
+                                <label className="block text-sm font-semibold text-foreground mb-1">Min Budget (₹)</label>
                                 <input 
                                     type="number" 
                                     min="0"
@@ -567,7 +216,7 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-foreground mb-1">Max Budget ($)</label>
+                                <label className="block text-sm font-semibold text-foreground mb-1">Max Budget (₹)</label>
                                 <input 
                                     type="number" 
                                     min="0"
@@ -616,22 +265,21 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                                 )}
                             </div>
                         </div>
-                    </form>
 
-                    <div className="p-6 border-t border-border bg-surface-variant/50 flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl font-medium text-text-secondary hover:bg-surface transition-colors border border-transparent hover:border-border">
-                            Cancel
-                        </button>
-                        <button 
-                            type="submit" 
-                            onClick={handleSubmit}
-                            disabled={loading || !formData.title || !formData.description || !formData.location}
-                            className="bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Post Ask
-                        </button>
-                    </div>
+                        <div className="p-6 border-t border-border bg-surface-variant/50 flex justify-end gap-3 -mx-6 -mb-6 mt-4">
+                            <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-xl font-medium text-text-secondary hover:bg-surface transition-colors border border-transparent hover:border-border">
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit" 
+                                disabled={loading || !formData.title || !formData.description || !formData.location}
+                                className="bg-primary hover:bg-primary-dark text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            >
+                                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                Post Ask
+                            </button>
+                        </div>
+                    </form>
                 </motion.div>
             </div>
         </AnimatePresence>

@@ -1,6 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
 import { MapPin, DollarSign, MessageSquare } from "lucide-react";
-import { motion } from "framer-motion";
 import Link from "next/link";
 
 import { Ask } from "@/types";
@@ -12,10 +11,8 @@ type AskCardProps = {
 export default function AskCard({ ask }: AskCardProps) {
     return (
         <Link href={`/app/asks/${ask.id}`} className="block h-full">
-            <motion.div 
-                whileHover={{ y: -4, boxShadow: "0px 20px 40px rgba(0,0,0,0.08)" }}
-                transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-                className="bg-white dark:bg-slate-900 rounded-[2rem] p-5 border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-full group transition-all cursor-pointer shadow-sm relative overflow-hidden"
+            <div 
+                className="bg-white dark:bg-slate-900 rounded-[2rem] p-5 border border-slate-100 dark:border-slate-800 flex flex-col justify-between h-full group cursor-pointer shadow-sm relative overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:shadow-[0px_20px_40px_rgba(0,0,0,0.08)]"
             >
                 {/* Visual Accent */}
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors"></div>
@@ -49,11 +46,11 @@ export default function AskCard({ ask }: AskCardProps) {
                             <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                             <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 truncate">{ask.location}</span>
                         </div>
-                        {(ask.budget_min || ask.budget_max) && (
+                        {(ask.budget_min || ask.budget_max || ask.budget_min === 0) && (
                             <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/50 p-2 rounded-xl border border-transparent group-hover:border-slate-100 dark:group-hover:border-slate-700 group-hover:bg-white dark:group-hover:bg-slate-800 transition-all overflow-hidden">
                                 <DollarSign className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                                 <span className="text-[10px] font-black text-slate-900 dark:text-white truncate">
-                                    ${ask.budget_min || 0}-${ask.budget_max || 'Flex'}
+                                    {ask.budget_min === 0 && ask.budget_max === 0 ? 'Flexible' : `$${ask.budget_min || 0}-$${ask.budget_max || 'Flex'}`}
                                 </span>
                             </div>
                         )}
@@ -67,7 +64,7 @@ export default function AskCard({ ask }: AskCardProps) {
                         </div>
                         <div>
                             <div className="flex items-center gap-1.5">
-                                <p className="text-xs font-black text-slate-900 dark:text-white whitespace-nowrap">{ask.user?.username || 'Anonymous'}</p>
+                                <p className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[100px]">{ask.user?.username || 'Anonymous'}</p>
                                 {ask.user?.is_pro && (
                                     <span className="bg-primary/10 text-primary text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-primary/20">PRO</span>
                                 )}
@@ -83,7 +80,7 @@ export default function AskCard({ ask }: AskCardProps) {
                         <span className="text-[10px] font-black">{ask.response_count || 0}</span>
                     </div>
                 </div>
-            </motion.div>
+            </div>
         </Link>
     );
 }

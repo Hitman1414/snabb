@@ -6,12 +6,32 @@ from ..database import get_db
 from ..auth import get_current_user
 from ..storage_service import storage
 from ..moderation import check_content_safety
+from ..utils import get_client_platform
 import uuid
 import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+# ─── Magic-byte helpers (audit #4) ───────────────────────────────────────────
+_MAGIC = {
+    b"\xff\xd8\xff": "image/jpeg",
+    b"\x89PNG": "image/png",
+    b"GIF8": "image/gif",
+    b"RIFF": "image/webp",
+}
+
+async def _validate_image_magic(file: UploadFile) -> None:
+    header = await file.read(16)
+    await file.seek(0)
+    for magic, mime in _MAGIC.items():
+        if header[: len(magic)] == magic:
+            return
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid image file — only JPEG, PNG, GIF, and WebP are accepted",
+    )
 
 
 @router.get("/pros", response_model=List[schemas.User])
@@ -35,6 +55,22 @@ def get_pro_users(
     return query.offset(skip).limit(limit).all()
 
 
+@router.get("/pending-pros", response_model=List[schemas.User])
+def get_pending_pros(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Admin-only: get all users with pro_status=pending."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return (
+        db.query(models.User)
+        .filter(models.User.pro_status == "pending")
+        .order_by(models.User.created_at.asc())
+        .all()
+    )
+
+
 @router.get("/{user_id}", response_model=schemas.User)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     """Get a public user profile by ID."""
@@ -53,25 +89,43 @@ async def upload_avatar(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Upload user avatar"""
-    # Validate file type
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
-    
-    # Generate unique filename
+    """Upload user avatar — magic-byte validated (audit #4)"""
+    await _validate_image_magic(file)
+
     extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-    filename = f"{uuid.uuid4()}.{extension}"
-    
-    # Save file via storage service
+    filename = f"avatars/{uuid.uuid4()}.{extension}"
+
     try:
         avatar_url = storage.upload_file(file.file, filename, file.content_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
-        
+
     current_user.avatar_url = avatar_url
     db.commit()
     db.refresh(current_user)
-    
+    return current_user
+
+
+@router.post("/me/id-card", response_model=schemas.User)
+async def upload_id_card(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Upload government ID card for Pro verification — magic-byte validated (audit #4)"""
+    await _validate_image_magic(file)
+
+    extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"id-cards/{uuid.uuid4()}.{extension}"
+
+    try:
+        id_card_url = storage.upload_file(file.file, filename, file.content_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Could not save file")
+
+    current_user.id_card_url = id_card_url
+    db.commit()
+    db.refresh(current_user)
     return current_user
 
 @router.put("/me/push-token", status_code=status.HTTP_200_OK)
@@ -108,13 +162,7 @@ def update_profile(
             logger.warning(f"Profile update blocked by moderation for user {current_user.id}. Reason: {reason}")
             
             # Save moderation log
-            platform = request.headers.get("x-client-platform")
-            if not platform:
-                user_agent = request.headers.get("user-agent", "").lower()
-                if "mozilla" in user_agent or "chrome" in user_agent or "safari" in user_agent:
-                    platform = "web"
-                else:
-                    platform = "unknown"
+            platform = get_client_platform(request)
             mod_log = models.ModerationLog(
                 user_id=current_user.id,
                 content_type="pro_bio_update",
@@ -148,13 +196,7 @@ def apply_pro(
     # Moderation Check
     is_safe, reason = check_content_safety(application.pro_bio)
     if not is_safe:
-        platform = request.headers.get("x-client-platform")
-        if not platform:
-            user_agent = request.headers.get("user-agent", "").lower()
-            if "mozilla" in user_agent or "chrome" in user_agent or "safari" in user_agent:
-                platform = "web"
-            else:
-                platform = "unknown"
+        platform = get_client_platform(request)
         mod_log = models.ModerationLog(
             user_id=current_user.id,
             content_type="pro_application",
@@ -169,18 +211,63 @@ def apply_pro(
             detail=f"Your bio violates safety guidelines. {reason}"
         )
         
-    # Audit #9: we currently auto-approve pro applications. Reflect that on
-    # the verified flag so the "Verified Pros" UI badge actually appears.
-    # When a manual review process is introduced, set this to False here and
-    # rely on POST /admin/users/{id}/verify-pro to flip it.
-    current_user.is_pro = True
+    # Prevent reapplication if already pending or approved.
+    if current_user.pro_status in ("pending", "approved") or current_user.is_pro:
+        raise HTTPException(status_code=400, detail="Pro application already submitted or approved")
+
     current_user.pro_category = application.pro_category
     current_user.pro_bio = application.pro_bio
-    current_user.pro_verified = True
+    if application.id_card_url:
+        current_user.id_card_url = application.id_card_url
 
+    # Mark as pending — admin must approve before is_pro / pro_verified are set.
+    current_user.pro_status = "pending"
     db.commit()
     db.refresh(current_user)
+    logger.info(f"Pro application submitted by user {current_user.id}, status=pending")
     return current_user
+
+
+@router.post("/{user_id}/approve-pro", response_model=schemas.User)
+def approve_pro(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Admin-only: approve a pending Pro application (audit #5)."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_pro = True
+    user.pro_verified = True
+    user.pro_status = "approved"
+    db.commit()
+    db.refresh(user)
+    logger.info(f"Admin {current_user.id} approved Pro application for user {user_id}")
+    return user
+
+
+@router.post("/{user_id}/reject-pro", response_model=schemas.User)
+def reject_pro(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Admin-only: reject a pending Pro application."""
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.pro_status = "rejected"
+    user.is_pro = False
+    user.pro_verified = False
+    db.commit()
+    db.refresh(user)
+    logger.info(f"Admin {current_user.id} rejected Pro application for user {user_id}")
+    return user
 
 
 # ─── Account deletion (audit #26 — GDPR) ──────────────────────────────────

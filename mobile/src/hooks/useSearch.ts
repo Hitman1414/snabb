@@ -3,6 +3,7 @@
  * Enhanced search with history and debouncing
  */
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '../services/logger';
 import { storage } from '../services/storage.adapter';
 
 const SEARCH_HISTORY_KEY = 'recent_searches';
@@ -22,7 +23,7 @@ export const useSearch = (initialQuery: string = '', debounceMs: number = 300) =
                     setSearchHistory(JSON.parse(historyJson));
                 }
             } catch (error) {
-                console.error('Failed to load search history', error);
+                logger.error('Failed to load search history', error);
             }
         };
         loadHistory();
@@ -50,7 +51,7 @@ export const useSearch = (initialQuery: string = '', debounceMs: number = 300) =
             setSearchHistory(newHistory);
             await storage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
         } catch (error) {
-            console.error('Failed to save search history', error);
+            logger.error('Failed to save search history', error);
         }
     }, [searchHistory]);
 
@@ -60,7 +61,7 @@ export const useSearch = (initialQuery: string = '', debounceMs: number = 300) =
             setSearchHistory([]);
             await storage.removeItem(SEARCH_HISTORY_KEY);
         } catch (error) {
-            console.error('Failed to clear search history', error);
+            logger.error('Failed to clear search history', error);
         }
     }, []);
 
@@ -71,7 +72,7 @@ export const useSearch = (initialQuery: string = '', debounceMs: number = 300) =
             setSearchHistory(newHistory);
             await storage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
         } catch (error) {
-            console.error('Failed to remove from search history', error);
+            logger.error('Failed to remove from search history', error);
         }
     }, [searchHistory]);
 

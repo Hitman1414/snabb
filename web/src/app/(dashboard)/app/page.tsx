@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { API_URL } from "@/lib/api";
-import { 
-    FileText, 
-    MessageCircle, 
-    User as UserIcon, 
-    Activity, 
+import {
+    FileText,
+    MessageCircle,
+    User as UserIcon,
+    Activity,
     Search,
     ShoppingBag,
     Utensils,
@@ -20,7 +20,9 @@ import {
     MapPin,
     Users,
     ArrowRight,
-    X
+    X,
+    LayoutGrid,
+    List
 } from "lucide-react";
 import AskCard from "@/components/AskCard";
 import DashboardBanners from "@/components/DashboardBanners";
@@ -56,7 +58,6 @@ function DashboardContent() {
     const q = searchParams.get('q') || "";
     const [user, setUser] = useState<User | null>(null);
     const [allAsks, setAllAsks] = useState<Ask[]>([]);
-    const [filteredAsks, setFilteredAsks] = useState<Ask[]>([]);
     const [allPros, setAllPros] = useState<ProUser[]>([]);
     const [filteredPros, setFilteredPros] = useState<ProUser[]>([]);
     const [loading, setLoading] = useState(true);
@@ -67,6 +68,8 @@ function DashboardContent() {
     const [sortFilter, setSortFilter] = useState('latest');
     const [locationParams, setLocationParams] = useState<{lat?: number, lng?: number}>({});
     const [locationError, setLocationError] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setLocationError(null);
@@ -96,33 +99,25 @@ function DashboardContent() {
 
     useEffect(() => {
         const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
 
             try {
-                const userRes = await fetch(`${API_URL}/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const userRes = await fetch(`${API_URL}/auth/me`, { credentials: "include", 
+                    });
 
                 if (!userRes.ok) throw new Error('Unauthorized');
                 const userData = await userRes.json();
                 setUser(userData);
 
-                const convRes = await fetch(`${API_URL}/messages/conversations`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const convRes = await fetch(`${API_URL}/messages/conversations`, { credentials: "include", 
+                    });
                 if (convRes.ok) {
                     const convs = await convRes.json();
                     const count = convs.reduce((acc: number, c: { unread_count?: number }) => acc + (c.unread_count || 0), 0);
                     setUnreadMsgs(count);
                 }
 
-                const prosRes = await fetch(`${API_URL}/users/pros?limit=20`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const prosRes = await fetch(`${API_URL}/users/pros?limit=20`, { credentials: "include", 
+                    });
                 if (prosRes.ok) {
                     const prosData: ProUser[] = await prosRes.json();
                     setAllPros(prosData);
@@ -130,7 +125,6 @@ function DashboardContent() {
                 }
             } catch (err) {
                 console.error(err);
-                localStorage.removeItem('token');
                 router.push('/login');
             }
         };
@@ -138,42 +132,43 @@ function DashboardContent() {
         fetchUserData();
     }, [router]);
 
-    useEffect(() => {
-        const fetchAsks = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-
-            try {
-                let url = `${API_URL}/asks/?skip=0&limit=100&sort=${sortFilter}`;
-                if (sortFilter === 'nearby' && locationParams.lat && locationParams.lng) {
-                    url += `&lat=${locationParams.lat}&lng=${locationParams.lng}&radius_km=30`;
-                }
-                if (selectedCategory !== 'All') {
-                    url += `&category=${encodeURIComponent(selectedCategory)}`;
-                }
-                if (q) {
-                    url += `&search=${encodeURIComponent(q)}`;
-                }
-
-                const asksRes = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (asksRes.ok) {
-                    const asksData = await asksRes.json();
-                    const items = asksData.items || [];
-                    setAllAsks(items);
-                    setFilteredAsks(items);
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
+    const fetchAsks = useCallback(async () => {
+        try {
+            let url = `${API_URL}/asks/?skip=0&limit=100&sort=${sortFilter}&status=open`;
+            if (sortFilter === 'nearby' && locationParams.lat && locationParams.lng) {
+                url += `&lat=${locationParams.lat}&lng=${locationParams.lng}&radius_km=30`;
             }
-        };
+            if (selectedCategory !== 'All') {
+                url += `&category=${encodeURIComponent(selectedCategory)}`;
+            }
+            if (q) {
+                url += `&search=${encodeURIComponent(q)}`;
+            }
 
-        fetchAsks();
+            const asksRes = await fetch(url, { credentials: "include" });
+            if (asksRes.ok) {
+                const asksData = await asksRes.json();
+                setAllAsks(asksData.items || asksData);
+            }
+        } catch (error) {
+            console.error('Failed to fetch asks', error);
+        } finally {
+            setLoading(false);
+        }
     }, [sortFilter, locationParams, selectedCategory, q]);
+
+    useEffect(() => {
+        fetchAsks();
+    }, [fetchAsks, refreshTrigger]);
+
+    useEffect(() => {
+        const handleAskCreated = () => {
+            setRefreshTrigger(prev => prev + 1);
+        };
+        window.addEventListener('ask-created', handleAskCreated);
+        return () => window.removeEventListener('ask-created', handleAskCreated);
+    }, []);
+
 
     useEffect(() => {
         let proResult = allPros;
@@ -236,7 +231,7 @@ function DashboardContent() {
                             </div>
                         </div>
                         <p className="mt-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                            Found {filteredAsks.length} asks and {filteredPros.length} pro{filteredPros.length !== 1 ? 's' : ''}
+                            Found {allAsks.length} asks and {filteredPros.length} pro{filteredPros.length !== 1 ? 's' : ''}
                         </p>
                     </div>
                 </div>
@@ -285,32 +280,49 @@ function DashboardContent() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mt-12">
                 {/* Left Column: Asks (Full Width Now) */}
                 <div id="tour-opportunities" className="lg:col-span-12 space-y-6 animate-in fade-in slide-in-from-left-4 duration-700 delay-200 max-w-6xl mx-auto w-full">
-                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
+                            <div className="w-10 h-10 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-100 dark:border-emerald-500/20">
                                 <Activity className="w-5 h-5" />
                             </div>
                             <div>
                                 <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
-                                    {isSearching ? 'Matching Opportunities' : 'Active Opportunities'}
+                                    {isSearching ? 'Matching Asks' : 'Active Ask'}
                                 </h2>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                                    {isSearching ? 'Asks that match your search' : 'Tasks needing immediate help'}
+                                    {isSearching ? 'Asks that match your search' : 'Open tasks needing immediate help'}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4 relative">
+                        <div className="flex items-center gap-3 relative">
                             {!isSearching && (
-                                <select 
+                                <select
                                     value={sortFilter}
                                     onChange={handleSortChange}
                                     className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                                 >
-                                    <option value="latest">All Asks (Latest)</option>
+                                    <option value="latest">Latest</option>
                                     <option value="nearby">Nearby</option>
                                     <option value="most_rated">Most Rated</option>
                                 </select>
                             )}
+                            {/* Grid / List toggle */}
+                            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 gap-1">
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                    title="Grid view"
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                    title="List view"
+                                >
+                                    <List className="w-4 h-4" />
+                                </button>
+                            </div>
                             {locationError && (
                                 <div className="absolute top-full mt-2 right-0 bg-red-50 text-red-600 text-[10px] font-bold px-3 py-1.5 rounded-lg border border-red-100 shadow-sm whitespace-nowrap z-10">
                                     {locationError}
@@ -319,7 +331,7 @@ function DashboardContent() {
                         </div>
                     </div>
 
-                    {filteredAsks.length === 0 ? (
+                    {allAsks.length === 0 ? (
                         <div className="bg-white py-24 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center text-center px-4 shadow-sm relative overflow-hidden">
                             <div className="absolute inset-0 bg-slate-50/10 pointer-events-none"></div>
                             <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mb-8 text-slate-200 shadow-inner">
@@ -335,8 +347,8 @@ function DashboardContent() {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid lg:grid-cols-2 gap-6">
-                            {filteredAsks.map((ask) => (
+                        <div className={viewMode === 'grid' ? 'grid lg:grid-cols-2 gap-6' : 'flex flex-col gap-4'}>
+                            {allAsks.map((ask) => (
                                 <AskCard key={ask.id} ask={ask} />
                             ))}
                         </div>

@@ -3,6 +3,7 @@
  * Multi-image picker with previews, validation, and removal capability
  */
 import React, { useState } from 'react';
+import { logger } from '../../services/logger';
 import {
     View,
     TouchableOpacity,
@@ -72,7 +73,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
 
             return true;
         } catch (error) {
-            console.error('Image validation failed:', error);
+            logger.error('Image validation failed:', error);
             return true;
         }
     };
@@ -119,7 +120,7 @@ export const ImagePicker: React.FC<ImagePickerProps> = ({
                 }
             }
         } catch (error: any) {
-            console.error('Image picker failed:', error);
+            logger.error('Image picker failed:', error);
             Alert.alert(
                 'Error',
                 error.message || 'Failed to pick image. Please try again.',

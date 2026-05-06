@@ -32,10 +32,8 @@ export default function SnabbProModal() {
     const fetchPros = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/users/search?role=pro`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const res = await fetch(`${API_URL}/users/search?role=pro`, { credentials: "include", 
+                });
             if (res.ok) {
                 const data = await res.json();
                 const items = data.items || [];

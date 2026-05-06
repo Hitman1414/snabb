@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { logger } from '../services/logger';
 import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { Typography, Card } from '../design-system/components';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +29,7 @@ export default function AdminModerationScreen() {
                     setLogs(response.data.logs);
                 }
             } catch (error) {
-                console.error("Failed to fetch moderation logs", error);
+                logger.error("Failed to fetch moderation logs", error);
             } finally {
                 setLoading(false);
             }

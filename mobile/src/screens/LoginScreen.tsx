@@ -70,7 +70,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                         contentFit="contain" 
                     />
                     <Typography variant="body" style={{ color: '#0F172A', opacity: 0.75 }}>
-                        Get help instantly, anywhere.
+                        Ask. Serve. Earn.
                     </Typography>
                 </View>
 

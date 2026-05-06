@@ -1,7 +1,8 @@
 /**
  * Optimized HomeScreen with Search, Filters, and Infinite Scroll
  */
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useMemo } from 'react';
+import { logger } from '../services/logger';
 import * as Location from 'expo-location';
 import {
     View,
@@ -12,8 +13,8 @@ import {
     ScrollView,
     TouchableOpacity,
     StatusBar,
-    Image,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,6 +33,7 @@ import { CATEGORIES, CATEGORY_ICONS } from '../constants/categories';
 import { getInitials } from '../utils/helpers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OnboardingTour from '../components/OnboardingTour';
+import { toastService } from '../services/toast.service';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -54,6 +56,7 @@ export default function HomeScreen() {
     const [addressText, setAddressText] = useState('Fetching location...');
     const [hasLocation, setHasLocation] = useState(false);
     const [showTour, setShowTour] = useState(false);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
 
     // Show onboarding tour on first launch
     useEffect(() => {
@@ -95,7 +98,7 @@ export default function HomeScreen() {
                 setHasLocation(true);
                 // Do NOT auto-enable nearby — keep isNearbyEnabled = false so all asks show
             } catch (error) {
-                console.warn('Error fetching location:', error);
+                logger.warn('Error fetching location:', error);
                 setLocationError('Could not fetch location');
             }
         })();
@@ -111,7 +114,7 @@ export default function HomeScreen() {
         refetch,
     } = useInfiniteAsks(
         selectedCategory === 'All' ? undefined : selectedCategory,
-        undefined,
+        'open',  // Only show open asks in the feed
         searchQuery || undefined,
         undefined,
         undefined,
@@ -133,16 +136,37 @@ export default function HomeScreen() {
         }
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-    const renderItem = useCallback(({ item }: ListRenderItemInfo<Ask>) => (
+    const processedAsks = useMemo(() => {
+        if (viewMode === 'list') {
+            return asks.map(ask => ({ isRow: false, items: [ask], id: `list-${ask.id}` }));
+        } else {
+            const rows = [];
+            for (let i = 0; i < asks.length; i += 2) {
+                rows.push({
+                    isRow: true,
+                    items: asks.slice(i, i + 2),
+                    id: `grid-${asks[i].id}`
+                });
+            }
+            return rows;
+        }
+    }, [asks, viewMode]);
+
+    const renderAskCard = useCallback((item: Ask) => (
         <TouchableOpacity
+            key={item.id}
             onPress={() => handleAskPress(item.id)}
             activeOpacity={0.8}
             style={[styles.card, {
                 backgroundColor: colors.surface,
                 borderColor: colors.border,
+            }, viewMode === 'grid' && {
+                flex: 1,
+                flexDirection: 'column',
+                marginHorizontal: spacing[1],
             }]}
         >
-            <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant }]}>
+            <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant }, viewMode === 'grid' && { width: '100%', height: 120, marginBottom: spacing[2] }]}>
                 {/* Simulated category icon as placeholder for image */}
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons
@@ -152,7 +176,7 @@ export default function HomeScreen() {
                     />
                 </View>
             </View>
-            <View style={styles.cardContent}>
+            <View style={[styles.cardContent, viewMode === 'grid' && { paddingLeft: 0 }]}>
                 <View style={styles.cardHeader}>
                     <Typography variant="h6" weight="bold" numberOfLines={1} style={{ flex: 1 }}>
                         {item.title}
@@ -178,7 +202,7 @@ export default function HomeScreen() {
                 <View style={styles.cardFooter}>
                     <View style={styles.budgetTag}>
                         <Typography variant="caption" weight="bold" color="primary" style={{ color: colors.primaryDark }}>
-                            ₹{item.budget_min || 0} - ₹{item.budget_max || 0}
+                            {item.budget_min === 0 && item.budget_max === 0 ? 'Flexible' : `₹${item.budget_min || 0} - ₹${item.budget_max || 0}`}
                         </Typography>
                     </View>
                     <Typography variant="caption" color="tertiary">
@@ -187,7 +211,19 @@ export default function HomeScreen() {
                 </View>
             </View>
         </TouchableOpacity>
-    ), [handleAskPress, colors]);
+    ), [handleAskPress, colors, viewMode]);
+
+    const renderItem = useCallback(({ item }: any) => {
+        if (item.isRow) {
+            return (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
+                    {item.items.map((ask: Ask) => renderAskCard(ask))}
+                    {item.items.length === 1 && <View style={{ flex: 1, marginHorizontal: spacing[1] }} />}
+                </View>
+            );
+        }
+        return renderAskCard(item.items[0]);
+    }, [renderAskCard]);
 
     const renderFooter = useCallback(() => {
         if (!isFetchingNextPage) return null;
@@ -247,7 +283,9 @@ export default function HomeScreen() {
 
                 <TouchableOpacity
                     activeOpacity={0.9}
-                    onPress={() => { }}
+                    onPress={() => {
+                        toastService.info('Snabb AI is coming soon!');
+                    }}
                 >
                     <View style={[styles.promoCard, { backgroundColor: '#F5F3FF' }]}>
                         <View style={styles.promoContent}>
@@ -309,10 +347,35 @@ export default function HomeScreen() {
 
             {/* Filters Row */}
             <View style={{ paddingHorizontal: spacing[4], marginBottom: spacing[2] }}>
-                <Typography variant="h5" weight="bold" style={{ marginBottom: spacing[3] }}>
-                    {sortFilter === 'nearby' ? 'Nearby Asks' : sortFilter === 'most_rated' ? 'Most Rated Asks' : 'All Asks'}
-                </Typography>
-                
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing[3] }}>
+                    <Typography variant="h5" weight="bold">
+                        Active Ask
+                    </Typography>
+                    {/* Grid / List toggle */}
+                    <View style={{ flexDirection: 'row', backgroundColor: colors.surfaceVariant, borderRadius: 10, padding: 3, gap: 2 }}>
+                        <TouchableOpacity
+                            onPress={() => setViewMode('list')}
+                            style={{
+                                padding: spacing[1] + 2,
+                                borderRadius: 8,
+                                backgroundColor: viewMode === 'list' ? colors.surface : 'transparent',
+                            }}
+                        >
+                            <Ionicons name="list-outline" size={18} color={viewMode === 'list' ? colors.primary : colors.textSecondary} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setViewMode('grid')}
+                            style={{
+                                padding: spacing[1] + 2,
+                                borderRadius: 8,
+                                backgroundColor: viewMode === 'grid' ? colors.surface : 'transparent',
+                            }}
+                        >
+                            <Ionicons name="grid-outline" size={18} color={viewMode === 'grid' ? colors.primary : colors.textSecondary} />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing[2] }}>
                     {[
                         { id: 'latest', label: 'Latest', icon: 'time-outline' },
@@ -325,7 +388,7 @@ export default function HomeScreen() {
                                 key={filter.id}
                                 onPress={() => {
                                     if (filter.id === 'nearby' && !hasLocation) {
-                                        alert('Please allow location access to see nearby asks.');
+                                        toastService.warning('Please allow location access to see nearby asks.');
                                         return;
                                     }
                                     setSortFilter(filter.id);
@@ -360,7 +423,7 @@ export default function HomeScreen() {
                 </ScrollView>
             </View>
         </View>
-    ), [colors, navigation, selectedCategory, setSelectedCategory, sortFilter, hasLocation]);
+    ), [colors, navigation, selectedCategory, setSelectedCategory, sortFilter, hasLocation, viewMode]);
 
     return (
         <View style={{ flex: 1 }}>
@@ -371,7 +434,11 @@ export default function HomeScreen() {
             {/* Location Header - outside FlatList so it stays stable */}
             <View style={[styles.locationHeader, { backgroundColor: colors.background }]}>
                 <TouchableOpacity style={styles.locationLeft} onPress={() => { }}>
-                    <Ionicons name="location" size={24} color={colors.primary} />
+                    <ExpoImage 
+                        source={require('../../assets/snabb-icon.svg')} 
+                        style={{ width: 36, height: 36, marginRight: 8 }} 
+                        contentFit="contain" 
+                    />
                     <View style={styles.locationText}>
                         <Typography variant="bodySmall" weight="bold">
                             Current Location <Ionicons name="chevron-down" size={14} color={colors.text} />
@@ -415,24 +482,6 @@ export default function HomeScreen() {
                             </View>
                         )}
                     </TouchableOpacity>
-
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('Main', { screen: 'Profile' } as any)}
-                        activeOpacity={0.8}
-                    >
-                        {user?.avatar_url ? (
-                            <Image
-                                source={{ uri: getFullImageUrl(user.avatar_url) as string }}
-                                style={{ width: 36, height: 36, borderRadius: 18 }}
-                            />
-                        ) : (
-                            <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary }}>
-                                <Typography variant="caption" color="inverse" weight="bold">
-                                    {getInitials(user?.username || '?')}
-                                </Typography>
-                            </View>
-                        )}
-                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -453,9 +502,9 @@ export default function HomeScreen() {
                 </View>
             ) : (
                 <FlatList
-                    data={asks}
+                    data={processedAsks}
                     renderItem={renderItem}
-                    keyExtractor={(item) => item.id.toString()}
+                    keyExtractor={(item) => item.id}
                     ListHeaderComponent={ListHeader}
                     contentContainerStyle={styles.list}
                     onEndReached={handleLoadMore}

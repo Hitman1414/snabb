@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { API_CONFIG } from '../constants/config';
 import { storageService } from './storage';
+import { logger } from './logger';
 
 // Simple event handler for auth events (React Native compatible)
 type AuthEventHandler = () => void;
@@ -43,7 +44,7 @@ apiClient.interceptors.request.use(
         return config;
     },
     (error) => {
-        console.error('API Request Error:', error);
+        logger.error('API Request Error', error);
         return Promise.reject(error);
     }
 );
@@ -57,12 +58,11 @@ apiClient.interceptors.response.use(
         const isLoginRequest = url.includes('/auth/login');
 
         if (!isUnauthorized) {
-            console.error('API Response Error:', {
+            logger.error('API Response Error', error, {
                 url,
                 method: error.config?.method,
                 status: error.response?.status,
                 data: error.response?.data,
-                message: error.message
             });
         }
 

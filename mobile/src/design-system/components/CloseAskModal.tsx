@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { logger } from '../../services/logger';
 import { View, Modal, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Typography } from './Typography';
 import { LoadingButton } from './LoadingButton';
@@ -34,7 +35,7 @@ export const CloseAskModal: React.FC<CloseAskModalProps> = ({
             });
             onClose();
         } catch (error) {
-            console.error('Failed to close ask', error);
+            logger.error('Failed to close ask', error);
         }
     };
 

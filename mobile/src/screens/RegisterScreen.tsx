@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { logger } from '../services/logger';
 import {
     View,
     StyleSheet,
@@ -58,7 +59,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             if (error instanceof z.ZodError) {
                 toastService.error(error.issues[0].message);
             } else {
-                console.error('Registration error:', error);
+                logger.error('Registration error:', error);
                 const errorMessage = error.response?.data?.detail ||
                     error.message ||
                     'Unable to create account. Please try again.';

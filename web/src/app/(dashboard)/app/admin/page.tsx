@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-    Activity, 
-    Users, 
-    FileText, 
-    Smartphone, 
-    Globe, 
-    Clock, 
-    Database, 
+import {
+    Activity,
+    Users,
+    FileText,
+    Smartphone,
+    Globe,
+    Clock,
+    Database,
     ShieldAlert,
     TrendingUp,
     Zap,
@@ -21,10 +21,24 @@ import {
     BarChart3,
     Server,
     LayoutDashboard,
-    ArrowRight
+    ArrowRight,
+    BadgeCheck,
+    X,
+    UserCheck,
+    IdCard
 } from "lucide-react";
 import { API_URL } from "@/lib/api";
 import { format } from "date-fns";
+
+type PendingPro = {
+    id: number;
+    username: string;
+    email: string;
+    pro_category: string;
+    pro_bio: string;
+    id_card_url: string | null;
+    created_at: string;
+};
 
 type AdminStats = {
     db: {
@@ -65,25 +79,52 @@ type ModerationLog = {
 
 export default function AdminPortal() {
     const router = useRouter();
+    const [activeTab, setActiveTab] = useState<'system' | 'pro-approvals'>('system');
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [modLogs, setModLogs] = useState<ModerationLog[]>([]);
+    const [pendingPros, setPendingPros] = useState<PendingPro[]>([]);
+    const [proActionLoading, setProActionLoading] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+
+    const fetchPendingPros = async () => {
+        try {
+            const res = await fetch(`${API_URL}/users/pending-pros`, { credentials: "include", 
+                            });
+            if (res.ok) {
+                const data = await res.json();
+                setPendingPros(data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch pending pros', err);
+        }
+    };
+
+    const handleProAction = async (userId: number, action: 'approve' | 'reject') => {
+        setProActionLoading(userId);
+        try {
+            const res = await fetch(`${API_URL}/users/${userId}/${action}-pro`, { credentials: "include", 
+                method: 'POST',
+                            });
+            if (res.ok) {
+                setPendingPros(prev => prev.filter(p => p.id !== userId));
+            }
+        } catch (err) {
+            console.error(`Failed to ${action} pro`, err);
+        } finally {
+            setProActionLoading(null);
+        }
+    };
 
     const fetchStats = async () => {
         // Audit #4: send token via Authorization header, NEVER as ?token=...
         // Query-string tokens leak into server logs, browser history, and
         // Referer headers — Authorization headers don't.
-        const token = localStorage.getItem('token');
-        if (!token) {
-            router.push('/login');
-            return;
-        }
 
-        const authHeaders = { Authorization: `Bearer ${token}` };
+        const authHeaders = {};
 
         try {
-            const res = await fetch(`${API_URL}/admin/stats`, { headers: authHeaders });
+            const res = await fetch(`${API_URL}/admin/stats`, { credentials: "include",  });
             if (res.status === 401) {
                 router.push('/login');
                 return;
@@ -118,7 +159,7 @@ export default function AdminPortal() {
             setStats(normalized);
 
             // Fetch Moderation Logs with the same auth header.
-            const modRes = await fetch(`${API_URL}/admin/moderation-logs`, { headers: authHeaders });
+            const modRes = await fetch(`${API_URL}/admin/moderation-logs`, { credentials: "include",  });
             if (modRes.ok) {
                 const modData = await modRes.json();
                 setModLogs(modData.logs || []);
@@ -133,6 +174,7 @@ export default function AdminPortal() {
 
     useEffect(() => {
         fetchStats();
+        fetchPendingPros();
         const interval = setInterval(fetchStats, 10000); // Auto refresh every 10s
         return () => clearInterval(interval);
     }, []);
@@ -179,6 +221,156 @@ export default function AdminPortal() {
                     Refresh Engine
                 </button>
             </div>
+
+            {/* Tab Navigation */}
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl p-2 border border-slate-100 dark:border-slate-700 self-start w-fit shadow-sm">
+                <button
+                    onClick={() => setActiveTab('system')}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                        activeTab === 'system'
+                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                    }`}
+                >
+                    <Server className="w-4 h-4" />
+                    System
+                </button>
+                <button
+                    onClick={() => { setActiveTab('pro-approvals'); fetchPendingPros(); }}
+                    className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                        activeTab === 'pro-approvals'
+                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                            : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                    }`}
+                >
+                    <UserCheck className="w-4 h-4" />
+                    Pro Approvals
+                    {pendingPros.length > 0 && (
+                        <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                            {pendingPros.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {/* Pro Approvals Tab */}
+            {activeTab === 'pro-approvals' && (
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Pending Pro Applications</h2>
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                {pendingPros.length} application{pendingPros.length !== 1 ? 's' : ''} awaiting review
+                            </p>
+                        </div>
+                        <button
+                            onClick={fetchPendingPros}
+                            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-3 rounded-xl flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all font-black text-xs uppercase tracking-widest shadow-sm text-slate-900 dark:text-white"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            Refresh
+                        </button>
+                    </div>
+
+                    {pendingPros.length === 0 ? (
+                        <div className="bg-white dark:bg-slate-800 rounded-[3rem] p-20 text-center border border-slate-100 dark:border-slate-700 shadow-sm">
+                            <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                                <BadgeCheck className="w-10 h-10 text-emerald-500" />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">All Clear!</h3>
+                            <p className="text-slate-400 font-bold text-sm">No pending Pro applications to review.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {pendingPros.map((pro) => (
+                                <div key={pro.id} className="bg-white dark:bg-slate-800 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-500/20 dark:to-orange-500/10 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-xl">
+                                                {pro.username.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <p className="font-black text-slate-900 dark:text-white">{pro.username}</p>
+                                                <p className="text-xs text-slate-400 font-bold">{pro.email}</p>
+                                            </div>
+                                        </div>
+                                        <span className="px-3 py-1.5 rounded-xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 font-black text-[9px] uppercase tracking-widest border border-orange-100 dark:border-orange-500/20">
+                                            Pending
+                                        </span>
+                                    </div>
+
+                                    {/* Category */}
+                                    <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Category</p>
+                                        <p className="font-black text-slate-900 dark:text-white text-sm">{pro.pro_category}</p>
+                                    </div>
+
+                                    {/* Bio */}
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Professional Bio</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{pro.pro_bio}</p>
+                                    </div>
+
+                                    {/* ID Document */}
+                                    {pro.id_card_url ? (
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
+                                                <IdCard className="w-3.5 h-3.5" /> ID Document
+                                            </p>
+                                            <a
+                                                href={pro.id_card_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="block w-full h-40 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-600 hover:opacity-80 transition-opacity"
+                                            >
+                                                <img
+                                                    src={pro.id_card_url}
+                                                    alt="ID Document"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </a>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-amber-50 dark:bg-amber-500/10 rounded-2xl p-4 flex items-center gap-3 border border-amber-100 dark:border-amber-500/20">
+                                            <IdCard className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">No ID document uploaded</p>
+                                        </div>
+                                    )}
+
+                                    {/* Applied date */}
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        Applied {format(new Date(pro.created_at), "MMM d, yyyy")}
+                                    </p>
+
+                                    {/* Action Buttons */}
+                                    <div className="grid grid-cols-2 gap-3 pt-2">
+                                        <button
+                                            onClick={() => handleProAction(pro.id, 'reject')}
+                                            disabled={proActionLoading === pro.id}
+                                            className="flex items-center justify-center gap-2 py-4 rounded-2xl border-2 border-red-200 dark:border-red-500/30 text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-500/10 transition-all disabled:opacity-40 active:scale-95"
+                                        >
+                                            <X className="w-4 h-4" />
+                                            Reject
+                                        </button>
+                                        <button
+                                            onClick={() => handleProAction(pro.id, 'approve')}
+                                            disabled={proActionLoading === pro.id}
+                                            className="flex items-center justify-center gap-2 py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-40 active:scale-95"
+                                        >
+                                            <BadgeCheck className="w-4 h-4" />
+                                            {proActionLoading === pro.id ? 'Processing...' : 'Approve'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* System Tab */}
+            {activeTab === 'system' && <>
 
             {/* Top Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -435,7 +627,8 @@ export default function AdminPortal() {
                     </div>
                 </div>
             </div>
-        </div>
+        </>}
+    </div>
     );
 }
 

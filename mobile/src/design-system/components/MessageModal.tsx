@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { logger } from '../../services/logger';
 import { View, Modal, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Typography } from './Typography';
 import { LoadingButton } from './LoadingButton';
@@ -48,7 +49,7 @@ export const MessageModal: React.FC<MessageModalProps> = ({
             if (error instanceof z.ZodError) {
                 toastService.error(error.issues[0].message);
             } else {
-                console.error('Failed to send message', error);
+                logger.error('Failed to send message', error);
                 toastService.error('Failed to send message');
             }
         }

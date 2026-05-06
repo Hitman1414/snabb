@@ -14,16 +14,10 @@ export default function InterestedPage() {
 
     useEffect(() => {
         const fetchInterested = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
 
             try {
-                const res = await fetch(`${API_URL}/asks/interested`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await fetch(`${API_URL}/asks/interested`, { credentials: "include", 
+                    });
                 if (res.ok) {
                     setAsks(await res.json());
                 }

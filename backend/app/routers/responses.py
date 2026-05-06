@@ -59,6 +59,24 @@ def create_response(
     if ask.user_id == current_user.id:
         logger.warning(f"User {current_user.id} tried to respond to own ask {ask_id}")
         raise HTTPException(status_code=400, detail="Cannot respond to your own ask")
+        
+    # Moderation check for response message
+    from ..moderation import check_content_safety
+    is_safe, reason = check_content_safety(response.message)
+    if not is_safe:
+        mod_log = models.ModerationLog(
+            user_id=current_user.id,
+            content_type="response_message",
+            content_text=response.message,
+            flagged_reason=reason,
+            platform="unknown"
+        )
+        db.add(mod_log)
+        db.commit()
+        raise HTTPException(
+            status_code=400,
+            detail=f"Your message violates safety guidelines. {reason}"
+        )
     
     db_response = models.Response(
         **response.model_dump(),

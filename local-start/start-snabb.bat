@@ -42,6 +42,33 @@ if not exist "%BACKEND%\venv\Scripts\python.exe" (
     exit /b 1
 )
 
+rem Verify the venv was created on Windows (not Linux/WSL).
+findstr /i /r /c:"^home = /" "%BACKEND%\venv\pyvenv.cfg" >nul 2>&1
+if not errorlevel 1 (
+    echo WARNING: Python venv was created on Linux/WSL ^(home = /usr/bin^).
+    echo Recreating venv for Windows...
+    echo.
+    rmdir /s /q "%BACKEND%\venv"
+    pushd "%BACKEND%"
+    python -m venv venv
+    if errorlevel 1 (
+        popd
+        echo ERROR: Could not create Python venv. Is Python installed and on PATH?
+        pause
+        exit /b 1
+    )
+    venv\Scripts\python.exe -m pip install --quiet -r requirements.txt
+    if errorlevel 1 (
+        popd
+        echo ERROR: pip install failed.
+        pause
+        exit /b 1
+    )
+    popd
+    echo Venv recreated successfully.
+    echo.
+)
+
 if not exist "%WEB%\node_modules\" (
     echo ERROR: Web dependencies are not installed.
     echo Run: cd /d "%WEB%" ^&^& npm install
@@ -72,7 +99,7 @@ if /i "%~1"=="--check" (
 echo Applying backend database migrations...
 pushd "%BACKEND%"
 set "DATABASE_URL=%LOCAL_DATABASE_URL%"
-venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head
+venv\Scripts\alembic.exe -c alembic.ini upgrade head
 if errorlevel 1 (
     popd
     echo ERROR: Backend database migration failed.

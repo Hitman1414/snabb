@@ -35,39 +35,29 @@ export default function ChatPage() {
 
     useEffect(() => {
         const fetchData = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
 
             try {
                 // Fetch current user
-                const userRes = await fetch(`${API_URL}/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const userRes = await fetch(`${API_URL}/auth/me`, { credentials: "include", 
+                    });
                 if (userRes.ok) {
                     const userData = await userRes.json();
                     setCurrentUser(userData);
                 } else {
-                    localStorage.removeItem('token');
                     router.push('/login');
                     return;
                 }
 
                 // Fetch messages
-                const msgRes = await fetch(`${API_URL}/messages/conversation/${otherUserId}?ask_id=${askId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const msgRes = await fetch(`${API_URL}/messages/conversation/${otherUserId}?ask_id=${askId}`, { credentials: "include", 
+                    });
                 if (msgRes.ok) {
                     setMessages(await msgRes.json());
                 } else if (msgRes.status === 401) {
-                    localStorage.removeItem('token');
                     router.push('/login');
                 }
             } catch (err) {
                 console.error(err);
-                localStorage.removeItem('token');
                 router.push('/login');
             } finally {
                 setLoading(false);
@@ -94,15 +84,13 @@ export default function ChatPage() {
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        const token = localStorage.getItem('token');
-        if (!token || !newMessage.trim() || sending) return;
+        if (!newMessage.trim() || sending) return;
 
         setSending(true);
         try {
-            const res = await fetch(`${API_URL}/messages/`, {
+            const res = await fetch(`${API_URL}/messages/`, { credentials: "include", 
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({

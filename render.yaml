@@ -7,11 +7,16 @@ services:
     plan: free
     buildCommand: "cd backend && pip install -r requirements.txt && alembic upgrade head"
     startCommand: "cd backend && gunicorn app.main:app -c gunicorn.conf.py --bind 0.0.0.0:$PORT"
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+
+      # ── Database ────────────────────────────────────────────────────────────
       - key: DATABASE_URL
-        sync: false # Set to your Supabase URL in Render Dashboard
+        sync: false   # Set to your Postgres/Supabase URL in Render Dashboard
+
+      # ── Cache ───────────────────────────────────────────────────────────────
       - key: REDIS_URL
         fromService:
           type: redis
@@ -19,20 +24,70 @@ services:
           property: connectionString
       - key: REDIS_ENABLED
         value: "true"
+
+      # ── App ─────────────────────────────────────────────────────────────────
       - key: DEBUG
         value: "false"
+
+      # CORS: list your actual frontend domains — never use "*" with credentials
       - key: CORS_ORIGINS
-        value: '["*"]'
+        value: '["https://snabb.vercel.app","https://www.snabb.com"]'
+
+      # SECRET_KEY: Render generates a strong random value on first deploy
       - key: SECRET_KEY
         generateValue: true
+
+      # 60 minutes — short-lived JWTs limit blast radius of token theft
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: "43200"
+        value: "60"
+
+      # ── Storage ─────────────────────────────────────────────────────────────
       - key: STORAGE_PROVIDER
         value: "s3"
+      - key: AWS_ACCESS_KEY_ID
+        sync: false   # Set in Render Dashboard
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false   # Set in Render Dashboard
+      - key: AWS_REGION_NAME
+        value: "us-east-1"
+      - key: AWS_BUCKET_NAME
+        sync: false   # Set in Render Dashboard
+
+      # ── Email / OTP ─────────────────────────────────────────────────────────
+      - key: RESEND_API_KEY
+        sync: false   # Set in Render Dashboard — leave blank to log OTPs locally
+      - key: OTP_FROM_EMAIL
+        value: "Snabb <noreply@snabb.com>"
+
+      # ── Payments ────────────────────────────────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false   # Set in Render Dashboard
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false   # Set in Render Dashboard
+      - key: PAYMENTS_CAPTURE_METHOD
+        value: "manual"
+
+      # ── Monitoring ──────────────────────────────────────────────────────────
+      - key: SENTRY_DSN
+        sync: false   # Set in Render Dashboard
+      - key: SENTRY_ENVIRONMENT
+        value: "production"
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.1"
+      - key: SENTRY_PROFILES_SAMPLE_RATE
+        value: "0.1"
+
+      # ── Rate limiting ────────────────────────────────────────────────────────
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "60"
+      - key: RATE_LIMIT_AUTH_PER_MINUTE
+        value: "5"
 
   # Redis Cache
   - type: redis
     name: snabb-cache
     region: ohio
     plan: free
-    ipAllowList: [] # Only allow internal connections
+    ipAllowList: []   # Only allow internal connections from snabb-api

@@ -9,7 +9,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useConversations } from '../hooks/useMessages';
 import { OfflineBanner } from '../design-system/components';
 import { registerForPushNotificationsAsync, updatePushTokenOnServer } from '../services/notifications';
-
+import { Image, Platform } from 'react-native';
+import { getInitials } from '../utils/helpers';
+import { getFullImageUrl } from '../constants/config';
+import { Typography } from '../design-system/components';
 // Screens
 import {
     LoginScreen,
@@ -30,7 +33,9 @@ import {
     ProApplicationScreen,
     ForgotPasswordScreen,
     AdminModerationScreen,
-    AdminDashboardScreen
+    AdminDashboardScreen,
+    HelpCenterScreen,
+    AboutUsScreen
 } from '../screens';
 
 export type RootStackParamList = {
@@ -42,6 +47,8 @@ export type RootStackParamList = {
     AskDetail: { askId: number };
     PrivacyPolicy: undefined;
     TermsOfService: undefined;
+    HelpCenter: undefined;
+    AboutUs: undefined;
     ProLanding: undefined;
     ProApplication: undefined;
     Notifications: undefined;
@@ -80,9 +87,39 @@ const MainTabNavigator = () => {
                 tabBarStyle: {
                     backgroundColor: colors.surface,
                     borderTopColor: colors.border,
+                    elevation: 10,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: -2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    height: Platform.OS === 'ios' ? 88 : 68,
+                    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+                    paddingTop: 8,
                 },
                 tabBarIcon: ({ focused, color, size }) => {
-                    let iconName: keyof typeof Ionicons.glyphMap;
+                    if (route.name === 'Profile') {
+                        return (
+                            <View style={{
+                                width: size, height: size, borderRadius: size / 2, 
+                                borderWidth: focused ? 2 : 0, borderColor: colors.primary,
+                                alignItems: 'center', justifyContent: 'center',
+                                backgroundColor: user?.avatar_url ? 'transparent' : (focused ? colors.primary : colors.border)
+                            }}>
+                                {user?.avatar_url ? (
+                                    <Image
+                                        source={{ uri: getFullImageUrl(user.avatar_url) as string }}
+                                        style={{ width: '100%', height: '100%', borderRadius: size / 2 }}
+                                    />
+                                ) : (
+                                    <Typography variant="caption" weight="bold" style={{ color: focused ? '#fff' : colors.textSecondary, fontSize: size * 0.4 }}>
+                                        {getInitials(user?.username || '?')}
+                                    </Typography>
+                                )}
+                            </View>
+                        );
+                    }
+
+                    let iconName: keyof typeof Ionicons.glyphMap = 'help-circle';
 
                     if (route.name === 'Home') {
                         iconName = focused ? 'home' : 'home-outline';
@@ -92,12 +129,8 @@ const MainTabNavigator = () => {
                         iconName = focused ? 'heart' : 'heart-outline';
                     } else if (route.name === 'Messages') {
                         iconName = focused ? 'chatbubbles' : 'chatbubbles-outline';
-                    } else if (route.name === 'Profile') {
-                        iconName = focused ? 'person' : 'person-outline';
                     } else if (route.name === 'Admin') {
                         iconName = focused ? 'speedometer' : 'speedometer-outline';
-                    } else {
-                        iconName = 'help-circle';
                     }
 
                     return <Ionicons name={iconName} size={size} color={color} />;
@@ -209,6 +242,8 @@ export const AppNavigator = () => {
                     )}
                     <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} options={{ title: 'Privacy Policy' }} />
                     <Stack.Screen name="TermsOfService" component={TermsOfServiceScreen} options={{ title: 'Terms of Service' }} />
+                    <Stack.Screen name="HelpCenter" component={HelpCenterScreen} options={{ title: 'Help Center' }} />
+                    <Stack.Screen name="AboutUs" component={AboutUsScreen} options={{ title: 'About Us' }} />
                 </Stack.Navigator>
             </NavigationContainer>
             <OfflineBanner />

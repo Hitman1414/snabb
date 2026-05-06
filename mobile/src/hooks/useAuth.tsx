@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { logger } from '../services/logger';
 import { authService } from '../services/auth.service';
 import { storageService } from '../services/storage';
 import { User, LoginCredentials, RegisterData } from '../types';
@@ -47,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         } catch (error) {
             // Expected if token is expired or invalid
-            console.warn('Auth check failed:', error);
+            logger.warn('Auth check failed:', error);
             await storageService.removeItem('access_token');
         } finally {
             setLoading(false);
@@ -76,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const userData = await authService.getCurrentUser();
             setUser(userData);
         } catch (error) {
-            console.error('Failed to refresh user:', error);
+            logger.error('Failed to refresh user:', error);
         }
     };
 

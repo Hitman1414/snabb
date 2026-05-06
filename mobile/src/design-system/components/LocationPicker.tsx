@@ -3,6 +3,7 @@
  * Location input with geolocation auto-detection and manual override
  */
 import React, { useState, useEffect } from 'react';
+import { logger } from '../../services/logger';
 import {
     View,
     Text,
@@ -71,7 +72,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             }
             return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
         } catch (error) {
-            console.error('Reverse geocoding failed:', error);
+            logger.error('Reverse geocoding failed:', error);
             return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
         }
     };
@@ -114,7 +115,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
                 onLocationDetected({ latitude, longitude, address });
             }
         } catch (error: any) {
-            console.error('Location detection failed:', error);
+            logger.error('Location detection failed:', error);
             const errorMessage = error.message || '';
 
             if (errorMessage.includes('Location services are disabled')) {

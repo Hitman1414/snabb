@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { logger } from '../services/logger';
 import { useQueryClient } from '@tanstack/react-query';
 import { API_CONFIG } from '../constants/config';
 import { storageService } from '../services/storage';
@@ -26,7 +27,7 @@ export const useChatSocket = (askId?: number) => {
             );
             ticket = res.data.ticket;
         } catch (err) {
-            console.error('Failed to obtain WS ticket', err);
+            logger.error('Failed to obtain WS ticket', err);
             return;
         }
 
@@ -60,7 +61,7 @@ export const useChatSocket = (askId?: number) => {
                     }
                 }
             } catch (error) {
-                console.error('Failed to parse WS message', error);
+                logger.error('Failed to parse WS message', error);
             }
         };
 
@@ -77,7 +78,7 @@ export const useChatSocket = (askId?: number) => {
         };
 
         ws.current.onerror = (e) => {
-            console.error('❌ WebSocket error', e);
+            logger.error('❌ WebSocket error', e);
         };
     }, [queryClient, reconnectCount]);
 

@@ -43,11 +43,13 @@ class UserBase(BaseModel):
 
     # Pro Fields
     is_pro: Optional[bool] = False
+    pro_status: Optional[str] = Field(None, max_length=32)  # pending | approved | rejected
     pro_category: Optional[str] = Field(None, max_length=50)
     pro_bio: Optional[str] = Field(None, max_length=500)
     pro_verified: Optional[bool] = False
     pro_rating: Optional[float] = 0.0
     pro_completed_tasks: Optional[int] = 0
+    completed_asks_count: Optional[int] = 0
 
 
 class UserCreate(UserBase):
@@ -63,7 +65,6 @@ class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
     phone_number: Optional[str] = Field(None, max_length=32)
     location: Optional[str] = Field(None, max_length=120)
-    avatar_url: Optional[str] = Field(None, max_length=500)
     bot_role: Optional[str] = Field(None, max_length=32)
     bot_prompt: Optional[str] = Field(None, max_length=4000)
     expo_push_token: Optional[str] = Field(None, max_length=200)
@@ -75,6 +76,7 @@ class UserUpdate(BaseModel):
 class ProApplication(BaseModel):
     pro_category: str = Field(..., max_length=50)
     pro_bio: str = Field(..., max_length=500)
+    id_card_url: Optional[str] = Field(None, max_length=500)
 
 
 class User(UserBase):
@@ -89,6 +91,7 @@ class User(UserBase):
     """
     id: int
     avatar_url: Optional[str] = Field(None, max_length=500)
+    id_card_url: Optional[str] = Field(None, max_length=500)
     created_at: Optional[datetime] = None
     is_active: Optional[bool] = True
     is_admin: Optional[bool] = False

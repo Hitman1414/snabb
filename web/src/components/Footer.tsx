@@ -7,11 +7,11 @@ const footerLinks = {
     product: {
         title: "Product",
         links: [
-            { label: "How it Works", href: "#how-it-works" },
-            { label: "Features", href: "#features" },
-            { label: "Become a Pro", href: "#pro" },
-            { label: "Pricing", href: "#pricing" },
-            { label: "Download App", href: "#download" },
+            { label: "How it Works", href: "/how-it-works" },
+            { label: "Features", href: "/#features" },
+            { label: "Become a Pro", href: "/pro" },
+            { label: "Pricing", href: "/pricing" },
+            { label: "Download App", href: "/download" },
         ],
     },
     company: {
@@ -71,18 +71,18 @@ export default function Footer() {
         <footer className="bg-[#0F172A] text-white">
             {/* Main footer content */}
             <div className="max-w-7xl mx-auto px-6 pt-20 pb-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
                     {/* Brand column */}
-                    <div className="lg:col-span-2 space-y-6">
-                        <Logo className="h-14 w-auto brightness-0 invert" />
+                    <div className="space-y-6">
+                        <Logo className="h-14 w-auto" />
                         <p className="text-slate-400 leading-relaxed max-w-xs text-sm font-medium">
-                            The fastest way to get things done. Connect with skilled professionals in your area and get help instantly.
+                            Ask. Serve. Earn. Connect with skilled professionals in your area and get help instantly.
                         </p>
 
                         {/* App Store Badges */}
                         <div className="flex flex-col sm:flex-row gap-3">
                             <a
-                                href="#download"
+                                href="/download"
                                 className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl px-4 py-3 transition-all group"
                             >
                                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 text-white flex-shrink-0">
@@ -94,7 +94,7 @@ export default function Footer() {
                                 </div>
                             </a>
                             <a
-                                href="#download"
+                                href="/download"
                                 className="flex items-center gap-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl px-4 py-3 transition-all group"
                             >
                                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 text-white flex-shrink-0">

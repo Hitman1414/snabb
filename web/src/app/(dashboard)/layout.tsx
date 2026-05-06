@@ -1,148 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
-import { Plus, LayoutDashboard, FileText, MessageCircle, User as UserIcon, LogOut, Heart, Search, MapPin, ShieldAlert, Moon, Sun } from "lucide-react";
-import { API_URL } from "@/lib/api";
+import { Plus, LayoutDashboard, FileText, MessageCircle, User as UserIcon, Heart, Search, MapPin, ShieldAlert, Moon, Sun, Bell } from "lucide-react";
 import CreateAskModal from "@/components/CreateAskModal";
 import SearchOverlay from "@/components/SearchOverlay";
 import OnboardingTour from "@/components/OnboardingTour";
-
-type User = {
-    id: string;
-    username: string;
-    is_pro: boolean;
-    is_admin: boolean;
-    location?: string;
-};
+import { useDashboard } from "@/hooks/useDashboard";
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const router = useRouter();
     const pathname = usePathname();
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [searchMode, setSearchMode] = useState<'all' | 'pros' | 'asks'>('all');
-    const [isDark, setIsDark] = useState(false);
-    const [userLocation, setUserLocation] = useState<string>("Not Set");
-    const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            if (document.documentElement.classList.contains('dark')) {
-                setIsDark(true);
-            }
-        }
-    }, []);
-
-    const toggleTheme = () => {
-        if (isDark) {
-            document.documentElement.classList.remove('dark');
-            setIsDark(false);
-        } else {
-            document.documentElement.classList.add('dark');
-            setIsDark(true);
-        }
-    };
-
-    useEffect(() => {
-        const handleOpenSearch = (e: CustomEvent | Event) => {
-            const mode = 'detail' in e ? (e as CustomEvent).detail?.mode : undefined;
-            setSearchMode(mode || 'all');
-            setIsSearchOpen(true);
-        };
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                setSearchMode('all');
-                setIsSearchOpen(true);
-            }
-        };
-        window.addEventListener('open-search', handleOpenSearch);
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('open-search', handleOpenSearch);
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, []);
-
-    useEffect(() => {
-        const fetchUserData = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
-
-            try {
-                const userRes = await fetch(`${API_URL}/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (!userRes.ok) throw new Error('Unauthorized');
-                const userData = await userRes.json();
-                setUser(userData);
-            } catch {
-                localStorage.removeItem('token');
-                router.push('/login');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUserData();
-    }, [router]);
-
-    useEffect(() => {
-        if (!user) return;
-        
-        setUserLocation(user.location || "Not Set");
-
-        if (navigator.geolocation) {
-            setIsFetchingLocation(true);
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                try {
-                    const { latitude, longitude } = position.coords;
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                    const data = await res.json();
-                    if (data && data.address) {
-                        const city = data.address.city || data.address.town || data.address.village || data.address.county;
-                        const country = data.address.country;
-                        if (city && country) {
-                            setUserLocation(`${city}, ${country}`);
-                        } else if (city || country) {
-                            setUserLocation(city || country);
-                        }
-                    }
-                } catch (error) {
-                    console.error("Failed to reverse geocode:", error);
-                } finally {
-                    setIsFetchingLocation(false);
-                }
-            }, (error) => {
-                console.error("Geolocation error:", error);
-                setIsFetchingLocation(false);
-            });
-        }
-    }, [user]);
-
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        router.push('/login');
-    };
-
-    const handleAskCreated = () => {
-        window.location.reload(); 
-    };
+    const {
+        user,
+        loading,
+        isCreateModalOpen,
+        setIsCreateModalOpen,
+        isSearchOpen,
+        setIsSearchOpen,
+        searchMode,
+        isDark,
+        toggleTheme,
+        userLocation,
+        isFetchingLocation,
+        unreadNotifications,
+        unreadMessages,
+        handleAskCreated
+    } = useDashboard();
 
     if (loading || !user) {
         return (
@@ -168,11 +56,11 @@ export default function DashboardLayout({
         <div className="min-h-screen bg-[#F8F9FB] dark:bg-slate-950 pb-12 transition-colors">
             {/* Top Navigation Bar */}
             <header className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors">
-                <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center gap-8">
+                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-20 flex items-center gap-3 sm:gap-8 overflow-hidden">
                     {/* Logo & Location */}
-                    <div className="flex items-center gap-6 flex-shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-6 flex-shrink-0">
                         <Link href="/app" className="flex items-center gap-2 group">
-                            <Logo className="h-12 w-auto group-hover:scale-105 transition-transform" />
+                            <Logo className="h-8 sm:h-12 w-auto group-hover:scale-105 transition-transform" />
                         </Link>
                         
                         <button className="hidden lg:flex items-center gap-2 text-slate-500 hover:text-primary transition-colors group">
@@ -194,23 +82,24 @@ export default function DashboardLayout({
                         onClick={() => setIsSearchOpen(true)}
                         className="flex-1 max-w-2xl relative group cursor-pointer"
                     >
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors" />
-                        <div className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-400 group-hover:bg-white dark:group-hover:bg-slate-700 group-hover:border-primary/20 transition-all flex items-center justify-between">
-                            <span>Search for &quot;plumbing&quot;, &quot;delivery&quot; or &quot;cleaning&quot;</span>
-                            <div className="flex items-center gap-1 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded-lg text-slate-300 dark:text-slate-400 font-black shadow-sm">
+                        <Search className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors" />
+                        <div className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl py-3 sm:py-4 pl-10 sm:pl-14 pr-2 sm:pr-6 text-[10px] sm:text-sm font-bold text-slate-400 group-hover:bg-white dark:group-hover:bg-slate-700 group-hover:border-primary/20 transition-all flex items-center justify-between">
+                            <span className="hidden sm:inline">Search for &quot;plumbing&quot;, &quot;delivery&quot; or &quot;cleaning&quot;</span>
+                            <span className="sm:hidden">Search...</span>
+                            <div className="hidden sm:flex items-center gap-1 text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded-lg text-slate-300 dark:text-slate-400 font-black shadow-sm">
                                 <span className="text-[8px]">CTRL</span> K
                             </div>
                         </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                         <button 
                             id="tour-create-ask"
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="bg-primary hover:bg-primary-dark text-white px-6 py-3.5 rounded-2xl font-black transition-all shadow-xl shadow-primary/20 hover:shadow-primary/30 flex items-center gap-2 text-sm active:scale-95"
+                            className="bg-primary hover:bg-primary-dark text-white px-3 py-2 sm:px-6 sm:py-3.5 rounded-xl sm:rounded-2xl font-black transition-all shadow-xl shadow-primary/20 hover:shadow-primary/30 flex items-center gap-2 text-xs sm:text-sm active:scale-95"
                         >
-                            <Plus className="w-5 h-5 stroke-[3px]" />
+                            <Plus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3px]" />
                             <span className="hidden xl:inline">Post an Ask</span>
                         </button>
                         
@@ -218,25 +107,29 @@ export default function DashboardLayout({
 
                         <button 
                             onClick={toggleTheme}
-                            className="w-12 h-12 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl flex items-center justify-center text-slate-500 transition-all group"
+                            className="hidden sm:flex w-12 h-12 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl items-center justify-center text-slate-500 transition-all group"
                         >
                             {isDark ? <Sun className="w-5 h-5 group-hover:scale-110 transition-transform text-slate-200" /> : <Moon className="w-5 h-5 group-hover:scale-110 transition-transform" />}
                         </button>
 
-                        <Link href="/app/messages" className="w-12 h-12 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl flex items-center justify-center text-slate-500 transition-all relative group">
+                        <Link href="/app/messages" className="hidden sm:flex w-12 h-12 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-2xl items-center justify-center text-slate-500 transition-all relative group">
                             <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform dark:text-slate-200" />
-                            <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
+                            {unreadMessages > 0 && (
+                                <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
+                            )}
                         </Link>
 
-                        <button 
-                            onClick={() => setShowLogoutConfirm(true)}
-                            className="w-12 h-12 bg-slate-50 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-2xl flex items-center justify-center text-slate-400 hover:text-red-500 transition-all group"
-                        >
-                            <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                        </button>
+                        <Link href="/app/notifications" className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-slate-500 transition-all relative group">
+                            <Bell className="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform dark:text-slate-200" />
+                            {unreadNotifications > 0 && (
+                                <span className="absolute top-1 sm:top-2 right-1 sm:right-2 w-3 sm:w-4 h-3 sm:h-4 bg-red-500 border-2 border-white dark:border-slate-800 rounded-full text-white text-[8px] font-black flex items-center justify-center">
+                                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                                </span>
+                            )}
+                        </Link>
 
-                        <Link href="/app/profile" className="flex items-center gap-3 pl-2 group">
-                            <div className="w-11 h-11 rounded-2xl border-2 border-slate-100 dark:border-slate-700 bg-gradient-to-tr from-slate-100 dark:from-slate-800 to-slate-200 dark:to-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 font-black transition-all group-hover:border-primary/30 shadow-sm">
+                        <Link href="/app/profile" className="flex items-center gap-3 sm:pl-2 group">
+                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-slate-100 dark:border-slate-700 bg-gradient-to-tr from-slate-100 dark:from-slate-800 to-slate-200 dark:to-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-300 font-black transition-all group-hover:border-primary/30 shadow-sm">
                                 {user?.username.charAt(0).toUpperCase()}
                             </div>
                             <div className="hidden lg:block text-left">
@@ -249,20 +142,20 @@ export default function DashboardLayout({
 
                 {/* Secondary Nav Bar */}
                 <nav className="border-t border-slate-50 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-x-auto no-scrollbar transition-colors">
-                    <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center gap-10">
+                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center gap-6 sm:gap-10">
                         {navItems.map((item) => {
                             const isActive = pathname === item.href;
                             return (
                                 <Link 
                                     key={item.href}
                                     href={item.href}
-                                    className={`flex items-center gap-2.5 text-[13px] font-black uppercase tracking-[0.25em] h-full border-b-[3px] transition-all whitespace-nowrap px-1 group ${
+                                    className={`flex items-center gap-2 text-[11px] sm:text-[13px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] h-full border-b-[3px] transition-all whitespace-nowrap px-1 group ${
                                         isActive 
                                         ? 'border-primary text-primary' 
                                         : 'border-transparent text-slate-400 hover:text-slate-600'
                                     }`}
                                 >
-                                    <item.icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${isActive ? 'stroke-[3px]' : 'stroke-[2px]'}`} />
+                                    <item.icon className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform group-hover:scale-110 ${isActive ? 'stroke-[3px]' : 'stroke-[2px]'}`} />
                                     {item.name}
                                 </Link>
                             );
@@ -272,38 +165,11 @@ export default function DashboardLayout({
             </header>
 
             {/* Main Content Area */}
-            <div className="max-w-[1400px] mx-auto px-6 mt-10">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-6 sm:mt-10">
                 <main className="w-full">
                     {children}
                 </main>
             </div>
-
-            {/* Logout Modal */}
-            {showLogoutConfirm && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
-                        <div className="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center mb-8 mx-auto border border-red-100">
-                            <LogOut className="w-10 h-10 text-red-500" />
-                        </div>
-                        <h2 className="text-3xl font-black text-center text-slate-900 mb-2 tracking-tight">Sign Out?</h2>
-                        <p className="text-slate-500 font-bold text-center mb-10 leading-relaxed">Are you sure you want to log out of your session?</p>
-                        <div className="grid grid-cols-2 gap-4">
-                            <button 
-                                onClick={() => setShowLogoutConfirm(false)}
-                                className="w-full bg-slate-50 hover:bg-slate-100 text-slate-500 py-5 rounded-2xl font-black transition-all active:scale-95"
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                onClick={handleLogout}
-                                className="w-full bg-red-500 hover:bg-red-600 text-white py-5 rounded-2xl font-black transition-all shadow-xl shadow-red-500/20 active:scale-95"
-                            >
-                                Sign Out
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <OnboardingTour />
 

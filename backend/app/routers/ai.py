@@ -2,18 +2,29 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 import json
+import os
 from app import auth, models
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.config import settings
 from app.moderation import check_content_safety
 from app.ai_service import generate_with_fallback
+from app.utils import get_client_platform
 
 router = APIRouter(
     prefix="/ai",
     tags=["AI Features"]
 )
 
+# Load categories from shared constants
+shared_constants_path = os.path.join(os.path.dirname(__file__), "../../../shared/constants.json")
+try:
+    with open(shared_constants_path, "r") as f:
+        constants = json.load(f)
+        ALLOWED_CATEGORIES = constants.get("CATEGORIES", [])
+except Exception as e:
+    print(f"Warning: Failed to load shared categories: {e}")
+    ALLOWED_CATEGORIES = ["Digital & Support", "Food & Delivery", "Home & Repairs", "Errands & Shopping", "Ride & Transport", "Financial Assistance", "Pet Care", "Health & Wellness", "Freelance Tasks", "Other"]
 
 
 class MagicAskRequest(BaseModel):
@@ -34,13 +45,7 @@ async def magic_ask(
     # 1. Moderation Check
     is_safe, reason = check_content_safety(request.text)
     if not is_safe:
-        platform = req.headers.get("x-client-platform")
-        if not platform:
-            user_agent = req.headers.get("user-agent", "").lower()
-            if "mozilla" in user_agent or "chrome" in user_agent or "safari" in user_agent:
-                platform = "web"
-            else:
-                platform = "unknown"
+        platform = get_client_platform(req)
                 
         mod_log = models.ModerationLog(
             user_id=current_user.id,
@@ -58,14 +63,15 @@ async def magic_ask(
         )
 
     try:
+        categories_str = ", ".join(ALLOWED_CATEGORIES)
         prompt = f"""
         You are an AI assistant for a local service marketplace called 'Snabb'. 
         The user wants to post a task and has provided the following raw text:
         "{request.text}"
         
         Extract the details and return a strictly formatted JSON object. 
-        The allowed categories are: [Electronics, Furniture, Vehicles, Real Estate, Services, Jobs, Education, Fashion, Sports, Other].
-        If no category perfectly matches, choose 'Services'.
+        The allowed categories are: [{categories_str}].
+        If no category perfectly matches, choose 'Other'.
         If no budget is mentioned, leave budget_min and budget_max as null.
         If a single price is mentioned, set it as budget_max and leave budget_min as null.
         If a range is mentioned, set budget_min and budget_max.
@@ -114,13 +120,7 @@ async def enhance_description(
     # 1. Moderation Check
     is_safe, reason = check_content_safety(request.description)
     if not is_safe:
-        platform = req.headers.get("x-client-platform")
-        if not platform:
-            user_agent = req.headers.get("user-agent", "").lower()
-            if "mozilla" in user_agent or "chrome" in user_agent or "safari" in user_agent:
-                platform = "web"
-            else:
-                platform = "unknown"
+        platform = get_client_platform(req)
                 
         mod_log = models.ModerationLog(
             user_id=current_user.id,

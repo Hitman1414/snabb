@@ -64,3 +64,4 @@ mixpanel
 redis
 gunicorn
 google-genai
+python-json-logger==2.0.7

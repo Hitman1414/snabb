@@ -29,7 +29,7 @@ export default function Signup() {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/auth/register`, {
+            const response = await fetch(`${API_URL}/auth/register`, { credentials: "include", 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -100,8 +100,8 @@ export default function Signup() {
                         
                         <div className="space-y-6">
                             <h2 className="text-5xl font-extrabold leading-tight tracking-tight">
-                                Start your <br />
-                                <span className="opacity-70">journey today.</span>
+                                Ask. Serve. <br />
+                                <span className="opacity-70">Earn.</span>
                             </h2>
                             <p className="text-white/80 text-lg font-medium max-w-sm">
                                 Create an account and discover a world of possibilities with Snabb.

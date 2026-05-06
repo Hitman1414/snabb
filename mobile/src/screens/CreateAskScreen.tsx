@@ -3,6 +3,7 @@
  * With category dropdown, geolocation, image upload, and improved UX
  */
 import React, { useState } from 'react';
+import { logger } from '../services/logger';
 import {
     View,
     ScrollView,
@@ -77,7 +78,7 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
             setBudgetMax(data.budget_max !== null ? String(data.budget_max) : budgetMax);
             setMagicText('');
         } catch (error: any) {
-            console.error('Magic Ask Error:', error);
+            logger.error('Magic Ask Error:', error);
             const status = error?.response?.status;
             if (status === 429) {
                 Alert.alert('Please Wait', 'AI is temporarily busy. Please wait a minute and try again.');
@@ -99,7 +100,7 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
             const response = await apiClient.post('/ai/enhance-description', { description });
             setDescription(response.data.enhanced_text);
         } catch (error: any) {
-            console.error('Enhance Description Error:', error);
+            logger.error('Enhance Description Error:', error);
             const status = error?.response?.status;
             const backendDetail = error?.response?.data?.detail || error?.response?.data?.error?.message;
             if (status === 429) {
@@ -119,23 +120,23 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
     };
 
     const handleSubmit = async () => {
-        try {
-            let finalLocation = location;
-            if (showManualAddress) {
-                // Build from manual address fields
-                const parts = [houseNo, area, landmark, manualAddress].filter(val => val && val.trim().length > 0);
-                finalLocation = parts.length > 0 ? parts.join(', ') : location;
-            }
-            // If user typed a manual address but didn't use GPS
-            if (!finalLocation && manualAddress) {
-                finalLocation = manualAddress;
-            }
-            
-            if (!finalLocation || finalLocation.trim().length === 0) {
-                Alert.alert('Error', 'Please detect your location or enter an address manually.');
-                return;
-            }
+        let finalLocation = location;
+        if (showManualAddress) {
+            // Build from manual address fields
+            const parts = [houseNo, area, landmark, manualAddress].filter(val => val && val.trim().length > 0);
+            finalLocation = parts.length > 0 ? parts.join(', ') : location;
+        }
+        // If user typed a manual address but didn't use GPS
+        if (!finalLocation && manualAddress) {
+            finalLocation = manualAddress;
+        }
+        
+        if (!finalLocation || finalLocation.trim().length === 0) {
+            Alert.alert('Error', 'Please detect your location or enter an address manually.');
+            return;
+        }
 
+        try {
             // Validate form data
             const validatedData = createAskSchema.parse({
                 title,
@@ -156,21 +157,20 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
             Alert.alert('Success', 'Ask created successfully!', [
                 { text: 'OK', onPress: () => navigation.goBack() }
             ]);
-            } catch (error: any) {
-                // Handle both Zod errors and standard errors
-                if (error.name === 'ZodError' || error.issues) {
-                    const firstIssue = error.issues?.[0];
-                    Alert.alert('Validation Error', firstIssue ? `${firstIssue.path}: ${firstIssue.message}` : 'Please check all fields.');
-                } else {
-                    console.error('Failed to create ask:', error);
-                    const serverError = error?.response?.data?.error?.message || error?.response?.data?.detail;
-                    Alert.alert(
-                        'Error', 
-                        serverError ? `Server Error: ${serverError}` : 'Failed to create ask. Please check your internet or try again.'
-                    );
-                }
+        } catch (error: any) {
+            // Handle both Zod errors and standard errors
+            if (error.name === 'ZodError' || error.issues) {
+                const firstIssue = error.issues?.[0];
+                Alert.alert('Validation Error', firstIssue ? `${firstIssue.path}: ${firstIssue.message}` : 'Please check all fields.');
+            } else {
+                logger.error('Failed to create ask:', error);
+                const serverError = error?.response?.data?.error?.message || error?.response?.data?.detail;
+                Alert.alert(
+                    'Error', 
+                    serverError ? `Server Error: ${serverError}` : 'Failed to create ask. Please check your internet or try again.'
+                );
             }
-        finally {
+        } finally {
             setLoading(false);
         }
     };
@@ -194,41 +194,6 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
-                {/* AI Magic Auto-fill Section - Commented out for next phase */}
-                {/* 
-                <Card variant="elevated" elevation="base" style={[styles.aiCard, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}>
-                    <View style={styles.sectionHeaderRow}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            <Ionicons name="sparkles" size={18} color={colors.primary} />
-                            <Typography variant="body" weight="bold" style={{ marginLeft: spacing[2], color: colors.primary }}>
-                                Magic Auto-fill
-                            </Typography>
-                        </View>
-                    </View>
-                    <View style={styles.magicInputRow}>
-                        <TextInput
-                            style={[styles.magicInput, { borderColor: colors.primary + '30', color: colors.text }]}
-                            placeholder="e.g. Need a plumber for $50..."
-                            placeholderTextColor={colors.textSecondary}
-                            value={magicText}
-                            onChangeText={setMagicText}
-                        />
-                        <TouchableOpacity
-                            onPress={handleMagicAsk}
-                            disabled={isMagicLoading || !magicText.trim()}
-                            style={[styles.magicButton, { backgroundColor: colors.primary, opacity: (isMagicLoading || !magicText.trim()) ? 0.6 : 1 }]}
-                        >
-                            {isMagicLoading ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                                <Typography variant="caption" weight="bold" style={{ color: '#fff' }}>
-                                    Fill
-                                </Typography>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                </Card>
-                */}
 
                 {/* Section 1: Task Details */}
                 <Card variant="elevated" elevation="base" style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
@@ -257,24 +222,6 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                         <Typography variant="caption" weight="bold" style={{ color: colors.textSecondary }}>
                             Description
                         </Typography>
-                        {/* AI Enhance description feature temporarily disabled
-                        <TouchableOpacity 
-                            onPress={handleEnhanceDescription}
-                            disabled={isEnhancing || !description.trim()}
-                            style={styles.enhanceButton}
-                        >
-                            {isEnhancing ? (
-                                <ActivityIndicator size="small" color={colors.primary} />
-                            ) : (
-                                <>
-                                    <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
-                                    <Typography variant="caption" weight="bold" style={{ color: colors.primary, marginLeft: 4 }}>
-                                        Enhance with AI
-                                    </Typography>
-                                </>
-                            )}
-                        </TouchableOpacity>
-                        */}
                     </View>
 
                     <TextInput

@@ -69,6 +69,10 @@ env/
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+
+# Backups
+*.bak
 
 # IDE
 .vscode/
@@ -80,3 +84,22 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Ad-hoc output files
+out.txt
+output.txt
+result*.txt
+pytest_output.txt
+test_out.txt
+test_gemini_log.txt
+
+# User uploads (runtime data, not source code)
+backend/static/uploads/
+
+# AI/Agent IDE directories
+.claude/
+
+# Scratch/utility scripts
+web/cleanup_token.py
+web/rewrite.js
+web/rewrite.py

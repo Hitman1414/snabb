@@ -31,25 +31,17 @@ export default function MessagesPage() {
 
     useEffect(() => {
         const fetchConversations = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
 
             try {
-                const res = await fetch(`${API_URL}/messages/conversations`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await fetch(`${API_URL}/messages/conversations`, { credentials: "include", 
+                    });
                 if (res.ok) {
                     setConversations(await res.json());
                 } else {
-                    localStorage.removeItem('token');
                     router.push('/login');
                 }
             } catch (err) {
                 console.error(err);
-                localStorage.removeItem('token');
                 router.push('/login');
             } finally {
                 setLoading(false);

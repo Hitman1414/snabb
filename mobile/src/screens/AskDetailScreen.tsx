@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { logger } from '../services/logger';
 import { View, ScrollView, StyleSheet, RefreshControl, KeyboardAvoidingView, Platform, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -7,7 +8,7 @@ import { useAsk } from '../hooks/useAsks';
 import { useResponses, useCreateResponse } from '../hooks/useResponses';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../design-system/ThemeContext';
-import { Typography, Card, SkeletonGroup, Badge, LoadingButton, EmptyState, StarRating, ReviewCard, CloseAskModal, MessageModal, Input } from '../design-system/components';
+import { Typography, Card, SkeletonGroup, Badge, LoadingButton, EmptyState, StarRating, ReviewCard, CloseAskModal, MessageModal, Input, PaymentSheet } from '../design-system/components';
 import { spacing, elevation } from '../design-system/tokens';
 import { useCreateReview, useAskReviews } from '../hooks/useReviews';
 import { useToggleInterested } from '../hooks/useResponses';
@@ -37,6 +38,7 @@ export default function AskDetailScreen() {
     const [closeAskVisible, setCloseAskVisible] = useState(false);
     const [messageModalVisible, setMessageModalVisible] = useState(false);
     const [selectedReceiver, setSelectedReceiver] = useState<{ id: number; username: string } | null>(null);
+    const [selectedResponseForPayment, setSelectedResponseForPayment] = useState<any>(null);
 
     const toggleInterestedMutation = useToggleInterested();
     const markMessagesReadMutation = useMarkMessagesRead();
@@ -64,10 +66,12 @@ export default function AskDetailScreen() {
 
     const createReviewMutation = useCreateReview();
 
-    const handleRefresh = () => {
-        refetchAsk();
-        refetchResponses();
-        refetchReviews();
+    const handleRefresh = async () => {
+        await Promise.allSettled([
+            refetchAsk(),
+            refetchResponses(),
+            refetchReviews()
+        ]);
     };
 
     const handleSubmitResponse = async () => {
@@ -85,7 +89,7 @@ export default function AskDetailScreen() {
             if (error instanceof z.ZodError) {
                 toastService.error(error.issues[0].message);
             } else {
-                console.error('Failed to submit response', error);
+                logger.error('Failed to submit response', error);
                 toastService.error('Failed to submit response');
             }
         }
@@ -117,7 +121,7 @@ export default function AskDetailScreen() {
             if (error instanceof z.ZodError) {
                 toastService.error(error.issues[0].message);
             } else {
-                console.error('Failed to submit review', error);
+                logger.error('Failed to submit review', error);
                 toastService.error('Failed to submit review');
             }
         }
@@ -130,7 +134,7 @@ export default function AskDetailScreen() {
                 isInterested: !currentStatus
             });
         } catch (error) {
-            console.error('Failed to toggle interested', error);
+            logger.error('Failed to toggle interested', error);
         }
     };
 
@@ -331,8 +335,8 @@ export default function AskDetailScreen() {
                                             </Typography>
                                         )}
                                     </View>
-                                    <View>
-                                        <Typography variant="body" weight="bold">
+                                    <View style={{ flex: 1, marginRight: spacing[2] }}>
+                                        <Typography variant="body" weight="bold" numberOfLines={1}>
                                             {response.user?.username || 'User'}
                                         </Typography>
                                         <Typography variant="caption" color="tertiary">
@@ -360,22 +364,30 @@ export default function AskDetailScreen() {
 
                             {/* Response Actions for Ask Owner */}
                             {ask.user_id === user?.id && (
-                                <View style={styles.responseActions}>
+                                <View style={{ marginTop: spacing[4] }}>
                                     <LoadingButton
-                                        title={response.is_interested ? "Shortlisted" : "Interested"}
-                                        variant={response.is_interested ? "primary" : "outline"}
-                                        size="sm"
-                                        onPress={() => handleToggleInterested(response.id, response.is_interested || false)}
-                                        style={{ flex: 1, marginRight: spacing[2] }}
-                                        loading={toggleInterestedMutation.isPending && toggleInterestedMutation.variables?.responseId === response.id}
+                                        title="Accept & Pay"
+                                        variant="primary"
+                                        onPress={() => setSelectedResponseForPayment(response)}
+                                        style={{ marginBottom: spacing[2] }}
                                     />
-                                    <LoadingButton
-                                        title="Revert"
-                                        variant="secondary"
-                                        size="sm"
-                                        onPress={() => handleRevert(response.user_id, response.user?.username || 'User')}
-                                        style={{ flex: 1 }}
-                                    />
+                                    <View style={styles.responseActions}>
+                                        <LoadingButton
+                                            title={response.is_interested ? "Shortlisted" : "Shortlist"}
+                                            variant={response.is_interested ? "primary" : "outline"}
+                                            size="sm"
+                                            onPress={() => handleToggleInterested(response.id, response.is_interested || false)}
+                                            style={{ flex: 1 }}
+                                            loading={toggleInterestedMutation.isPending && toggleInterestedMutation.variables?.responseId === response.id}
+                                        />
+                                        <LoadingButton
+                                            title="Message"
+                                            variant="secondary"
+                                            size="sm"
+                                            onPress={() => handleRevert(response.user_id, response.user?.username || 'User')}
+                                            style={{ flex: 1 }}
+                                        />
+                                    </View>
                                 </View>
                             )}
                         </Card>
@@ -528,6 +540,19 @@ export default function AskDetailScreen() {
                     />
                 )
             }
+
+            {selectedResponseForPayment && (
+                <PaymentSheet 
+                    visible={!!selectedResponseForPayment}
+                    onClose={() => setSelectedResponseForPayment(null)}
+                    askId={askId}
+                    responseId={selectedResponseForPayment.id}
+                    bidAmount={selectedResponseForPayment.bid_amount || 0}
+                    onSuccess={() => {
+                        handleRefresh();
+                    }}
+                />
+            )}
         </KeyboardAvoidingView >
     );
 }
@@ -631,7 +656,6 @@ const styles = StyleSheet.create({
     },
     responseActions: {
         flexDirection: 'row',
-        marginTop: spacing[4],
         gap: spacing[2],
     },
     inputSection: {

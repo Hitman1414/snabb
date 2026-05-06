@@ -6,7 +6,8 @@ import { API_URL, getFullImageUrl } from "@/lib/api";
 import { MapPin, DollarSign, MessageSquare, ChevronLeft, Send, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { Ask as AskType } from "@/types";
+import { Ask as AskType, User as UserType } from "@/types";
+import PaymentModal from "@/components/PaymentModal";
 
 type ResponseType = {
     id: number;
@@ -28,7 +29,8 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
     const [ask, setAsk] = useState<AskType | null>(null);
     const [responses, setResponses] = useState<ResponseType[]>([]);
     const [loading, setLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null);
+    const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+    const [selectedResponseForPayment, setSelectedResponseForPayment] = useState<ResponseType | null>(null);
     
     // Form state
     const [responseMessage, setResponseMessage] = useState("");
@@ -38,38 +40,29 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
 
     useEffect(() => {
         const fetchData = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
 
             try {
                 // Fetch User
-                const userRes = await fetch(`${API_URL}/auth/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const userRes = await fetch(`${API_URL}/auth/me`, { credentials: "include", 
+                    });
                 if (userRes.ok) {
                     setCurrentUser(await userRes.json());
                 }
 
                 // Fetch Ask
-                const askRes = await fetch(`${API_URL}/asks/${askId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const askRes = await fetch(`${API_URL}/asks/${askId}`, { credentials: "include", 
+                    });
                 if (!askRes.ok) throw new Error("Ask not found");
                 setAsk(await askRes.json());
 
                 // Fetch Responses
-                const respRes = await fetch(`${API_URL}/responses/ask/${askId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const respRes = await fetch(`${API_URL}/responses/ask/${askId}`, { credentials: "include", 
+                    });
                 if (respRes.ok) {
                     setResponses(await respRes.json());
                 }
             } catch (err) {
                 console.error(err);
-                localStorage.removeItem('token');
                 router.push('/login');
             } finally {
                 setLoading(false);
@@ -81,17 +74,15 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
 
     const handleSubmitResponse = async (e: React.FormEvent) => {
         e.preventDefault();
-        const token = localStorage.getItem('token');
-        if (!token || !responseMessage.trim()) return;
+        if (!responseMessage.trim()) return;
 
         setSubmitting(true);
         setError(null);
 
         try {
-            const res = await fetch(`${API_URL}/responses/ask/${askId}`, {
+            const res = await fetch(`${API_URL}/responses/ask/${askId}`, { credentials: "include", 
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -303,9 +294,32 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                                         <p className="font-bold text-primary">${resp.bid_amount || "N/A"}</p>
                                     </div>
                                     {isOwner && (
-                                        <button className="bg-surface-variant hover:bg-primary/10 text-primary rounded-2xl py-3 px-4 font-bold text-sm transition-all flex-1">
-                                            Message
-                                        </button>
+                                        <div className="grid grid-cols-2 gap-2 mt-2 w-full">
+                                            <button 
+                                                onClick={() => setSelectedResponseForPayment(resp)}
+                                                className="col-span-2 bg-primary hover:bg-primary-dark text-white rounded-2xl py-3 px-4 font-bold text-sm transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-95"
+                                            >
+                                                Accept & Pay
+                                            </button>
+                                            <button 
+                                                onClick={async () => {
+                                                    await fetch(`${API_URL}/responses/${resp.id}/interested?is_interested=${!resp.is_interested}`, { credentials: "include", 
+                                                        method: 'PUT',
+                                                        });
+                                                    setResponses(prev => prev.map(r => r.id === resp.id ? {...r, is_interested: !r.is_interested} : r));
+                                                }}
+                                                className={`rounded-2xl py-3 px-4 font-bold text-xs transition-all active:scale-95 flex items-center justify-center ${
+                                                    resp.is_interested 
+                                                    ? 'bg-rose-50 text-rose-500 border border-rose-100' 
+                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/20'
+                                                }`}
+                                            >
+                                                {resp.is_interested ? 'Shortlisted' : 'Shortlist'}
+                                            </button>
+                                            <button className="bg-slate-100 dark:bg-slate-800 hover:bg-primary/10 text-primary rounded-2xl py-3 px-4 font-bold text-xs transition-all active:scale-95 flex items-center justify-center">
+                                                Message
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             </motion.div>
@@ -313,6 +327,20 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                     )}
                 </div>
             </div>
+
+            {selectedResponseForPayment && (
+                <PaymentModal 
+                    isOpen={!!selectedResponseForPayment}
+                    onClose={() => setSelectedResponseForPayment(null)}
+                    askId={askId}
+                    responseId={selectedResponseForPayment.id}
+                    bidAmount={selectedResponseForPayment.bid_amount || 0}
+                    completedAsksCount={currentUser?.completed_asks_count || 0}
+                    onSuccess={() => {
+                        window.location.reload();
+                    }}
+                />
+            )}
         </div>
     );
 }

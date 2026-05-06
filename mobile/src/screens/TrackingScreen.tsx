@@ -14,6 +14,10 @@ import { useTheme } from '../design-system/ThemeContext';
 import { Typography, Card, Badge } from '../design-system/components';
 import { spacing, borderRadius } from '../design-system/tokens';
 import * as Location from 'expo-location';
+import { useAsk } from '../hooks/useAsks';
+import { useResponses } from '../hooks/useResponses';
+import { getFullImageUrl } from '../constants/config';
+import { Image } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,6 +26,14 @@ export default function TrackingScreen() {
     const navigation = useNavigation();
     const { colors } = useTheme();
     const { askId, helperId, askerLocation, initialHelperLocation } = route.params || {};
+
+    const { data: ask } = useAsk(askId);
+    const { data: responses } = useResponses(askId);
+    
+    const acceptedResponse = responses?.find(r => r.is_accepted);
+    const helperName = acceptedResponse?.user?.username || 'Helper';
+    const helperAvatar = acceptedResponse?.user?.avatar_url;
+    const askTitle = ask?.title || 'Deliver your items';
 
     const [helperLocation, setHelperLocation] = useState(initialHelperLocation || {
         latitude: askerLocation?.latitude + 0.005,
@@ -124,12 +136,16 @@ export default function TrackingScreen() {
                 <View style={styles.footer}>
                     <Card style={styles.helperCard}>
                         <View style={styles.helperInfo}>
-                            <View style={[styles.avatar, { backgroundColor: colors.surfaceVariant }]}>
-                                <Ionicons name="person" size={24} color={colors.textSecondary} />
+                            <View style={[styles.avatar, { backgroundColor: colors.surfaceVariant, overflow: 'hidden' }]}>
+                                {helperAvatar ? (
+                                    <Image source={{ uri: getFullImageUrl(helperAvatar) as string }} style={{ width: 48, height: 48 }} />
+                                ) : (
+                                    <Ionicons name="person" size={24} color={colors.textSecondary} />
+                                )}
                             </View>
                             <View style={{ flex: 1, marginLeft: spacing[3] }}>
-                                <Typography variant="body" weight="bold">John the Helper</Typography>
-                                <Typography variant="caption" color="secondary">On his way to deliver your items</Typography>
+                                <Typography variant="body" weight="bold">{helperName}</Typography>
+                                <Typography variant="caption" color="secondary" numberOfLines={1}>On the way for: {askTitle}</Typography>
                             </View>
                             <TouchableOpacity 
                                 style={[styles.callButton, { backgroundColor: colors.primary }]}

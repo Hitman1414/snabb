@@ -16,19 +16,12 @@ export default function MyAsksPage() {
 
     useEffect(() => {
         const fetchMyAsks = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
 
             try {
                 // Use the dedicated endpoint — returns only the current user's asks server-side
-                const asksRes = await fetch(`${API_URL}/asks/my-asks`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const asksRes = await fetch(`${API_URL}/asks/my-asks`, { credentials: "include", 
+                    });
                 if (!asksRes.ok) {
-                    localStorage.removeItem('token');
                     router.push('/login');
                     return;
                 }
@@ -37,7 +30,6 @@ export default function MyAsksPage() {
                 setMyAsks(Array.isArray(data) ? data : (data.items || []));
             } catch (err) {
                 console.error(err);
-                localStorage.removeItem('token');
                 router.push('/login');
             } finally {
                 setLoading(false);

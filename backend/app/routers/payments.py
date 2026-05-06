@@ -23,7 +23,8 @@ from ..database import get_db
 from ..config import settings
 import logging
 import uuid
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+from typing import Optional
 import stripe
 
 logger = logging.getLogger(__name__)
@@ -32,10 +33,14 @@ router = APIRouter(prefix="/payments", tags=["payments"])
 
 
 class PaymentIntentRequest(BaseModel):
-    # `amount` is in the smallest currency unit (e.g. cents for USD).
-    amount: int = Field(..., gt=0)
+    # We no longer trust client amounts. We derive it from the accepted response.
+    # We keep amount/bid_amount optional for backwards compatibility, but they are ignored.
+    amount: Optional[int] = None
+    bid_amount: Optional[float] = None
     currency: str = Field("usd", max_length=8)
     ask_id: int
+    response_id: Optional[int] = None  # To lookup the server-side bid
+    payment_method: str = Field("card", max_length=20)  # "card" | "cash"
 
 
 @router.post("/create-payment-intent")
@@ -45,10 +50,7 @@ def create_payment_intent(
     db: Session = Depends(get_db),
 ):
     """Create a Stripe PaymentIntent. Uses manual capture (escrow) by default."""
-    logger.info(
-        f"User {current_user.id} requested payment intent for ask {request.ask_id} "
-        f"of amount {request.amount} {request.currency}"
-    )
+    logger.info(f"User {current_user.id} requested payment intent for ask {request.ask_id}")
 
     ask = db.query(models.Ask).filter(models.Ask.id == request.ask_id).first()
     if not ask:
@@ -58,25 +60,67 @@ def create_payment_intent(
     if ask.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the ask owner can pay")
 
+    # TASK-32 [Security] Backend: derive payment amount from server-side bid
+    if not request.response_id:
+        raise HTTPException(status_code=400, detail="response_id is required to calculate payment amount")
+        
+    accepted_response = db.query(models.Response).filter(
+        models.Response.id == request.response_id,
+        models.Response.ask_id == request.ask_id
+    ).first()
+    
+    if not accepted_response:
+        raise HTTPException(status_code=404, detail="Response not found")
+        
+    if not accepted_response.bid_amount:
+        raise HTTPException(status_code=400, detail="The selected response does not have a bid amount")
+        
+    # Derive amount in cents from the server-side bid_amount
+    actual_amount_cents = int(accepted_response.bid_amount * 100)
+
+    # ─── Cash payment bypass ──────────────────────────────────────────────
+    if request.payment_method == "cash":
+        cash_id = f"pi_cash_{uuid.uuid4().hex}"
+        ask.payment_intent_id = cash_id
+        ask.payment_amount = actual_amount_cents
+        ask.payment_currency = request.currency or settings.CURRENCY
+        ask.payment_status = "pending"
+        db.commit()
+        logger.info(f"Cash payment recorded for ask {request.ask_id}: {cash_id}")
+        return {"client_secret": None, "payment_intent_id": cash_id, "method": "cash"}
+
+    # ─── Growth Logic: First 3 asks are 0% fee, 4th onwards is 3% ────────
+    # Only applies to Stripe. Cash remains 0% fee.
+    completed_asks = db.query(models.Ask).filter(
+        models.Ask.user_id == current_user.id,
+        models.Ask.payment_status == "paid"
+    ).count()
+    
+    amount_to_charge = actual_amount_cents
+    if completed_asks >= 3:
+        # Add 3% convenience fee
+        amount_to_charge = int(actual_amount_cents * 1.03)
+
     # Use real Stripe if configured.
     if settings.STRIPE_SECRET_KEY:
         try:
             stripe.api_key = settings.STRIPE_SECRET_KEY
             intent = stripe.PaymentIntent.create(
-                amount=request.amount,
+                amount=amount_to_charge,
                 currency=request.currency or settings.CURRENCY,
                 # Audit #10: escrow. funds are held on auth, captured on close.
                 capture_method=settings.PAYMENTS_CAPTURE_METHOD,
                 metadata={
                     "ask_id": request.ask_id,
                     "user_id": current_user.id,
+                    "response_id": request.response_id,
                 },
             )
             logger.info(f"Created Stripe PaymentIntent: {intent.id}")
 
             # Persist intent on the ask so we can capture/cancel later.
             ask.payment_intent_id = intent.id
-            ask.payment_amount = request.amount
+            ask.payment_amount = amount_to_charge
             ask.payment_currency = request.currency or settings.CURRENCY
             ask.payment_status = "pending"
             db.commit()
@@ -91,7 +135,7 @@ def create_payment_intent(
     mock_intent_id = f"pi_mock_{uuid.uuid4().hex}"
     mock_client_secret = f"{mock_intent_id}_secret_{uuid.uuid4().hex}"
     ask.payment_intent_id = mock_intent_id
-    ask.payment_amount = request.amount
+    ask.payment_amount = amount_to_charge
     ask.payment_currency = request.currency or settings.CURRENCY
     ask.payment_status = "pending"
     db.commit()

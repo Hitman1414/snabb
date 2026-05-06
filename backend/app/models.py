@@ -4,8 +4,6 @@ from datetime import datetime, timezone
 from .database import Base
 
 # ─── Length constants (audit #16) ───────────────────────────────────────────
-# Bounded String lengths protect against unbounded TEXT growth and align
-# Pydantic max_length with SQL constraints.
 USERNAME_LEN = 50
 EMAIL_LEN = 254
 PHONE_LEN = 32
@@ -34,6 +32,7 @@ class User(Base):
     phone_number = Column(String(PHONE_LEN), nullable=True)
     location = Column(String(LOCATION_LEN), nullable=True)
     avatar_url = Column(String(URL_LEN), nullable=True)
+    id_card_url = Column(String(URL_LEN), nullable=True)
     is_bot = Column(Boolean, default=False)
     bot_role = Column(String(STATUS_LEN), nullable=True)
     bot_prompt = Column(String(PROMPT_LEN), nullable=True)
@@ -47,6 +46,7 @@ class User(Base):
 
     # Pro Features
     is_pro = Column(Boolean, default=False)
+    pro_status = Column(String(STATUS_LEN), nullable=True)  # pending | approved | rejected
     pro_category = Column(String(CATEGORY_LEN), nullable=True)
     pro_bio = Column(String(BIO_LEN), nullable=True)
     pro_verified = Column(Boolean, default=False)
@@ -76,19 +76,14 @@ class Ask(Base):
     server_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
-    # Image / location
     images = Column(JSON, nullable=True, default=list)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     contact_phone = Column(String(PHONE_LEN), nullable=True)
 
-    # ─── Payments (audit #3) ────────────────────────────────────────────────
-    # Lifecycle: unpaid → pending (intent created) → authorized (manual capture
-    # held) → paid (captured) → refunded / failed.
     payment_status = Column(String(STATUS_LEN), default="unpaid", nullable=False, index=True)
-    # Stripe PaymentIntent id, used to capture/cancel on close (audit #10).
     payment_intent_id = Column(String(URL_LEN), nullable=True, index=True)
-    payment_amount = Column(Integer, nullable=True)  # smallest currency unit (cents)
+    payment_amount = Column(Integer, nullable=True)
     payment_currency = Column(String(8), nullable=True)
     paid_at = Column(DateTime, nullable=True)
 
@@ -121,7 +116,7 @@ class Review(Base):
     ask_id = Column(Integer, ForeignKey("asks.id"), nullable=False, index=True)
     reviewer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     reviewee_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    rating = Column(Integer, nullable=False)  # 1-5 stars
+    rating = Column(Integer, nullable=False)
     comment = Column(String(COMMENT_LEN), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

@@ -4,16 +4,16 @@
  */
 
 export const CATEGORIES = [
-    'Digital & Support',
-    'Food & Delivery',
-    'Home & Repairs',
-    'Errands & Shopping',
-    'Ride & Transport',
-    'Financial Assistance',
-    'Pet Care',
-    'Health & Wellness',
-    'Freelance Tasks',
-    'Other',
+  'Digital & Support',
+  'Food & Delivery',
+  'Home & Repairs',
+  'Errands & Shopping',
+  'Ride & Transport',
+  'Financial Assistance',
+  'Pet Care',
+  'Health & Wellness',
+  'Freelance Tasks',
+  'Other',
 ] as const;
 
 export type Category = typeof CATEGORIES[number];

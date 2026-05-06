@@ -11,6 +11,7 @@ from ..auth import get_current_user
 from ..bot_service import process_support_message
 from ..websocket_manager import manager
 from ..notification_service import create_notification
+from ..moderation import check_content_safety
 from fastapi import BackgroundTasks
 from fastapi.encoders import jsonable_encoder
 import logging
@@ -33,6 +34,15 @@ def create_message(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Receiver not found"
+        )
+    
+    # Moderation Check
+    is_safe, reason = check_content_safety(message.content)
+    if not is_safe:
+        logger.warning(f"Message creation blocked by moderation for user {current_user.id}. Reason: {reason}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Content flagged by safety filters: {reason}"
         )
     
     # Check if ask exists if provided

@@ -1,3 +1,4 @@
+import { logger } from './logger';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
@@ -48,6 +49,6 @@ export const updatePushTokenOnServer = async (token: string) => {
     try {
         await apiClient.put('/users/me/push-token', { token });
     } catch (error) {
-        console.error('Failed to update push token on server', error);
+        logger.error('Failed to update push token on server', error);
     }
 };

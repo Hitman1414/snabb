@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -102,7 +103,14 @@ export default function InterestedAsksScreen() {
 
     const renderHeader = () => (
         <View style={styles.header}>
-            <Typography variant="h3" weight="bold">Interested Asks</Typography>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <ExpoImage 
+                    source={require('../../assets/snabb-icon.svg')} 
+                    style={{ width: 32, height: 32, marginRight: 8 }} 
+                    contentFit="contain" 
+                />
+                <Typography variant="h3" weight="bold">Interested Asks</Typography>
+            </View>
             <Typography variant="bodySmall" color="secondary">Tasks where you&apos;ve expressed interest</Typography>
         </View>
     );

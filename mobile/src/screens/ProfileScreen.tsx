@@ -3,6 +3,7 @@
  * Displays user profile information and stats with theme support
  */
 import React from 'react';
+import { logger } from '../services/logger';
 import { View, ScrollView, StyleSheet, Alert, Switch, Image, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../design-system/ThemeContext';
@@ -75,7 +76,7 @@ export default function ProfileScreen() {
             await refreshUser();
             Alert.alert('Success', 'Profile picture updated successfully');
         } catch (error) {
-            console.error('Failed to upload avatar:', error);
+            logger.error('Failed to upload avatar:', error);
             Alert.alert('Error', 'Failed to upload profile picture');
         } finally {
             setIsUploading(false);
@@ -101,7 +102,7 @@ export default function ProfileScreen() {
                 handleImageSelected(result.assets[0].uri);
             }
         } catch (error) {
-            console.error('Error picking image:', error);
+            logger.error('Error picking image:', error);
             Alert.alert('Error', 'Failed to pick image');
         }
     };
@@ -131,6 +132,14 @@ export default function ProfileScreen() {
                 <View style={styles.headerBackground}>
                     <View style={[styles.circleDeco, { backgroundColor: colors.primaryLight + '40', top: -50, right: -50 }]} />
                     <View style={[styles.circleDeco, { backgroundColor: colors.primaryLight + '20', bottom: -30, left: -20, width: 100, height: 100 }]} />
+                </View>
+
+                <View style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
+                    <ExpoImage 
+                        source={require('../../assets/snabb-icon.svg')} 
+                        style={{ width: 36, height: 36 }} 
+                        contentFit="contain" 
+                    />
                 </View>
 
                 <TouchableOpacity
@@ -276,6 +285,30 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={[styles.settingsContainer, { backgroundColor: colors.surface, borderColor: colors.border, ...elevation.sm }]}>
+                    <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('HelpCenter')}>
+                        <View style={styles.menuItemLeft}>
+                            <View style={[styles.iconBox, { backgroundColor: colors.infoLight + '20' }]}>
+                                <Ionicons name="help-buoy-outline" size={20} color="#0EA5E9" />
+                            </View>
+                            <Typography variant="body" weight="medium">Help Center</Typography>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+
+                    <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('AboutUs')}>
+                        <View style={styles.menuItemLeft}>
+                            <View style={[styles.iconBox, { backgroundColor: colors.successLight + '20' }]}>
+                                <Ionicons name="information-circle-outline" size={20} color="#22C55E" />
+                            </View>
+                            <Typography variant="body" weight="medium">About Us</Typography>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
+                    </TouchableOpacity>
+
+                    <View style={[styles.menuDivider, { backgroundColor: colors.border }]} />
+
                     <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('PrivacyPolicy')}>
                         <View style={styles.menuItemLeft}>
                             <View style={[styles.iconBox, { backgroundColor: colors.errorLight + '20' }]}>
@@ -311,7 +344,7 @@ export default function ProfileScreen() {
                                     try {
                                         navigation.navigate('AdminDashboard');
                                     } catch (error) {
-                                        console.error('Failed to open admin dashboard:', error);
+                                        logger.error('Failed to open admin dashboard:', error);
                                         Alert.alert('Error', 'Could not open Admin Dashboard.');
                                     }
                                 }}

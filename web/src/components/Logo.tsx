@@ -31,7 +31,7 @@ export const Logo = ({ className }: { className?: string }) => (
             x="128" y="64"
             dominantBaseline="middle" textAnchor="start"
             fontFamily="'Fredoka', 'Trebuchet MS', 'Arial Rounded MT Bold', sans-serif"
-            fontWeight="700" fontSize="76" fill="#0F172A" letterSpacing="-2"
+            fontWeight="700" fontSize="76" fill="currentColor" letterSpacing="-2"
         >nabb</text>
     </svg>
 );

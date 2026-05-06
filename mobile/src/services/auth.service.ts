@@ -27,7 +27,7 @@ export const authService = {
     },
 
     async updateProfile(data: Partial<RegisterData>): Promise<User> {
-        const response = await apiClient.put<User>('/auth/me', data);
+        const response = await apiClient.patch<User>('/users/me', data);
         return response.data;
     },
 };

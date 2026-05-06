@@ -3,6 +3,7 @@
  * Manages offline state and queued actions
  */
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { logger } from '../services/logger';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { offlineQueueService, QueuedAction } from '../services/offlineQueue.service';
 import { askService } from '../services/ask.service';
@@ -39,7 +40,7 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 await processAction(action);
                 offlineQueueService.dequeue(action.id);
             } catch (error) {
-                console.error('Failed to sync action:', error);
+                logger.error('Failed to sync action:', error);
                 if (offlineQueueService.shouldRetry(action)) {
                     offlineQueueService.incrementRetry(action.id);
                 } else {

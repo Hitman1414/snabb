@@ -3,7 +3,7 @@ Review Router
 Handles review creation, retrieval, updates, and deletion
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from .. import models, schemas
 from ..database import get_db
@@ -90,6 +90,12 @@ def create_review(
     # /users/pros listing (which sorts on this column) reflects new reviews.
     _recompute_pro_rating(db, review.reviewee_id)
 
+    # Re-query with joinedload to populate nested user objects for the response
+    db_review = db.query(models.Review).options(
+        joinedload(models.Review.reviewer),
+        joinedload(models.Review.reviewee)
+    ).filter(models.Review.id == db_review.id).first()
+
     logger.info(f"Review created: {db_review.id} by user {current_user.id}")
     return db_review
 
@@ -113,7 +119,10 @@ def get_ask_reviews(
     db: Session = Depends(get_db)
 ):
     """Get all reviews for a specific ask"""
-    reviews = db.query(models.Review).filter(
+    reviews = db.query(models.Review).options(
+        joinedload(models.Review.reviewer),
+        joinedload(models.Review.reviewee)
+    ).filter(
         models.Review.ask_id == ask_id
     ).all()
     return reviews
@@ -125,7 +134,10 @@ def get_user_reviews(
     db: Session = Depends(get_db)
 ):
     """Get all reviews received by a user"""
-    reviews = db.query(models.Review).filter(
+    reviews = db.query(models.Review).options(
+        joinedload(models.Review.reviewer),
+        joinedload(models.Review.reviewee)
+    ).filter(
         models.Review.reviewee_id == user_id
     ).all()
     return reviews

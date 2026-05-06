@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../design-system/ThemeContext';
@@ -97,7 +98,14 @@ export default function MessagesScreen() {
 
     const renderHeader = () => (
         <View style={styles.header}>
-            <Typography variant="h3" weight="bold">Messages</Typography>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <ExpoImage 
+                    source={require('../../assets/snabb-icon.svg')} 
+                    style={{ width: 32, height: 32, marginRight: 8 }} 
+                    contentFit="contain" 
+                />
+                <Typography variant="h3" weight="bold">Messages</Typography>
+            </View>
             <Typography variant="bodySmall" color="secondary">Your active conversations</Typography>
         </View>
     );

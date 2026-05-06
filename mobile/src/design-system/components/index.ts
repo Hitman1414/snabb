@@ -19,3 +19,4 @@ export { ReviewCard } from './ReviewCard';
 export { CloseAskModal } from './CloseAskModal';
 export { MessageModal } from './MessageModal';
 export { Input } from './Input';
+export { PaymentSheet } from './PaymentSheet';
