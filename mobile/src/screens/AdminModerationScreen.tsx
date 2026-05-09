@@ -4,6 +4,7 @@ import { View, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { Typography, Card } from '../design-system/components';
 import { Ionicons } from '@expo/vector-icons';
 import apiClient from '../services/api';
+import { useTheme } from '../design-system/ThemeContext';
 
 interface ModerationLog {
     id: number;
@@ -18,6 +19,7 @@ interface ModerationLog {
 }
 
 export default function AdminModerationScreen() {
+    const { colors } = useTheme();
     const [logs, setLogs] = useState<ModerationLog[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -38,39 +40,39 @@ export default function AdminModerationScreen() {
     }, []);
 
     const renderLog = ({ item }: { item: ModerationLog }) => (
-        <Card style={styles.card}>
+        <Card style={[styles.card, { backgroundColor: colors.error + '05', borderColor: colors.error + '40' }]}>
             <View style={styles.headerRow}>
                 <View style={styles.userSection}>
-                    <Ionicons name="person-circle" size={24} color="#EF4444" />
+                    <Ionicons name="person-circle" size={24} color={colors.error} />
                     <View style={styles.userInfo}>
                         <Typography variant="body" weight="bold">{item.username}</Typography>
-                        <Typography variant="caption" style={{ color: '#6B7280' }}>{item.email}</Typography>
+                        <Typography variant="caption" color="tertiary">{item.email}</Typography>
                     </View>
                 </View>
-                <View style={styles.platformBadge}>
+                <View style={[styles.platformBadge, { backgroundColor: colors.error + '15' }]}>
                     <Ionicons 
                         name={item.platform === 'mobile' ? 'phone-portrait' : 'globe'} 
                         size={12} 
-                        color="#EF4444" 
+                        color={colors.error} 
                     />
-                    <Typography variant="caption" weight="bold" style={{ color: '#EF4444', marginLeft: 4, textTransform: 'uppercase', fontSize: 10 }}>
+                    <Typography variant="caption" weight="bold" style={{ color: colors.error, marginLeft: 4, textTransform: 'uppercase', fontSize: 10 }}>
                         {item.platform}
                     </Typography>
                 </View>
             </View>
 
-            <View style={styles.contentSection}>
-                <Typography variant="caption" weight="bold" style={{ color: '#EF4444', marginBottom: 4, textTransform: 'uppercase' }}>
+            <View style={[styles.contentSection, { backgroundColor: colors.surface, borderColor: colors.error + '40' }]}>
+                <Typography variant="caption" weight="bold" style={{ color: colors.error, marginBottom: 4, textTransform: 'uppercase' }}>
                     Type: {item.content_type.replace('_', ' ')}
                 </Typography>
-                <Typography variant="bodySmall" style={{ fontStyle: 'italic', color: '#374151' }}>
+                <Typography variant="bodySmall" style={{ fontStyle: 'italic' }}>
                     &quot;{item.content_text}&quot;
                 </Typography>
             </View>
 
-            <View style={styles.reasonSection}>
-                <Ionicons name="warning" size={16} color="#B91C1C" />
-                <Typography variant="caption" weight="bold" style={{ color: '#B91C1C', marginLeft: 6 }}>
+            <View style={[styles.reasonSection, { backgroundColor: colors.error + '20' }]}>
+                <Ionicons name="warning" size={16} color={colors.error} />
+                <Typography variant="caption" weight="bold" style={{ color: colors.error, marginLeft: 6 }}>
                     {item.flagged_reason}
                 </Typography>
             </View>
@@ -79,17 +81,17 @@ export default function AdminModerationScreen() {
 
     if (loading) {
         return (
-            <View style={styles.center}>
-                <ActivityIndicator size="large" color="#EF4444" />
+            <View style={[styles.center, { backgroundColor: colors.backgroundSecondary || '#F8FAFC' }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Ionicons name="shield-checkmark" size={32} color="#EF4444" />
-                <Typography variant="h3" weight="bold" style={{ color: '#111827', marginLeft: 12 }}>
+        <View style={[styles.container, { backgroundColor: colors.backgroundSecondary || '#F8FAFC' }]}>
+            <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+                <Ionicons name="shield-checkmark" size={32} color={colors.error} />
+                <Typography variant="h3" weight="bold" style={{ marginLeft: 12 }}>
                     Flagged Content
                 </Typography>
             </View>
@@ -100,8 +102,8 @@ export default function AdminModerationScreen() {
                 contentContainerStyle={styles.listContainer}
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
-                        <Ionicons name="checkmark-circle" size={48} color="#10B981" />
-                        <Typography variant="body" weight="bold" style={{ marginTop: 12, color: '#6B7280' }}>
+                        <Ionicons name="checkmark-circle" size={48} color={colors.success} />
+                        <Typography variant="body" weight="bold" style={{ marginTop: 12 }} color="secondary">
                             No flagged content!
                         </Typography>
                     </View>
@@ -114,7 +116,6 @@ export default function AdminModerationScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F3F4F6',
     },
     center: {
         flex: 1,
@@ -126,9 +127,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 24,
         paddingTop: 60,
-        backgroundColor: '#fff',
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
     },
     listContainer: {
         padding: 16,
@@ -137,8 +136,6 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         padding: 16,
         borderWidth: 1,
-        borderColor: '#FCA5A5',
-        backgroundColor: '#FEF2F2',
     },
     headerRow: {
         flexDirection: 'row',
@@ -156,23 +153,19 @@ const styles = StyleSheet.create({
     platformBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FEE2E2',
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8,
     },
     contentSection: {
-        backgroundColor: '#fff',
         padding: 12,
         borderRadius: 8,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#FCA5A5',
     },
     reasonSection: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FECACA',
         padding: 8,
         borderRadius: 8,
     },

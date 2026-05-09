@@ -19,3 +19,4 @@ export { default as AdminModerationScreen } from './AdminModerationScreen';
 export { default as AdminDashboardScreen } from './AdminDashboardScreen';
 export { default as HelpCenterScreen } from './HelpCenterScreen';
 export { default as AboutUsScreen } from './AboutUsScreen';
+export { default as AdminProApprovalsScreen } from './AdminProApprovalsScreen';

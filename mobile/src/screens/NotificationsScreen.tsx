@@ -11,7 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../design-system/ThemeContext';
-import { Typography, Card, Badge } from '../design-system/components';
+import { Typography, Card, Badge, SkeletonGroup } from '../design-system/components';
 import { spacing, borderRadius } from '../design-system/tokens';
 import { useNotifications } from '../hooks/useNotifications';
 import { Notification } from '../types';
@@ -102,9 +102,14 @@ export default function NotificationsScreen() {
 
     if (isLoading && notifications.length === 0) {
         return (
-            <View style={[styles.center, { backgroundColor: colors.background }]}>
-                <ActivityIndicator size="large" color={colors.primary} />
-            </View>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                <View style={styles.header}>
+                    <Typography variant="h2">Notifications</Typography>
+                </View>
+                <View style={{ padding: spacing[4] }}>
+                    <SkeletonGroup variant="list" count={6} />
+                </View>
+            </SafeAreaView>
         );
     }
 

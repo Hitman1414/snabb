@@ -35,11 +35,11 @@ export default function InterestedAsksScreen() {
 
     const renderItem = ({ item }: { item: Ask }) => (
         <TouchableOpacity
-            style={[styles.card, { backgroundColor: colors.surface }]}
+            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => handleAskPress(item)}
             activeOpacity={0.7}
         >
-            <View style={styles.cardImage}>
+            <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant }]}>
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons 
                         name={(CATEGORY_ICONS[item.category] as any)?.name || 'document-text-outline'} 
@@ -174,11 +174,9 @@ const styles = StyleSheet.create({
     card: {
         marginBottom: spacing[4],
         borderRadius: 16,
-        backgroundColor: '#FFFFFF',
         flexDirection: 'row',
         padding: spacing[3],
         borderWidth: 1,
-        borderColor: '#F0F2F5',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.06,
@@ -189,7 +187,6 @@ const styles = StyleSheet.create({
         width: 90,
         height: 90,
         borderRadius: 12,
-        backgroundColor: '#F3F4F6',
     },
     cardContent: {
         flex: 1,

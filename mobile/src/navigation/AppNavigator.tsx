@@ -35,7 +35,8 @@ import {
     AdminModerationScreen,
     AdminDashboardScreen,
     HelpCenterScreen,
-    AboutUsScreen
+    AboutUsScreen,
+    AdminProApprovalsScreen
 } from '../screens';
 
 export type RootStackParamList = {
@@ -57,6 +58,7 @@ export type RootStackParamList = {
     ForgotPassword: undefined;
     AdminDashboard: undefined;
     AdminModeration: undefined;
+    AdminProApprovals: undefined;
 };
 
 export type MainTabParamList = {
@@ -232,6 +234,7 @@ export const AppNavigator = () => {
                             <Stack.Screen name="Tracking" component={TrackingScreen} options={{ headerShown: false }} />
                             <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} options={{ title: 'Admin Control Center', headerShown: true }} />
                             <Stack.Screen name="AdminModeration" component={AdminModerationScreen} options={{ title: 'Moderation Logs', headerShown: true }} />
+                            <Stack.Screen name="AdminProApprovals" component={AdminProApprovalsScreen} options={{ title: 'Pro Approvals', headerShown: true }} />
                         </>
                     ) : (
                         <>

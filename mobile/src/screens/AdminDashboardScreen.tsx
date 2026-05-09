@@ -98,25 +98,25 @@ export default function AdminDashboardScreen() {
             </View>
 
             <View style={styles.grid}>
-                <MetricCard label="Users" value={stats.db.total_users} icon="people-outline" />
-                <MetricCard label="Asks" value={stats.db.total_asks} icon="list-outline" />
-                <MetricCard label="Responses" value={stats.db.total_responses} icon="chatbubbles-outline" />
-                <MetricCard label="Open Asks" value={stats.db.unassigned_asks} icon="radio-button-on-outline" />
+                <MetricCard label="Users" value={stats.db.total_users} icon="people-outline" colors={colors} />
+                <MetricCard label="Asks" value={stats.db.total_asks} icon="list-outline" colors={colors} />
+                <MetricCard label="Responses" value={stats.db.total_responses} icon="chatbubbles-outline" colors={colors} />
+                <MetricCard label="Open Asks" value={stats.db.unassigned_asks} icon="radio-button-on-outline" colors={colors} />
             </View>
 
-            <Card style={styles.card}>
+            <Card style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <Typography variant="h5" weight="bold">API Traffic</Typography>
                 <View style={styles.trafficRow}>
-                    <TrafficPill label="Total" value={stats.monitoring.total_requests} />
-                    <TrafficPill label="Browser" value={browserCount} />
-                    <TrafficPill label="Mobile" value={mobileCount} />
+                    <TrafficPill label="Total" value={stats.monitoring.total_requests} colors={colors} />
+                    <TrafficPill label="Browser" value={browserCount} colors={colors} />
+                    <TrafficPill label="Mobile" value={mobileCount} colors={colors} />
                 </View>
                 <Typography variant="caption" color="tertiary">
                     Average latency: {stats.monitoring.avg_latency_ms || 0}ms
                 </Typography>
             </Card>
 
-            <Card style={styles.card}>
+            <Card style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.sectionHeader}>
                     <Typography variant="h5" weight="bold">Recent Requests</Typography>
                     <Ionicons name="pulse-outline" size={20} color={colors.primary} />
@@ -153,7 +153,22 @@ export default function AdminDashboardScreen() {
                 )}
             </Card>
 
-            <Card style={styles.card}>
+            <Card style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={styles.sectionHeader}>
+                    <View>
+                        <Typography variant="h5" weight="bold">Pro Approvals</Typography>
+                        <Typography variant="caption" color="tertiary">Review and approve pro applications</Typography>
+                    </View>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={22}
+                        color={colors.primary}
+                        onPress={() => navigation.navigate('AdminProApprovals')}
+                    />
+                </View>
+            </Card>
+
+            <Card style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.sectionHeader}>
                     <View>
                         <Typography variant="h5" weight="bold">Content Moderation</Typography>
@@ -171,9 +186,9 @@ export default function AdminDashboardScreen() {
     );
 }
 
-function MetricCard({ label, value, icon }: { label: string; value: number; icon: keyof typeof Ionicons.glyphMap }) {
+function MetricCard({ label, value, icon, colors }: { label: string; value: number; icon: keyof typeof Ionicons.glyphMap; colors: any }) {
     return (
-        <Card style={styles.metricCard}>
+        <Card style={[styles.metricCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Ionicons name={icon} size={20} color="#F97316" />
             <Typography variant="h3" weight="bold">{value}</Typography>
             <Typography variant="caption" color="tertiary">{label}</Typography>
@@ -181,9 +196,9 @@ function MetricCard({ label, value, icon }: { label: string; value: number; icon
     );
 }
 
-function TrafficPill({ label, value }: { label: string; value: number }) {
+function TrafficPill({ label, value, colors }: { label: string; value: number; colors: any }) {
     return (
-        <View style={styles.trafficPill}>
+        <View style={[styles.trafficPill, { backgroundColor: colors.surfaceVariant, borderColor: colors.border }]}>
             <Typography variant="caption" color="tertiary">{label}</Typography>
             <Typography variant="h5" weight="bold">{value}</Typography>
         </View>
@@ -228,8 +243,6 @@ const styles = StyleSheet.create({
         gap: spacing[2],
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#F0F2F5',
-        backgroundColor: '#FFFFFF',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.03,
@@ -241,8 +254,6 @@ const styles = StyleSheet.create({
         marginBottom: spacing[4],
         borderRadius: 24,
         borderWidth: 1,
-        borderColor: '#F0F2F5',
-        backgroundColor: '#FFFFFF',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.03,
@@ -258,9 +269,7 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: spacing[3],
         borderRadius: 16,
-        backgroundColor: '#F8FAFC',
         borderWidth: 1,
-        borderColor: '#F1F5F9',
         alignItems: 'center',
     },
     sectionHeader: {

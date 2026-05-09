@@ -103,3 +103,6 @@ backend/static/uploads/
 web/cleanup_token.py
 web/rewrite.js
 web/rewrite.py
+
+# Reports
+*-report.txt
