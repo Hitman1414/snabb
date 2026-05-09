@@ -149,6 +149,21 @@ export default function ProfilePage() {
         }
     };
 
+    const handleLogout = async () => {
+        setSaving(true);
+        try {
+            await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: "include" });
+            localStorage.clear();
+            router.push('/login');
+        } catch (err) {
+            console.error(err);
+            router.push('/login');
+        } finally {
+            setSaving(false);
+            setActiveModal(null);
+        }
+    };
+
     const handleUpgradePro = async () => {
         setProError("");
         if (proStep < 3) {
@@ -314,9 +329,7 @@ export default function ProfilePage() {
                     {/* Sign Out */}
                     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
                         <button
-                            onClick={() => {
-                                router.push('/login');
-                            }}
+                            onClick={() => setActiveModal('logout')}
                             className="w-full p-6 flex items-center gap-5 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all text-left group px-8"
                         >
                             <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 transition-all shadow-inner group-hover:scale-110">
@@ -394,6 +407,33 @@ export default function ProfilePage() {
                                     </div>
                                 ) : (
                                     <div className="max-h-[60vh] overflow-y-auto no-scrollbar">
+                                        {activeModal === 'logout' && (
+                                            <div className="text-center py-6 space-y-8">
+                                                <div className="w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-[2rem] flex items-center justify-center text-red-500 mx-auto shadow-inner">
+                                                    <LogOut className="w-10 h-10" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <h2 className="text-3xl font-black tracking-tight">Sign Out?</h2>
+                                                    <p className="text-slate-400 font-bold">Are you sure you want to log out of your account?</p>
+                                                </div>
+                                                <div className="flex gap-4">
+                                                    <button 
+                                                        onClick={() => setActiveModal(null)}
+                                                        className="flex-1 py-5 font-black text-slate-400 border-2 border-slate-100 dark:border-slate-800 rounded-[1.5rem] hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button 
+                                                        onClick={handleLogout}
+                                                        disabled={saving}
+                                                        className="flex-[1.5] bg-red-500 text-white py-5 rounded-[1.5rem] font-black flex items-center justify-center gap-2 shadow-xl shadow-red-500/20 transition-all active:scale-[0.98]"
+                                                    >
+                                                        {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : "Yes, Sign Out"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {activeModal === 'edit' && (
                                             <form onSubmit={handleUpdateProfile} className="space-y-8">
                                                 <div className="space-y-2">

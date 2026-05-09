@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/api";
 import { Mail, Lock, ChevronRight, User, Phone, ArrowLeft, Loader2, Wrench, CheckCircle, MapPin, Star, Clock, MessageSquare, Package } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const LIVE_FEED = [
     { icon: Wrench, title: "Plumber accepted your task", time: "2 min ago", accent: "bg-blue-400/20" },
@@ -163,23 +163,39 @@ export default function Login() {
                     </div>
 
                     <form className="space-y-6" onSubmit={handleLogin}>
-                        {error && (
-                            <div className="bg-red-50 text-red-500 p-4 rounded-2xl text-sm font-bold border border-red-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                                <span className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center text-xs">!</span>
-                                {error}
-                            </div>
-                        )}
+                        <AnimatePresence mode="wait">
+                            {error && (
+                                <motion.div 
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    className="bg-red-50 text-red-600 p-5 rounded-[1.25rem] text-sm font-bold border border-red-200/50 flex items-center gap-4 shadow-sm"
+                                >
+                                    <div className="w-10 h-10 bg-red-100 rounded-2xl flex items-center justify-center shrink-0">
+                                        <span className="text-xl font-black">!</span>
+                                    </div>
+                                    <div className="flex-1 leading-tight">
+                                        <p className="text-[10px] uppercase tracking-widest opacity-60 mb-0.5">Authentication Error</p>
+                                        <p>{error === "Login failed" ? "Invalid email or password. Please try again." : error}</p>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         <div className="space-y-2 group">
-                            <label className="text-xs font-black text-text-secondary uppercase tracking-[0.15em] ml-1">Email or Phone</label>
+                            <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Email or Phone</label>
                             <div className="relative">
-                                <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary group-focus-within/email:text-primary transition-colors" />
+                                <Mail className={`absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${error ? 'text-red-400' : 'text-text-tertiary group-focus-within/email:text-primary'}`} />
                                 <input 
                                     type="text" 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-[1.25rem] pl-14 pr-6 py-4 text-foreground font-bold focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-text-tertiary placeholder:font-medium" 
+                                    className={`w-full border rounded-[1.25rem] pl-14 pr-6 py-4.5 text-foreground font-black focus:outline-none focus:ring-4 transition-all placeholder:text-text-tertiary/50 placeholder:font-medium ${
+                                        error 
+                                        ? 'bg-red-50/30 border-red-200 focus:ring-red-100 focus:border-red-400' 
+                                        : 'bg-slate-50 border-slate-200 focus:bg-white focus:ring-primary/10 focus:border-primary'
+                                    }`} 
                                     placeholder="Enter your id" 
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
                                     required
                                 />
                             </div>
@@ -187,17 +203,21 @@ export default function Login() {
 
                         <div className="space-y-2 group">
                             <div className="flex justify-between items-center px-1">
-                                <label className="text-xs font-black text-text-secondary uppercase tracking-[0.15em]">Password</label>
-                                <Link href="/forgot-password" className="text-xs font-bold text-primary hover:underline">Forgot?</Link>
+                                <label className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em]">Password</label>
+                                <Link href="/forgot-password" className="text-[10px] font-black text-primary uppercase tracking-[0.1em] hover:opacity-70 transition-opacity">Forgot Password?</Link>
                             </div>
                             <div className="relative">
-                                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary group-focus-within/pass:text-primary transition-colors" />
+                                <Lock className={`absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 transition-colors ${error ? 'text-red-400' : 'text-text-tertiary group-focus-within:text-primary'}`} />
                                 <input 
                                     type={showPassword ? "text" : "password"} 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-[1.25rem] pl-14 pr-12 py-4 text-foreground font-bold focus:bg-white focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all placeholder:text-text-tertiary placeholder:font-medium" 
+                                    className={`w-full border rounded-[1.25rem] pl-14 pr-12 py-4.5 text-foreground font-black focus:outline-none focus:ring-4 transition-all placeholder:text-text-tertiary/50 placeholder:font-medium ${
+                                        error 
+                                        ? 'bg-red-50/30 border-red-200 focus:ring-red-100 focus:border-red-400' 
+                                        : 'bg-slate-50 border-slate-200 focus:bg-white focus:ring-primary/10 focus:border-primary'
+                                    }`} 
                                     placeholder="••••••••" 
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) => { setPassword(e.target.value); setError(""); }}
                                     required
                                 />
                                 <button 

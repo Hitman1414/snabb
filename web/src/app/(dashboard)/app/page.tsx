@@ -85,14 +85,29 @@ function DashboardContent() {
                         setIsLocating(false);
                     },
                     (error) => {
-                        console.error("Location error:", error);
-                        // If user denied, show error. If it's a timeout, maybe try again or just show different message.
-                        setLocationError(error.code === 1 ? 'Please enable location access in browser settings.' : 'Could not determine your location.');
+                        // Diagnostic logging
+                        console.warn("Geolocation Debug:", {
+                            code: error.code,
+                            message: error.message,
+                            PERMISSION_DENIED: error.PERMISSION_DENIED,
+                            POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
+                            TIMEOUT: error.TIMEOUT
+                        });
+
+                        const errorMsg = error.code === 1 
+                            ? 'Permission denied. Check browser settings or system permissions.' 
+                            : error.code === 2 
+                            ? 'Location unavailable.' 
+                            : 'Location request timed out.';
+                        
+                        console.warn("Background Geolocation Warning:", error.message || error.code, error);
+                        
+                        setLocationError(errorMsg);
                         setSortFilter('latest');
                         setIsLocating(false);
                         setTimeout(() => setLocationError(null), 5000);
                     },
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                    { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
                 );
             } else {
                 setLocationError('Geolocation not supported in this browser.');

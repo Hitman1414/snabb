@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { logger } from '../services/logger';
-import { View, ScrollView, StyleSheet, Alert, Switch, Image, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, Switch, Image, TouchableOpacity, Platform, ActivityIndicator, Modal } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../design-system/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,15 +29,15 @@ export default function ProfileScreen() {
     const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
     const [isUploading, setIsUploading] = React.useState(false);
 
+    const [isLogoutModalVisible, setIsLogoutModalVisible] = React.useState(false);
+
     const handleLogout = () => {
-        Alert.alert(
-            'Logout',
-            'Are you sure you want to logout?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Logout', style: 'destructive', onPress: logout },
-            ]
-        );
+        setIsLogoutModalVisible(true);
+    };
+
+    const confirmLogout = async () => {
+        setIsLogoutModalVisible(false);
+        await logout();
     };
 
     const handleImageSelected = async (uri: string) => {
@@ -396,6 +396,44 @@ export default function ProfileScreen() {
                     Snabb App Version 1.0.0
                 </Typography>
             </View>
+            {/* Logout Confirmation Modal */}
+            <Modal
+                visible={isLogoutModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setIsLogoutModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+                        <View style={[styles.modalIconContainer, { backgroundColor: colors.error + '15' }]}>
+                            <Ionicons name="log-out" size={32} color={colors.error} />
+                        </View>
+                        
+                        <Typography variant="h4" weight="bold" align="center" style={{ marginBottom: spacing[2] }}>
+                            Sign Out?
+                        </Typography>
+                        <Typography variant="body" color="secondary" align="center" style={{ marginBottom: spacing[8] }}>
+                            Are you sure you want to log out of your account?
+                        </Typography>
+
+                        <View style={styles.modalButtons}>
+                            <LoadingButton
+                                title="Cancel"
+                                variant="outline"
+                                onPress={() => setIsLogoutModalVisible(false)}
+                                style={{ flex: 1 }}
+                            />
+                            <LoadingButton
+                                title="Yes, Logout"
+                                variant="primary"
+                                color={colors.error}
+                                onPress={confirmLogout}
+                                style={{ flex: 1.5, backgroundColor: colors.error }}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </ScrollView>
     );
 }
@@ -523,5 +561,31 @@ const styles = StyleSheet.create({
     proBannerText: {
         flex: 1,
         marginRight: spacing[4],
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing[6],
+    },
+    modalContent: {
+        width: '100%',
+        borderRadius: 32,
+        padding: spacing[8],
+        alignItems: 'center',
+    },
+    modalIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing[6],
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: spacing[4],
+        width: '100%',
     },
 });

@@ -104,9 +104,9 @@ export function useDashboard() {
                     setIsFetchingLocation(false);
                 }
             }, (error) => {
-                console.error("Geolocation error:", error);
+                console.warn("Background Geolocation Warning:", error.message || error.code);
                 setIsFetchingLocation(false);
-            });
+            }, { timeout: 10000 });
         }
     }, [user]);
 
