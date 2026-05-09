@@ -14,7 +14,7 @@ import {
     TouchableOpacity,
     StatusBar,
 } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -434,7 +434,7 @@ export default function HomeScreen() {
             {/* Location Header - outside FlatList so it stays stable */}
             <View style={[styles.locationHeader, { backgroundColor: colors.background }]}>
                 <TouchableOpacity style={styles.locationLeft} onPress={() => { }}>
-                    <ExpoImage 
+                    <Image 
                         source={require('../../assets/snabb-icon.svg')} 
                         style={{ width: 36, height: 36, marginRight: 8 }} 
                         contentFit="contain" 

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
-import { Image as ExpoImage } from 'expo-image';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -108,7 +108,7 @@ export default function MyAsksScreen() {
     const renderHeader = () => (
         <View style={styles.header}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <ExpoImage 
+                <Image 
                     source={require('../../assets/snabb-icon.svg')} 
                     style={{ width: 32, height: 32, marginRight: 8 }} 
                     contentFit="contain" 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Image as ExpoImage } from 'expo-image';
+import { Image } from 'expo-image';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Card, Typography } from '../design-system/components';
@@ -82,7 +82,7 @@ export default function AdminDashboardScreen() {
         >
             <View style={styles.header}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                    <ExpoImage 
+                    <Image 
                         source={require('../../assets/snabb-icon.svg')} 
                         style={{ width: 32, height: 32, marginRight: 12 }} 
                         contentFit="contain" 

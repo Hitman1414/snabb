@@ -4,7 +4,8 @@
  */
 import React from 'react';
 import { logger } from '../services/logger';
-import { View, ScrollView, StyleSheet, Alert, Switch, Image, TouchableOpacity, Platform, ActivityIndicator, Modal } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, Switch, Image as RNImage, TouchableOpacity, Platform, ActivityIndicator, Modal } from 'react-native';
+import { Image } from 'expo-image';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../design-system/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -135,7 +136,7 @@ export default function ProfileScreen() {
                 </View>
 
                 <View style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
-                    <ExpoImage 
+                    <Image 
                         source={require('../../assets/snabb-icon.svg')} 
                         style={{ width: 36, height: 36 }} 
                         contentFit="contain" 
@@ -148,7 +149,7 @@ export default function ProfileScreen() {
                     onPress={pickImage}
                 >
                     {user.avatar_url ? (
-                        <Image
+                        <RNImage
                             source={{ uri: getFullImageUrl(user.avatar_url, true) as string }}
                             style={styles.avatarImage}
                         />
