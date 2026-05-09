@@ -1,6 +1,6 @@
 # Snabb Mobile - Quick Start Guide
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js 18+ installed
@@ -82,7 +82,7 @@ npm start
 
 ---
 
-## 🎯 Testing the App
+## Testing the App
 
 ### 1. Create an Account
 - Open app → Click "Register"
@@ -126,7 +126,7 @@ npm start
 
 ---
 
-## 🎨 Design System Preview
+## Design System Preview
 
 ### Theme Switching
 The app automatically follows your system theme (light/dark).
@@ -142,7 +142,7 @@ To test:
 
 ---
 
-## 🔍 Debugging
+## Debugging
 
 ### Backend Logs
 Watch the terminal where backend is running:
@@ -171,7 +171,7 @@ Check Expo dev tools or Metro bundler output
 
 ---
 
-## 📊 Performance Features
+## Performance Features
 
 ### Caching
 - React Query caches all data for 5 minutes
@@ -191,7 +191,7 @@ Check Expo dev tools or Metro bundler output
 
 ---
 
-## 🚀 Production Deployment
+## Production Deployment
 
 ### Backend
 See `backend/DEPLOYMENT.md` for detailed guide
@@ -214,7 +214,7 @@ eas build --profile development --platform all
 
 ---
 
-## 📝 Next Steps
+## Next Steps
 
 1. **Test all features** - Browse, create, respond
 2. **Try dark mode** - Toggle system theme
@@ -224,9 +224,9 @@ eas build --profile development --platform all
 
 ---
 
-## 🍻 Enjoy!
+## Done
 
-You now have a production-ready, high-performance food/commerce app!
+You now have a working local services marketplace app.
 
 **Performance:**
 - 60% faster API responses

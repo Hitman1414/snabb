@@ -52,7 +52,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         f"Validation Error: {request.method} {request.url.path} - {len(errors)} errors"
     )
     # Print errors to console for easier debugging
-    print(f"❌ Validation Errors for {request.url.path}: {errors}")
+    print(f"Validation Errors for {request.url.path}: {errors}")
     
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -146,7 +146,7 @@ export default function CreateAskModal({ isOpen, onClose, onSuccess }: CreateAsk
                                             className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50 active:scale-95"
                                             title="Detect my location"
                                         >
-                                            {detectingLocation ? <Loader2 className="w-5 h-5 animate-spin" /> : <span className="font-bold text-lg">📍</span>}
+                                            {detectingLocation ? <Loader2 className="w-5 h-5 animate-spin" /> : <MapPin className="w-5 h-5" />}
                                         </button>
                                     </div>
                                     

@@ -44,8 +44,10 @@ export const PaymentSheet: React.FC<PaymentSheetProps> = ({
             // Create intent or mock intent
             await apiClient.post('/payments/create-payment-intent', {
                 ask_id: askId,
-                amount: bidAmount,
-                currency: 'usd' // Or fetch from config
+                response_id: responseId,
+                bid_amount: bidAmount,
+                payment_method: method,
+                currency: 'inr'
             });
 
             // Accept response

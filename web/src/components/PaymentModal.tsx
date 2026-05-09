@@ -41,12 +41,20 @@ export default function PaymentModal({ isOpen, onClose, bidAmount, askId, respon
                 },
                 body: JSON.stringify({
                     ask_id: askId,
+                    response_id: responseId,
                     bid_amount: bidAmount,
-                    payment_method: method
+                    payment_method: method,
+                    currency: 'inr'
                 })
             });
 
             if (res.ok) {
+                // Accept the response
+                await fetch(`${API_URL}/responses/${responseId}/accept`, { 
+                    method: 'POST',
+                    credentials: "include" 
+                });
+
                 // Usually here we would use Stripe elements to complete payment.
                 // For now, we simulate success for cash/UPI or direct intent creation.
                 toastSuccess("Payment setup successfully!");
@@ -105,7 +113,7 @@ export default function PaymentModal({ isOpen, onClose, bidAmount, askId, respon
                             <div className="bg-slate-50 dark:bg-slate-800 rounded-3xl p-6 mb-6">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="font-bold text-slate-500">Service Bid</span>
-                                    <span className="font-black text-slate-900 dark:text-white">${bidAmount.toFixed(2)}</span>
+                                    <span className="font-black text-slate-900 dark:text-white">₹{bidAmount.toFixed(2)}</span>
                                 </div>
                                 {method === 'stripe' && (
                                     <div className="flex justify-between items-center mb-4">
@@ -116,13 +124,13 @@ export default function PaymentModal({ isOpen, onClose, bidAmount, askId, respon
                                             </p>
                                         </span>
                                         <span className={`font-black ${isFree ? 'text-green-500' : 'text-slate-900 dark:text-white'}`}>
-                                            {isFree ? 'FREE' : `$${platformFee.toFixed(2)}`}
+                                            {isFree ? 'FREE' : `₹${platformFee.toFixed(2)}`}
                                         </span>
                                     </div>
                                 )}
                                 <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
                                     <span className="text-lg font-black text-slate-900 dark:text-white">Total</span>
-                                    <span className="text-2xl font-black text-primary">${totalAmount.toFixed(2)}</span>
+                                    <span className="text-2xl font-black text-primary">₹{totalAmount.toFixed(2)}</span>
                                 </div>
                             </div>
 
@@ -166,7 +174,7 @@ export default function PaymentModal({ isOpen, onClose, bidAmount, askId, respon
                                 disabled={loading}
                                 className="w-full bg-slate-900 dark:bg-primary text-white py-5 rounded-[1.5rem] font-black text-lg transition-all active:scale-95 flex items-center justify-center gap-2"
                             >
-                                {loading ? <div className="w-6 h-6 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : `Confirm $${totalAmount.toFixed(2)}`}
+                                {loading ? <div className="w-6 h-6 border-2 border-white border-t-transparent animate-spin rounded-full"></div> : `Confirm ₹${totalAmount.toFixed(2)}`}
                             </button>
                         </>
                     )}

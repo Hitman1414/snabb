@@ -142,7 +142,7 @@ def accept_response(
     create_notification(
         db=db,
         user_id=db_response.user_id,
-        title="Bid Accepted! 🎉",
+        title="Bid Accepted",
         body=f"Your bid for '{ask.title}' was accepted by {current_user.username}",
         notification_type="BID_ACCEPTED",
         data={"ask_id": ask.id, "response_id": db_response.id}
@@ -199,7 +199,7 @@ def toggle_interested(
         create_notification(
             db=db,
             user_id=db_response.user_id,
-            title="Shortlisted! 🎯",
+            title="Shortlisted",
             body=f"{current_user.username} is interested in your bid for '{ask.title}'",
             notification_type="SHORTLISTED",
             data={"ask_id": ask.id, "response_id": db_response.id}

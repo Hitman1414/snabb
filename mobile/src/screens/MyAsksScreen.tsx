@@ -87,7 +87,7 @@ export default function MyAsksScreen() {
                     {/* Interested / shortlisted count */}
                     {(item.interested_count ?? 0) > 0 ? (
                         <View style={styles.interestedBadge}>
-                            <Typography variant="caption" style={{ fontSize: 11 }}>🔥</Typography>
+                            <Typography variant="caption" style={{ fontSize: 11 }}>●</Typography>
                             <Typography variant="caption" weight="bold" style={{ color: '#D97706', marginLeft: 2, fontSize: 11 }}>
                                 {item.interested_count} Shortlisted
                             </Typography>

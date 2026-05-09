@@ -70,27 +70,34 @@ function DashboardContent() {
     const [locationError, setLocationError] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [isLocating, setIsLocating] = useState(false);
 
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setLocationError(null);
         const newSort = e.target.value;
         if (newSort === 'nearby') {
             if (navigator.geolocation) {
+                setIsLocating(true);
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         setLocationParams({ lat: position.coords.latitude, lng: position.coords.longitude });
                         setSortFilter('nearby');
+                        setIsLocating(false);
                     },
-                    () => {
-                        setLocationError('Enable location access in browser settings to use Nearby.');
+                    (error) => {
+                        console.error("Location error:", error);
+                        // If user denied, show error. If it's a timeout, maybe try again or just show different message.
+                        setLocationError(error.code === 1 ? 'Please enable location access in browser settings.' : 'Could not determine your location.');
                         setSortFilter('latest');
-                        setTimeout(() => setLocationError(null), 4000);
-                    }
+                        setIsLocating(false);
+                        setTimeout(() => setLocationError(null), 5000);
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
                 );
             } else {
                 setLocationError('Geolocation not supported in this browser.');
                 setSortFilter('latest');
-                setTimeout(() => setLocationError(null), 4000);
+                setTimeout(() => setLocationError(null), 5000);
             }
         } else {
             setSortFilter(newSort);
@@ -295,6 +302,9 @@ function DashboardContent() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3 relative">
+                            {isLocating && (
+                                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            )}
                             {!isSearching && (
                                 <select
                                     value={sortFilter}

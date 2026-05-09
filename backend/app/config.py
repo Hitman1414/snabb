@@ -85,7 +85,7 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: Optional[str] = None
     STRIPE_PUBLIC_KEY: Optional[str] = None
     STRIPE_WEBHOOK_SECRET: Optional[str] = None
-    CURRENCY: str = "usd"
+    CURRENCY: str = "inr"
     # "manual" = authorize only (escrow). "automatic" = capture immediately.
     PAYMENTS_CAPTURE_METHOD: str = "manual"
 

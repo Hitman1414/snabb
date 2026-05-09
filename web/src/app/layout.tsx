@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   description: "The fast, reliable platform for getting things done.",
 };
 
+import { ToastProvider } from "@/components/Toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -62,7 +64,9 @@ export default function RootLayout({
         style={{ '--font-fredoka': fredoka.style.fontFamily } as React.CSSProperties}
         suppressHydrationWarning
       >
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

@@ -36,7 +36,7 @@ export const useChatSocket = (askId?: number) => {
         ws.current = new WebSocket(wsUrl);
 
         ws.current.onopen = () => {
-            console.log('✅ WebSocket connected');
+            console.log('WebSocket connected');
             setIsConnected(true);
             setReconnectCount(0);
         };
@@ -78,7 +78,7 @@ export const useChatSocket = (askId?: number) => {
         };
 
         ws.current.onerror = (e) => {
-            logger.error('❌ WebSocket error', e);
+            logger.error('WebSocket error', e);
         };
     }, [queryClient, reconnectCount]);
 

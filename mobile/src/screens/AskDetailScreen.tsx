@@ -133,8 +133,10 @@ export default function AskDetailScreen() {
                 responseId,
                 isInterested: !currentStatus
             });
+            toastService.success(!currentStatus ? 'Response shortlisted!' : 'Removed from shortlist');
         } catch (error) {
             logger.error('Failed to toggle interested', error);
+            toastService.error('Failed to update status');
         }
     };
 
@@ -368,24 +370,23 @@ export default function AskDetailScreen() {
                                     <LoadingButton
                                         title="Accept & Pay"
                                         variant="primary"
+                                        size="lg"
                                         onPress={() => setSelectedResponseForPayment(response)}
-                                        style={{ marginBottom: spacing[2] }}
+                                        style={{ marginBottom: spacing[2], borderRadius: 16 }}
                                     />
                                     <View style={styles.responseActions}>
                                         <LoadingButton
                                             title={response.is_interested ? "Shortlisted" : "Shortlist"}
                                             variant={response.is_interested ? "primary" : "outline"}
-                                            size="sm"
                                             onPress={() => handleToggleInterested(response.id, response.is_interested || false)}
-                                            style={{ flex: 1 }}
+                                            style={{ flex: 1, height: 48, borderRadius: 14 }}
                                             loading={toggleInterestedMutation.isPending && toggleInterestedMutation.variables?.responseId === response.id}
                                         />
                                         <LoadingButton
                                             title="Message"
                                             variant="secondary"
-                                            size="sm"
                                             onPress={() => handleRevert(response.user_id, response.user?.username || 'User')}
-                                            style={{ flex: 1 }}
+                                            style={{ flex: 1, height: 48, borderRadius: 14 }}
                                         />
                                     </View>
                                 </View>

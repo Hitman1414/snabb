@@ -25,7 +25,7 @@ class StorageService:
                     region_name=settings.AWS_REGION_NAME
                 )
                 self.s3_bucket = settings.AWS_BUCKET_NAME
-                logger.info(f"☁️ StorageService initialized with AWS S3 provider (Bucket: {self.s3_bucket})")
+                logger.info(f"StorageService initialized with AWS S3 provider (Bucket: {self.s3_bucket})")
             except ImportError:
                 logger.error("boto3 is not installed. Please install it using `pip install boto3`.")
                 self.provider = "local" # Fallback
@@ -70,7 +70,7 @@ class StorageService:
                     return f"https://{self.s3_bucket}.s3.{settings.AWS_REGION_NAME}.amazonaws.com/{unique_filename}"
                     
             except Exception as e:
-                logger.error(f"❌ Failed to upload '{unique_filename}' to S3: {e}")
+                logger.error(f"Failed to upload '{unique_filename}' to S3: {e}")
                 # Optional: Graceful fallback to local if S3 fails
                 # return self._fallback_local_upload(file_obj, unique_filename)
                 raise e

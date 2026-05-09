@@ -13,7 +13,7 @@ interface AskCardProps {
 
 const formatRelativeTime = (dateString?: string) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
+    const date = new Date(dateString.endsWith('Z') ? dateString : dateString + 'Z');
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
@@ -29,13 +29,8 @@ const formatRelativeTime = (dateString?: string) => {
     return `${Math.floor(diffInMonths / 12)}y ago`;
 };
 
-const getCurrencySymbol = (location?: string) => {
-    const loc = location?.toLowerCase() || '';
-    if (loc.includes('uk') || loc.includes('london') || loc.includes('england')) return '£';
-    if (loc.includes('europe') || loc.includes('france') || loc.includes('germany') || loc.includes('italy') || loc.includes('spain')) return '€';
-    if (loc.includes('india') || loc.includes('delhi') || loc.includes('mumbai') || loc.includes('bangalore')) return '₹';
-    if (loc.includes('japan') || loc.includes('tokyo')) return '¥';
-    return '$'; // default currency
+const getCurrencySymbol = (_location?: string) => {
+    return '₹';
 };
 
 export const AskCard: React.FC<AskCardProps> = ({ ask, onPress }) => {

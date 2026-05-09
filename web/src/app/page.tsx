@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Zap, ShieldCheck, CreditCard } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import Footer from "@/components/Footer";
 
@@ -136,12 +137,12 @@ export default function Home() {
 
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                { title: 'Lightning Fast', desc: 'Post an ask and get responses from available professionals within minutes, not days.', icon: '⚡' },
-                { title: 'Verified Pros', desc: 'Every service provider is vetted and reviewed by the community to ensure high quality.', icon: '🛡️' },
-                { title: 'Seamless Payments', desc: 'Pay securely through the app once the job is done to your satisfaction.', icon: '💳' }
+                { title: 'Lightning Fast', desc: 'Post an ask and get responses from available professionals within minutes, not days.', icon: <Zap className="w-8 h-8" /> },
+                { title: 'Verified Pros', desc: 'Every service provider is vetted and reviewed by the community to ensure high quality.', icon: <ShieldCheck className="w-8 h-8" /> },
+                { title: 'Seamless Payments', desc: 'Pay securely through the app once the job is done to your satisfaction.', icon: <CreditCard className="w-8 h-8" /> }
               ].map((feature, i) => (
                 <div key={i} className="bg-surface p-8 rounded-2xl shadow-sm border border-border hover:shadow-md transition-shadow">
-                  <div className="text-4xl mb-6">{feature.icon}</div>
+                  <div className="text-primary mb-6">{feature.icon}</div>
                   <h4 className="text-xl font-bold text-foreground mb-3">{feature.title}</h4>
                   <p className="text-text-secondary leading-relaxed">{feature.desc}</p>
                 </div>

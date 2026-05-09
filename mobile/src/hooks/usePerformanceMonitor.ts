@@ -29,7 +29,7 @@ export const usePerformanceMonitor = (screenName: string) => {
 
         // Log to console in development
         if (__DEV__) {
-            console.log(`📊 Performance [${screenName}]: ${renderTime}ms`);
+            console.log(`Performance [${screenName}]: ${renderTime}ms`);
         }
 
         // Cleanup old logs (keep last 50)
@@ -41,7 +41,7 @@ export const usePerformanceMonitor = (screenName: string) => {
             // Track unmount time if needed
             const unmountTime = Date.now() - startTime.current;
             if (__DEV__) {
-                console.log(`📊 Screen lifetime [${screenName}]: ${unmountTime}ms`);
+                console.log(`Screen lifetime [${screenName}]: ${unmountTime}ms`);
             }
         };
     }, [screenName]);

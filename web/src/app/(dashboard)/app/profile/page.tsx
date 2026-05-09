@@ -38,6 +38,7 @@ export default function ProfilePage() {
     const [activeModal, setActiveModal] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+    const [proError, setProError] = useState("");
 
     // Form states
     const [editForm, setEditForm] = useState({ username: "", email: "", phone_number: "", location: "" });
@@ -149,8 +150,14 @@ export default function ProfilePage() {
     };
 
     const handleUpgradePro = async () => {
+        setProError("");
         if (proStep < 3) {
             setProStep(proStep + 1);
+            return;
+        }
+
+        if (!proForm.category || !proForm.bio || !proForm.experience || !proForm.idCardUrl) {
+            setProError("Please complete all fields, including your Gov ID.");
             return;
         }
 
@@ -484,6 +491,13 @@ export default function ProfilePage() {
 
                                         {activeModal === 'pro' && (
                                             <div className="space-y-10">
+                                                {proError && (
+                                                    <div className="bg-red-50 text-red-500 p-4 rounded-2xl text-sm font-bold border border-red-100 flex items-center gap-3 mb-6">
+                                                        <span className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center text-xs">!</span>
+                                                        {proError}
+                                                    </div>
+                                                )}
+
                                                 {!user.is_pro && (
                                                     <div className="flex gap-3">
                                                         {[1, 2, 3].map(s => (
@@ -503,12 +517,12 @@ export default function ProfilePage() {
                                                         </div>
                                                         <div className="space-y-4 text-left">
                                                             {[
-                                                                { title: "Premium Earnings", icon: "💰", sub: "Unlock higher service fees.", color: "bg-green-50/50" },
-                                                                { title: "Priority Support", icon: "🛠️", sub: "Get help from us 24/7.", color: "bg-blue-50/50" },
-                                                                { title: "Verified Badge", icon: "🛡️", sub: "Build instant trust with users.", color: "bg-purple-50/50" },
+                                                                { title: "Premium Earnings", icon: <Award className="w-6 h-6 text-green-600" />, sub: "Unlock higher service fees.", color: "bg-green-50/50" },
+                                                                { title: "Priority Support", icon: <Settings className="w-6 h-6 text-blue-600" />, sub: "Get help from us 24/7.", color: "bg-blue-50/50" },
+                                                                { title: "Verified Badge", icon: <Shield className="w-6 h-6 text-purple-600" />, sub: "Build instant trust with users.", color: "bg-purple-50/50" },
                                                             ].map((b, i) => (
                                                                 <div key={i} className={`flex items-start gap-5 p-6 rounded-[2rem] ${b.color} border border-slate-100`}>
-                                                                    <span className="text-3xl">{b.icon}</span>
+                                                                    <span className="flex-shrink-0">{b.icon}</span>
                                                                     <div>
                                                                         <p className="font-black text-slate-900">{b.title}</p>
                                                                         <p className="text-xs font-bold text-slate-500">{b.sub}</p>
@@ -586,7 +600,7 @@ export default function ProfilePage() {
                                                                 />
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gov ID Verification (AWS S3)</label>
+                                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Gov ID Verification <span className="text-red-500">(Required)</span></label>
                                                                 <div className="relative">
                                                                     <input 
                                                                         type="file"
@@ -623,9 +637,9 @@ export default function ProfilePage() {
                                                         <div className="flex gap-4 pt-4">
                                                             <button onClick={() => setProStep(2)} className="flex-1 py-5 font-black text-slate-400 border-2 border-slate-100 rounded-[1.5rem]">Back</button>
                                                             <button 
-                                                                disabled={!proForm.bio || !proForm.experience || saving}
+                                                                disabled={saving}
                                                                 onClick={handleUpgradePro} 
-                                                                className="flex-[2] bg-primary text-white py-5 rounded-[1.5rem] font-black flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
+                                                                className="flex-[2] bg-primary text-white py-5 rounded-[1.5rem] font-black flex items-center justify-center gap-2 shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
                                                             >
                                                                 {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify & Submit"}
                                                             </button>

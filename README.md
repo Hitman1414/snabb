@@ -1,37 +1,41 @@
-# Snabb - Food & Quick Commerce App
+# Snabb
 
-A high-performance, production-ready mobile application built with React Native (Expo) and FastAPI.
+A local services marketplace built with React Native (Expo), Next.js, and FastAPI.
 
-## ✨ Features
+## Features
 
-- 🚀 **60% faster** API responses with Redis caching
-- ⚡ **Instant data access** with React Query
-- 🎨 **Automatic dark mode** support
-- 📱 **Smooth 60 FPS** scrolling
-- ♾️ **Infinite scroll** with pagination
-- 🔄 **Pull-to-refresh** for manual updates
-- 💎 **Enterprise-grade** design system
-- 🎯 **Type-safe** TypeScript throughout
+- Redis-cached API responses
+- React Query for data fetching
+- Dark mode support
+- Infinite scroll with pagination
+- Pull-to-refresh
+- Design system with theme tokens
+- TypeScript throughout
 
-## 🏗️ Tech Stack
+## Tech Stack
 
-### Frontend
+### Mobile
 - React Native 0.81.5
 - Expo SDK 54
 - TypeScript 5.9
-- React Query (TanStack Query)
+- TanStack Query
 - React Navigation 7
-- React Native Reanimated 3
-- Hermes JS Engine
+- React Native Reanimated
+
+### Web
+- Next.js 16
+- React 19
+- Tailwind CSS 4
+- Framer Motion
 
 ### Backend
 - FastAPI 0.115
 - SQLAlchemy 2.0
-- Redis 5.0 (caching)
-- PostgreSQL (production)
-- Gunicorn (production server)
+- Redis (caching)
+- PostgreSQL
+- Gunicorn
 
-## 🚀 Quick Start
+## Quick Start
 
 See [QUICKSTART.md](./QUICKSTART.md) for detailed setup instructions.
 
@@ -41,69 +45,35 @@ cd backend
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 
-# Frontend
+# Web
+cd web
+npm install
+npm run dev
+
+# Mobile
+cd mobile
 npm install
 npm start
 ```
 
-## 📊 Performance
-
-- API Response Time: **60% faster** (500ms → 200ms)
-- Database Queries: **50% reduction** (N+1 eliminated)
-- Response Size: **35% smaller** (GZip compression)
-- JS Execution: **30-40% faster** (Hermes engine)
-
-## 📱 Screenshots
-
-*Coming soon - App is ready for screenshots!*
-
-## 🎨 Design System
-
-Comprehensive design system with:
-- 40+ theme-aware colors (light/dark)
-- Typography system (11 variants)
-- Reusable components (Card, Typography, Skeleton)
-- 4px-based spacing scale
-- Smooth animations
-
-## 📚 Documentation
+## Documentation
 
 - [Quick Start Guide](./QUICKSTART.md)
 - [Deployment Guide](./backend/DEPLOYMENT.md)
-- [Audit Report](./artifacts/audit.md)
-- [Implementation Plan](./artifacts/implementation_plan.md)
-- [Walkthrough](./artifacts/walkthrough.md)
 
-## 🔧 Development
+## Development
 
 ```bash
 # Run linter
 npm run lint
 
-# Run tests (when added)
+# Run tests
 npm test
 
-# Build for production
+# Build mobile for production
 eas build --platform all
 ```
 
-## 🌟 Highlights
-
-✅ Production-ready backend with caching  
-✅ Optimized FlatList for smooth scrolling  
-✅ Automatic dark mode support  
-✅ Type-safe data fetching with React Query  
-✅ Comprehensive logging for debugging  
-✅ Skeleton loaders for perceived performance  
-
-## 📄 License
+## License
 
 MIT
-
-## 🤝 Contributing
-
-Contributions welcome! This is a production-ready foundation for food/commerce apps.
-
----
-
-**Built with ❤️ for the future of food & quick commerce**

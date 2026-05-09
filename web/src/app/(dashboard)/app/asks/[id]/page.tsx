@@ -2,8 +2,9 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/Toast";
 import { API_URL, getFullImageUrl } from "@/lib/api";
-import { MapPin, DollarSign, MessageSquare, ChevronLeft, Send, AlertCircle } from "lucide-react";
+import { MapPin, IndianRupee, MessageSquare, ChevronLeft, Send, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { Ask as AskType, User as UserType } from "@/types";
@@ -30,6 +31,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
     const [responses, setResponses] = useState<ResponseType[]>([]);
     const [loading, setLoading] = useState(true);
     const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+    const { success: toastSuccess, error: toastError } = useToast();
     const [selectedResponseForPayment, setSelectedResponseForPayment] = useState<ResponseType | null>(null);
     
     // Form state
@@ -160,7 +162,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                         <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 min-w-[150px]">
                             <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Budget Range</p>
                             <p className="text-xl font-bold text-primary">
-                                ${ask.budget_min} - ${ask.budget_max || "Flexible"}
+                                ₹{ask.budget_min} - ₹{ask.budget_max || "Flexible"}
                             </p>
                         </div>
                     </div>
@@ -232,7 +234,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                                 </div>
                                 <div className="space-y-4">
                                     <div className="relative">
-                                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                                        <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
                                         <input 
                                             type="number"
                                             placeholder="Bid (Optional)"
@@ -279,7 +281,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                                             </div>
                                             <div>
                                                 <p className="font-bold text-slate-900 dark:text-white">{resp.user?.username}</p>
-                                                <p className="text-xs text-slate-400 dark:text-slate-500">{formatDistanceToNow(new Date(resp.created_at), { addSuffix: true })}</p>
+                                                <p className="text-xs text-slate-400 dark:text-slate-500">{formatDistanceToNow(new Date(resp.created_at.endsWith('Z') ? resp.created_at : resp.created_at + 'Z'), { addSuffix: true })}</p>
                                             </div>
                                         </div>
                                         {resp.is_accepted && (
@@ -291,32 +293,44 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                                 <div className="w-full md:w-auto flex md:flex-col gap-3 min-w-[120px]">
                                     <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 text-center flex-1">
                                         <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mb-1">Bid</p>
-                                        <p className="font-bold text-primary">${resp.bid_amount || "N/A"}</p>
+                                        <p className="font-bold text-primary">₹{resp.bid_amount || "N/A"}</p>
                                     </div>
                                     {isOwner && (
                                         <div className="grid grid-cols-2 gap-2 mt-2 w-full">
                                             <button 
                                                 onClick={() => setSelectedResponseForPayment(resp)}
-                                                className="col-span-2 bg-primary hover:bg-primary-dark text-white rounded-2xl py-3 px-4 font-bold text-sm transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-95"
+                                                className="col-span-2 bg-primary hover:bg-primary-dark text-white rounded-2xl py-5 px-4 font-black text-lg transition-all shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95"
                                             >
                                                 Accept & Pay
                                             </button>
                                             <button 
                                                 onClick={async () => {
-                                                    await fetch(`${API_URL}/responses/${resp.id}/interested?is_interested=${!resp.is_interested}`, { credentials: "include", 
-                                                        method: 'PUT',
+                                                    try {
+                                                        const res = await fetch(`${API_URL}/responses/${resp.id}/interested?is_interested=${!resp.is_interested}`, { credentials: "include", 
+                                                            method: 'PUT',
                                                         });
-                                                    setResponses(prev => prev.map(r => r.id === resp.id ? {...r, is_interested: !r.is_interested} : r));
+                                                        if (res.ok) {
+                                                            setResponses(prev => prev.map(r => r.id === resp.id ? {...r, is_interested: !r.is_interested} : r));
+                                                            toastSuccess(resp.is_interested ? "Removed from shortlist" : "Response shortlisted!");
+                                                        } else {
+                                                            toastError("Failed to update status");
+                                                        }
+                                                    } catch (err) {
+                                                        toastError("Something went wrong");
+                                                    }
                                                 }}
-                                                className={`rounded-2xl py-3 px-4 font-bold text-xs transition-all active:scale-95 flex items-center justify-center ${
+                                                className={`rounded-2xl py-4 px-4 font-bold text-sm transition-all active:scale-95 flex items-center justify-center ${
                                                     resp.is_interested 
-                                                    ? 'bg-rose-50 text-rose-500 border border-rose-100' 
-                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-900/20'
+                                                    ? 'bg-slate-800 text-white' 
+                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'
                                                 }`}
                                             >
                                                 {resp.is_interested ? 'Shortlisted' : 'Shortlist'}
                                             </button>
-                                            <button className="bg-slate-100 dark:bg-slate-800 hover:bg-primary/10 text-primary rounded-2xl py-3 px-4 font-bold text-xs transition-all active:scale-95 flex items-center justify-center">
+                                            <button 
+                                                onClick={() => router.push(`/app/chat?otherUserId=${resp.user_id}&askId=${askId}&otherUserName=${resp.user?.username}&askTitle=${encodeURIComponent(ask.title)}`)}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-4 px-4 font-bold text-sm transition-all active:scale-95 flex items-center justify-center"
+                                            >
                                                 Message
                                             </button>
                                         </div>

@@ -210,13 +210,13 @@ export default function OnboardingTour({ onDone }: Props) {
                         activeOpacity={0.85}
                     >
                         <Text style={styles.nextBtnText}>
-                            {isLast ? "Let's Go!" : 'Next'}
+                            {isLast ? "Get Started" : 'Next'}
                         </Text>
                         {!isLast && (
                             <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 6 }} />
                         )}
                         {isLast && (
-                            <Ionicons name="rocket" size={18} color="#fff" style={{ marginLeft: 6 }} />
+                            <Ionicons name="checkmark" size={18} color="#fff" style={{ marginLeft: 6 }} />
                         )}
                     </TouchableOpacity>
                 </View>

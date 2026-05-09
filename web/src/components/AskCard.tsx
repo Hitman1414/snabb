@@ -1,5 +1,5 @@
 import { formatDistanceToNow } from "date-fns";
-import { MapPin, DollarSign, MessageSquare } from "lucide-react";
+import { MapPin, IndianRupee, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
 import { Ask } from "@/types";
@@ -48,9 +48,9 @@ export default function AskCard({ ask }: AskCardProps) {
                         </div>
                         {(ask.budget_min || ask.budget_max || ask.budget_min === 0) && (
                             <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-800/50 p-2 rounded-xl border border-transparent group-hover:border-slate-100 dark:group-hover:border-slate-700 group-hover:bg-white dark:group-hover:bg-slate-800 transition-all overflow-hidden">
-                                <DollarSign className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                                <IndianRupee className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                                 <span className="text-[10px] font-black text-slate-900 dark:text-white truncate">
-                                    {ask.budget_min === 0 && ask.budget_max === 0 ? 'Flexible' : `$${ask.budget_min || 0}-$${ask.budget_max || 'Flex'}`}
+                                    {ask.budget_min === 0 && ask.budget_max === 0 ? 'Flexible' : `₹${ask.budget_min || 0}-₹${ask.budget_max || 'Flex'}`}
                                 </span>
                             </div>
                         )}
@@ -70,7 +70,7 @@ export default function AskCard({ ask }: AskCardProps) {
                                 )}
                             </div>
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                                {formatDistanceToNow(new Date(ask.created_at), { addSuffix: true })}
+                                {formatDistanceToNow(new Date(ask.created_at.endsWith('Z') ? ask.created_at : ask.created_at + 'Z'), { addSuffix: true })}
                             </p>
                         </div>
                     </div>

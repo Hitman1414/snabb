@@ -74,8 +74,8 @@ export default function ProApplicationScreen() {
     };
 
     const handleSubmit = async () => {
-        if (!selectedCategory || !bio) {
-            toastService.error('Please fill in all required fields');
+        if (!selectedCategory || !bio || !idImageUri) {
+            toastService.error('Please fill in all required fields including Gov ID');
             return;
         }
 
@@ -205,11 +205,11 @@ export default function ProApplicationScreen() {
                 return (
                     <View style={styles.stepContainer}>
                         <Typography variant="h4" weight="bold" style={{ marginBottom: spacing[2] }}>
-                            Verify your identity
+                            Verify your identity <Typography variant="bodySmall" style={{ color: colors.error }}>(Required)</Typography>
                         </Typography>
                         <Typography variant="bodySmall" color="secondary" style={{ marginBottom: spacing[6] }}>
-                            Upload a government-issued ID (passport, driver's licence, or national ID).
-                            Your ID is stored securely and only seen by our admin team.
+                            Upload a government-issued ID (passport, driver's licence, or national ID) to verify your account.
+                            This is mandatory for all Snabb Pros.
                         </Typography>
 
                         {/* ID Preview */}
@@ -259,7 +259,7 @@ export default function ProApplicationScreen() {
                         )}
 
                         <Typography variant="caption" color="secondary" style={{ marginTop: spacing[4], textAlign: 'center' }}>
-                            ID upload is optional but speeds up approval.
+                            ID upload is mandatory for account verification.
                         </Typography>
 
                         <View style={{ marginTop: spacing[10], flexDirection: 'row', gap: spacing[4] }}>

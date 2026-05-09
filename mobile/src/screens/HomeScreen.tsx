@@ -284,7 +284,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                     activeOpacity={0.9}
                     onPress={() => {
-                        toastService.info('Snabb AI is coming soon!');
+                        toastService.info('Snabb AI is coming soon.');
                     }}
                 >
                     <View style={[styles.promoCard, { backgroundColor: '#F5F3FF' }]}>

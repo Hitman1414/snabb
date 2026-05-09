@@ -5,7 +5,18 @@ import { Logo } from "@/components/Logo";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/api";
-import { Mail, Lock, ChevronRight, User, Phone, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, Lock, ChevronRight, User, Phone, ArrowLeft, Loader2, Wrench, CheckCircle, MapPin, Star, Clock, MessageSquare, Package } from "lucide-react";
+import { motion } from "framer-motion";
+
+const LIVE_FEED = [
+    { icon: Wrench, title: "Plumber accepted your task", time: "2 min ago", accent: "bg-blue-400/20" },
+    { icon: MessageSquare, title: "New bid on Furniture Assembly", time: "Just now", accent: "bg-purple-400/20" },
+    { icon: CheckCircle, title: "Task completed: Dog Walking", time: "5 min ago", accent: "bg-green-400/20" },
+    { icon: MapPin, title: "3 pros available nearby", time: "Live", accent: "bg-red-400/20" },
+    { icon: Star, title: "Rahul rated 5 stars", time: "8 min ago", accent: "bg-yellow-400/20" },
+    { icon: Clock, title: "Electrician on the way", time: "1 min ago", accent: "bg-cyan-400/20" },
+    { icon: Package, title: "Delivery picked up", time: "3 min ago", accent: "bg-emerald-400/20" },
+];
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -71,40 +82,73 @@ export default function Login() {
 
             <div className="w-full max-w-[1100px] grid md:grid-cols-2 bg-white/70 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white overflow-hidden m-4 relative z-10">
                 {/* Visual Side */}
-                <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-primary to-orange-500 text-white relative">
+                <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-[#FF5F1F] via-primary to-orange-600 text-white relative overflow-hidden">
+                    {/* Animated Background Blobs */}
+                    <div className="absolute top-[-10%] right-[-10%] w-[300px] h-[300px] bg-white/10 rounded-full blur-[100px] animate-pulse"></div>
+                    <div className="absolute bottom-[-5%] left-[-5%] w-[200px] h-[200px] bg-black/10 rounded-full blur-[80px]"></div>
+                    
                     <div className="relative z-10">
-                        <Link href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full text-sm font-bold border border-white/30 hover:bg-white/30 transition-all mb-12">
-                            <ArrowLeft className="w-4 h-4" /> Back to Home
+                        <Link href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-xl rounded-full text-xs font-black border border-white/20 hover:bg-white/20 transition-all mb-16 tracking-widest uppercase">
+                            <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
                         </Link>
                         
                         <div className="space-y-6">
-                            <h2 className="text-5xl font-extrabold leading-tight tracking-tight">
-                                Ask. Serve. <br />
-                                <span className="opacity-70">Earn.</span>
+                            <h2 className="text-6xl font-black leading-[1.1] tracking-tighter">
+                                Ask. Serve.<br />
+                                <span className="text-white/40 italic">Earn.</span>
                             </h2>
-                            <p className="text-white/80 text-lg font-medium max-w-sm">
-                                Join thousands of people getting instant help from local professionals every day.
+                            <div className="w-20 h-1.5 bg-white/30 rounded-full"></div>
+                            <p className="text-white/90 text-lg font-bold max-w-sm leading-relaxed">
+                                Join thousands getting <span className="text-white underline decoration-white/30 underline-offset-4">instant help</span> from local pros every day.
                             </p>
                         </div>
                     </div>
 
-                    <div className="relative z-10 w-full max-w-sm bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-2xl mt-4">
-                        <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-                            </div>
-                            <div>
-                                <h3 className="text-white font-bold text-lg mb-1">AI-Powered Matching</h3>
-                                <p className="text-white/80 text-sm leading-relaxed">
-                                    Our intelligent algorithms connect you with the perfect professionals for your specific needs in seconds.
-                                </p>
-                            </div>
-                        </div>
+                    <div
+                        className="relative z-10 w-full max-w-sm h-[340px] mt-8 overflow-hidden rounded-3xl"
+                        style={{ WebkitMaskImage: "linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)" }}
+                    >
+                        {LIVE_FEED.map((item, i) => {
+                            const Icon = item.icon;
+                            return (
+                                <motion.div
+                                    key={i}
+                                    className="absolute left-0 right-0 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-[1.5rem] px-6 py-5 shadow-2xl flex items-center gap-5"
+                                    initial={{ y: 340, opacity: 0, scale: 0.9 }}
+                                    animate={{ y: [340, -120], opacity: [0, 1, 1, 0], scale: [0.9, 1, 1, 0.9] }}
+                                    transition={{
+                                        duration: 10,
+                                        repeat: Infinity,
+                                        ease: "linear",
+                                        delay: i * 2.5,
+                                        times: [0, 0.1, 0.9, 1],
+                                    }}
+                                >
+                                    <div className={`w-12 h-12 rounded-2xl ${item.accent} flex items-center justify-center shrink-0 shadow-lg border border-white/10`}>
+                                        <Icon className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <p className="text-white text-[13px] font-black truncate tracking-tight">{item.title}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="flex h-2 w-2 relative">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                            </span>
+                                            <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em]">{item.time}</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
                     </div>
 
-                    {/* Decorative abstract shapes */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl"></div>
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/5 rounded-full translate-x-1/2 translate-y-1/2 blur-xl"></div>
+                    {/* Branding Tag */}
+                    <div className="relative z-10 flex items-center gap-2 opacity-50">
+                        <div className="w-8 h-[1px] bg-white"></div>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Verified by Snabb</span>
+                    </div>
                 </div>
 
                 {/* Form Side */}

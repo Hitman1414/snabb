@@ -51,7 +51,7 @@ if settings.SENTRY_DSN:
 # pointing at Postgres, we refuse to run create_all().
 if settings.DEBUG:
     if settings.DATABASE_URL.startswith("sqlite"):
-        logger.info("🔧 Debug mode + SQLite: auto-creating tables")
+        logger.info("Debug mode + SQLite: auto-creating tables")
         Base.metadata.create_all(bind=engine)
         # Safe incremental migrations for dev — add missing columns without
         # requiring a manual `alembic upgrade head` on every pull.
@@ -68,32 +68,32 @@ if settings.DEBUG:
                 if _col not in _existing:
                     _conn.execute(text(_sql))
                     _conn.commit()
-                    logger.info(f"🔧 Auto-migration: added {_table}.{_col}")
+                    logger.info(f"Auto-migration: added {_table}.{_col}")
     else:
         logger.warning(
-            "⚠️ DEBUG=True but DATABASE_URL is not SQLite — refusing to run "
+            "DEBUG=True but DATABASE_URL is not SQLite — refusing to run "
             "create_all() to protect remote schemas. Use Alembic for migrations."
         )
 else:
-    logger.info("🚀 Production mode: schema managed by Alembic (`alembic upgrade head`)")
+    logger.info("Production mode: schema managed by Alembic (`alembic upgrade head`)")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info(f"✨ Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    logger.info(f"📊 Environment: {'DEVELOPMENT' if settings.DEBUG else 'PRODUCTION'}")
+    logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+    logger.info(f"Environment: {'DEVELOPMENT' if settings.DEBUG else 'PRODUCTION'}")
 
     # Log sanitized DB info
     db_type = 'SQLite'
     if '@' in settings.DATABASE_URL:
         db_type = settings.DATABASE_URL.split('@')[-1].split('/')[0]
-    logger.info(f"💾 Database: {db_type}")
-    logger.info(f"🔴 Redis cache: {'Enabled' if settings.REDIS_ENABLED else 'Disabled'}")
-    logger.info(f"🌐 CORS allowed origins: {settings.CORS_ORIGINS}")
+    logger.info(f"Database: {db_type}")
+    logger.info(f"Redis cache: {'Enabled' if settings.REDIS_ENABLED else 'Disabled'}")
+    logger.info(f"CORS allowed origins: {settings.CORS_ORIGINS}")
 
     ws_listener_task = None
     if cache_service.enabled:
-        logger.info("✅ Redis connection successful")
+        logger.info("Redis connection successful")
         ws_listener_task = asyncio.create_task(manager.listen_to_redis())
 
     yield
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
         ws_listener_task.cancel()
 
     # Shutdown
-    logger.info("👋 Shutting down Snabb API")
+    logger.info("Shutting down Snabb API")
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -117,7 +117,7 @@ app = FastAPI(
 # CSRF/credential-leak vector. We enforce an explicit allowlist.
 if "*" in settings.CORS_ORIGINS:
     logger.warning(
-        "⚠️ CORS_ORIGINS contains '*'. This is unsafe with cookie auth. "
+        "CORS_ORIGINS contains '*'. This is unsafe with cookie auth. "
         "Replace with explicit origins."
     )
     # Strip the wildcard to fail-safe: nothing outside the explicit list passes.

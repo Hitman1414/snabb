@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Activity, Users, ArrowRight, MapPin, DollarSign, Clock, Sparkles, User as UserIcon, ShieldCheck, Trophy } from "lucide-react";
+import { Search, X, Activity, Users, ArrowRight, MapPin, IndianRupee, Clock, Sparkles, User as UserIcon, ShieldCheck, Trophy } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/api";
 import { Ask as AskType } from "@/types";
@@ -237,7 +237,7 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                                                             <MapPin className="w-3 sm:w-3.5 h-3 sm:h-3.5 flex-shrink-0" /> <span className="truncate">{ask.location}</span>
                                                                         </div>
                                                                         <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-emerald-500 font-black uppercase flex-shrink-0">
-                                                                            <DollarSign className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> {ask.budget_max || 'Flex'}
+                                                                            <IndianRupee className="w-3 sm:w-3.5 h-3 sm:h-3.5" /> {ask.budget_max || 'Flex'}
                                                                         </div>
                                                                     </div>
                                                                 </div>

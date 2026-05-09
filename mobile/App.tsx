@@ -1,5 +1,4 @@
 import React from 'react';
-import { registerRootComponent } from 'expo';
 import * as Sentry from '@sentry/react-native';
 
 // Crash reporting — set EXPO_PUBLIC_SENTRY_DSN in .env / EAS secrets.
@@ -69,5 +68,3 @@ function App() {
 }
 
 export default Sentry.wrap(App);
-
-registerRootComponent(App);

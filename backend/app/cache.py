@@ -46,7 +46,7 @@ class CacheService:
                     self.redis_client = client
                     self.async_redis_client = async_client
                     self.enabled = True
-                    logger.info("✅ Redis cache enabled")
+                    logger.info("Redis cache enabled")
             except Exception as e:
                 logger.warning(f"Redis connection failed: {e} - caching disabled")
                 self.redis_client = None
