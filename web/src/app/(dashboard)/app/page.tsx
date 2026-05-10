@@ -30,18 +30,8 @@ import CreateAskModal from "@/components/CreateAskModal";
 import SnabbProModal from "@/components/SnabbProModal";
 import { User, Ask } from "@/types";
 
-const CATEGORIES = [
-    { title: 'All', icon: Globe, color: 'text-blue-500' },
-    { title: 'Digital & Support', icon: Activity, color: 'text-purple-500' },
-    { title: 'Food & Delivery', icon: Utensils, color: 'text-red-500' },
-    { title: 'Home & Repairs', icon: Home, color: 'text-indigo-500' },
-    { title: 'Errands & Shopping', icon: ShoppingBag, color: 'text-orange-500' },
-    { title: 'Ride & Transport', icon: Car, color: 'text-blue-600' },
-    { title: 'Financial Assistance', icon: Banknote, color: 'text-green-600' },
-    { title: 'Pet Care', icon: Heart, color: 'text-pink-500' },
-    { title: 'Health & Wellness', icon: Activity, color: 'text-teal-500' },
-    { title: 'Freelance Tasks', icon: Briefcase, color: 'text-slate-600' },
-];
+import { CATEGORY_THEMES } from "@/constants/categories";
+const CATEGORIES_LIST = ['All', ...Object.keys(CATEGORY_THEMES).filter(k => k !== 'All')];
 
 type ProUser = {
     id: number;
@@ -272,23 +262,27 @@ function DashboardContent() {
                         </button>
                     </div>
                     <div id="tour-categories" className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-10 gap-x-4 gap-y-6 justify-center items-start">
-                        {CATEGORIES.map((cat) => {
-                            const isSelected = selectedCategory === cat.title;
+                        {CATEGORIES_LIST.map((catName) => {
+                            const theme = CATEGORY_THEMES[catName];
+                            const Icon = theme.icon;
+                            const isSelected = selectedCategory === catName;
                             return (
                                 <button
-                                    key={cat.title}
-                                    onClick={() => setSelectedCategory(cat.title)}
+                                    key={catName}
+                                    onClick={() => setSelectedCategory(catName)}
                                     className="group flex flex-col items-center gap-2 transition-all cursor-pointer"
                                 >
                                     <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center border-[3px] shadow-sm transition-all duration-300 ${
                                         isSelected 
-                                        ? 'bg-primary border-primary/20 scale-105 shadow-lg shadow-primary/20' 
+                                        ? `${theme.bg} ${theme.border} scale-105 shadow-lg` 
                                         : 'bg-white dark:bg-slate-800 border-slate-50 dark:border-slate-700 group-hover:border-primary/20 group-hover:scale-105 group-hover:shadow-md'
-                                    }`}>
-                                        <cat.icon className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors ${isSelected ? 'text-white' : cat.color}`} />
+                                    }`}
+                                    style={isSelected ? { borderColor: theme.color } : {}}
+                                    >
+                                        <Icon className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors`} style={{ color: isSelected ? theme.color : '#94A3B8' }} />
                                     </div>
-                                    <span className={`text-[8px] font-black uppercase tracking-widest text-center leading-tight transition-colors px-1 ${isSelected ? 'text-primary' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
-                                        {cat.title}
+                                    <span className={`text-[8px] font-black uppercase tracking-widest text-center leading-tight transition-colors px-1 ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+                                        {catName}
                                     </span>
                                 </button>
                             );

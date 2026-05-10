@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_URL } from "@/lib/api";
+import { API_URL, getFullImageUrl } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     User as UserIcon,
@@ -250,7 +250,14 @@ export default function ProfilePage() {
                                 onClick={() => document.getElementById('avatar-upload')?.click()}
                             >
                                 {user.avatar_url ? (
-                                    <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `${API_URL.replace('/api/v1', '')}${user.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
+                                    <img 
+                                        src={getFullImageUrl(user.avatar_url)} 
+                                        alt="Avatar" 
+                                        className="w-full h-full object-cover" 
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                    />
                                 ) : (
                                     user.username.charAt(0).toUpperCase()
                                 )}

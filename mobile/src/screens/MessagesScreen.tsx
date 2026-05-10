@@ -10,7 +10,7 @@ import { useConversations } from '../hooks/useMessages';
 import { Conversation } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 
-import { CATEGORY_ICONS } from '../constants/categories';
+import { CATEGORY_THEMES } from '../constants/categories';
 
 export default function MessagesScreen() {
     const { colors } = useTheme();
@@ -42,9 +42,9 @@ export default function MessagesScreen() {
             <View style={styles.cardImage}>
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons 
-                        name={(CATEGORY_ICONS[item.ask.category] as any)?.name || 'chatbubbles-outline'} 
+                        name={(CATEGORY_THEMES[item.ask.category] as any)?.name || 'chatbubbles-outline'} 
                         size={40} 
-                        color={(CATEGORY_ICONS[item.ask.category] as any)?.color || colors.primary} 
+                        color={(CATEGORY_THEMES[item.ask.category] as any)?.color || colors.primary} 
                     />
                 </View>
                 {item.unread_count > 0 && (

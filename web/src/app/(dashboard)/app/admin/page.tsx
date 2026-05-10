@@ -27,7 +27,7 @@ import {
     UserCheck,
     IdCard
 } from "lucide-react";
-import { API_URL } from "@/lib/api";
+import { API_URL, getFullImageUrl } from "@/lib/api";
 import { format } from "date-fns";
 
 type PendingPro = {
@@ -319,13 +319,13 @@ export default function AdminPortal() {
                                                 <IdCard className="w-3.5 h-3.5" /> ID Document
                                             </p>
                                             <a
-                                                href={pro.id_card_url}
+                                                href={getFullImageUrl(pro.id_card_url)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="block w-full h-40 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-600 hover:opacity-80 transition-opacity"
                                             >
                                                 <img
-                                                    src={pro.id_card_url}
+                                                    src={getFullImageUrl(pro.id_card_url)}
                                                     alt="ID Document"
                                                     className="w-full h-full object-cover"
                                                 />

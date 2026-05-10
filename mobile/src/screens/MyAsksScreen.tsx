@@ -11,7 +11,7 @@ import { useTheme } from '../design-system/ThemeContext';
 import { Typography, Card, SkeletonGroup, Badge, EmptyState } from '../design-system/components';
 import { spacing } from '../design-system/tokens';
 import { Ask } from '../types';
-import { CATEGORY_ICONS } from '../constants/categories';
+import { CATEGORY_THEMES } from '../constants/categories';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,9 +40,9 @@ export default function MyAsksScreen() {
             <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant }]}>
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons 
-                        name={(CATEGORY_ICONS[item.category] as any)?.name || 'document-text-outline'} 
+                        name={(CATEGORY_THEMES[item.category] as any)?.name || 'document-text-outline'} 
                         size={40} 
-                        color={(CATEGORY_ICONS[item.category] as any)?.color || colors.primary} 
+                        color={(CATEGORY_THEMES[item.category] as any)?.color || colors.primary} 
                     />
                 </View>
                 {/* Response count badge */}

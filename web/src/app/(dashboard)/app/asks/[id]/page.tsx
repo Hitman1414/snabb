@@ -4,10 +4,10 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
 import { API_URL, getFullImageUrl } from "@/lib/api";
-import { MapPin, IndianRupee, MessageSquare, ChevronLeft, Send, AlertCircle } from "lucide-react";
+import { MapPin, IndianRupee, MessageSquare, ChevronLeft, Send, AlertCircle, Star, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { Ask as AskType, User as UserType } from "@/types";
+import { Ask as AskType, User as UserType, Review as ReviewType } from "@/types";
 import PaymentModal from "@/components/PaymentModal";
 
 type ResponseType = {
@@ -40,28 +40,36 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Review states
+    const [reviews, setReviews] = useState<ReviewType[]>([]);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState("");
+    const [submittingReview, setSubmittingReview] = useState(false);
+
     useEffect(() => {
         const fetchData = async () => {
-
             try {
                 // Fetch User
-                const userRes = await fetch(`${API_URL}/auth/me`, { credentials: "include", 
-                    });
+                const userRes = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
                 if (userRes.ok) {
                     setCurrentUser(await userRes.json());
                 }
 
                 // Fetch Ask
-                const askRes = await fetch(`${API_URL}/asks/${askId}`, { credentials: "include", 
-                    });
+                const askRes = await fetch(`${API_URL}/asks/${askId}`, { credentials: "include" });
                 if (!askRes.ok) throw new Error("Ask not found");
                 setAsk(await askRes.json());
 
                 // Fetch Responses
-                const respRes = await fetch(`${API_URL}/responses/ask/${askId}`, { credentials: "include", 
-                    });
+                const respRes = await fetch(`${API_URL}/responses/ask/${askId}`, { credentials: "include" });
                 if (respRes.ok) {
                     setResponses(await respRes.json());
+                }
+
+                // Fetch Reviews
+                const reviewRes = await fetch(`${API_URL}/reviews/ask/${askId}`, { credentials: "include" });
+                if (reviewRes.ok) {
+                    setReviews(await reviewRes.json());
                 }
             } catch (err) {
                 console.error(err);
@@ -73,6 +81,54 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
 
         fetchData();
     }, [askId, router]);
+
+    const handleSubmitReview = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (reviewRating < 1 || reviewRating > 5) return;
+
+        setSubmittingReview(true);
+        try {
+            const acceptedResponse = responses.find(r => r.is_accepted);
+            const isAsker = currentUser?.id === ask?.user_id;
+            const isResponder = currentUser?.id === acceptedResponse?.user_id;
+            
+            let reviewee_id = null;
+            if (isAsker) {
+                reviewee_id = ask?.server_id || acceptedResponse?.user_id;
+            } else if (isResponder) {
+                reviewee_id = ask?.user_id;
+            }
+
+            if (!reviewee_id) throw new Error("Could not determine who to review");
+
+            const res = await fetch(`${API_URL}/reviews`, {
+                credentials: "include",
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ask_id: parseInt(askId),
+                    reviewee_id: reviewee_id,
+                    rating: reviewRating,
+                    comment: reviewComment
+                })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.detail || "Failed to submit review");
+            }
+
+            const newReview = await res.json();
+            setReviews(prev => [...prev, newReview]);
+            setReviewComment("");
+            toastSuccess("Review submitted successfully!");
+        } catch (err) {
+            console.error(err);
+            toastError(err instanceof Error ? err.message : "Failed to submit review");
+        } finally {
+            setSubmittingReview(false);
+        }
+    };
 
     const handleSubmitResponse = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -110,28 +166,28 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
         }
     };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent flex rounded-full animate-spin"></div>
-            </div>
-        );
-    }
-
-    if (!ask) {
-        return (
-            <div className="text-center py-20">
-                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold">Ask Not Found</h2>
-                <button onClick={() => router.back()} className="mt-4 text-primary font-medium hover:underline">Go Back</button>
-            </div>
-        );
-    }
+    if (loading) return (
+        <div className="flex items-center justify-center py-20">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent animate-spin rounded-full"></div>
+        </div>
+    );
+    
+    if (!ask) return (
+        <div className="text-center py-20">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold">Ask Not Found</h2>
+            <button onClick={() => router.back()} className="mt-4 text-primary font-medium hover:underline">Go Back</button>
+        </div>
+    );
 
     const isOwner = currentUser?.id === ask.user_id;
+    const acceptedResponse = responses.find(r => r.is_accepted);
+    const isAcceptedResponder = currentUser?.id === acceptedResponse?.user_id;
+    const hasAlreadyReviewed = reviews.some(r => r.reviewer_id === currentUser?.id);
+    const canLeaveReview = ask.status === 'closed' && (isOwner || isAcceptedResponder) && !hasAlreadyReviewed;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
             {/* Back Button */}
             <button 
                 onClick={() => router.back()}
@@ -159,11 +215,37 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                             </h1>
                         </div>
                         
-                        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 min-w-[150px]">
-                            <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Budget Range</p>
-                            <p className="text-xl font-bold text-primary">
-                                ₹{ask.budget_min} - ₹{ask.budget_max || "Flexible"}
-                            </p>
+                        <div className="flex flex-col items-end gap-3">
+                            <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 min-w-[150px] text-right">
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-widest mb-1">Budget Range</p>
+                                <p className="text-xl font-black text-primary">
+                                    ₹{ask.budget_min} - ₹{ask.budget_max || "Flexible"}
+                                </p>
+                            </div>
+                            {isOwner && ask.status === 'in_progress' && (
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm("Mark this task as completed? This will release funds and enable reviews.")) return;
+                                        try {
+                                            const res = await fetch(`${API_URL}/asks/${askId}/close`, { 
+                                                method: 'POST', 
+                                                credentials: "include" 
+                                            });
+                                            if (res.ok) {
+                                                toastSuccess("Task marked as completed!");
+                                                window.location.reload();
+                                            } else {
+                                                toastError("Failed to close task");
+                                            }
+                                        } catch (err) {
+                                            toastError("Something went wrong");
+                                        }
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-green-200 transition-all active:scale-95"
+                                >
+                                    Mark as Completed
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -207,6 +289,81 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                     </div>
                 </div>
             </div>
+
+            {/* Review System Section */}
+            {(canLeaveReview || (reviews && reviews.length > 0)) && (
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                        Reviews
+                    </h2>
+
+                    {canLeaveReview && (
+                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+                            <h3 className="text-lg font-bold mb-4 text-slate-900 dark:text-white">Share your experience</h3>
+                            <form onSubmit={handleSubmitReview} className="space-y-6">
+                                <div className="flex gap-2">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setReviewRating(star)}
+                                            className="focus:outline-none transition-transform active:scale-90"
+                                        >
+                                            <Star 
+                                                className={`w-8 h-8 ${star <= reviewRating ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300'}`} 
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                                <textarea
+                                    placeholder="Write a comment about your experience..."
+                                    className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl p-4 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none min-h-[120px] transition-all"
+                                    value={reviewComment}
+                                    onChange={(e) => setReviewComment(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={submittingReview}
+                                    className="bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-2xl font-bold transition-all disabled:opacity-50"
+                                >
+                                    {submittingReview ? "Submitting..." : "Post Review"}
+                                </button>
+                            </form>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        {reviews.map((review) => (
+                            <div key={review.id} className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-primary font-bold">
+                                            {review.reviewer?.username.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-slate-900 dark:text-white">{review.reviewer?.username}</p>
+                                            <div className="flex gap-0.5">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star 
+                                                        key={i} 
+                                                        className={`w-3 h-3 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-slate-200'}`} 
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                                        {formatDistanceToNow(new Date(review.created_at.endsWith('Z') ? review.created_at : review.created_at + 'Z'), { addSuffix: true })}
+                                    </span>
+                                </div>
+                                <p className="text-slate-600 dark:text-slate-300">{review.comment}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Responses Section */}
             <div className="space-y-6">

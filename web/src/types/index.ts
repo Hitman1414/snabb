@@ -42,3 +42,15 @@ export interface Ask {
     created_at: string;
     user?: User;
 }
+
+export interface Review {
+    id: number;
+    ask_id: number;
+    reviewer_id: number;
+    reviewee_id: number;
+    rating: number;
+    comment: string;
+    created_at: string;
+    reviewer?: User;
+    reviewee?: User;
+}

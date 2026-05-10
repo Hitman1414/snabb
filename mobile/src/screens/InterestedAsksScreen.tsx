@@ -10,7 +10,7 @@ import { Typography, SkeletonGroup, EmptyState, Badge } from '../design-system/c
 import { spacing, elevation } from '../design-system/tokens';
 import { useInterestedAsks } from '../hooks/useAsks';
 import { Ask } from '../types';
-import { CATEGORY_ICONS } from '../constants/categories';
+import { CATEGORY_THEMES } from '../constants/categories';
 
 type RootStackParamList = {
     AskDetail: { askId: number };
@@ -42,9 +42,9 @@ export default function InterestedAsksScreen() {
             <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant }]}>
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <Ionicons 
-                        name={(CATEGORY_ICONS[item.category] as any)?.name || 'document-text-outline'} 
+                        name={(CATEGORY_THEMES[item.category] as any)?.name || 'document-text-outline'} 
                         size={40} 
-                        color={(CATEGORY_ICONS[item.category] as any)?.color || colors.primary} 
+                        color={(CATEGORY_THEMES[item.category] as any)?.color || colors.primary} 
                     />
                 </View>
                 {/* Shortlisted indicator */}

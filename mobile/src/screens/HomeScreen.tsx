@@ -4,6 +4,7 @@
 import React, { useCallback, useState, useEffect, useMemo } from 'react';
 import { logger } from '../services/logger';
 import * as Location from 'expo-location';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
     View,
     FlatList,
@@ -29,7 +30,7 @@ import { Ask } from '../types';
 import { useTheme } from '../design-system/ThemeContext';
 import { Typography, Card, SkeletonGroup, Badge, SearchBar, FilterChip, EmptyState } from '../design-system/components';
 import { spacing, elevation } from '../design-system/tokens';
-import { CATEGORIES, CATEGORY_ICONS } from '../constants/categories';
+import { CATEGORIES, CATEGORY_THEMES } from '../constants/categories';
 import { getInitials } from '../utils/helpers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OnboardingTour from '../components/OnboardingTour';
@@ -175,19 +176,37 @@ export default function HomeScreen() {
                         transition={200}
                     />
                 ) : (
-                    /* Vibrant category icon as placeholder */
-                    <View style={{ 
-                        flex: 1, 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        backgroundColor: `${(CATEGORY_ICONS[item.category] as any)?.color || colors.primary}15`
-                    }}>
+                    /* Premium Gradient placeholder with watermark effect */
+                    <LinearGradient
+                        colors={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).gradient}
+                        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                    >
+                        {/* Large watermark icon */}
                         <Ionicons
-                            name={(CATEGORY_ICONS[item.category] as any)?.name || 'document-text-outline'}
-                            size={viewMode === 'grid' ? 44 : 32}
-                            color={(CATEGORY_ICONS[item.category] as any)?.color || colors.primary}
+                            name={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).name}
+                            size={120}
+                            color="#FFFFFF"
+                            style={{ 
+                                position: 'absolute', 
+                                opacity: 0.15,
+                                transform: [{ rotate: '-15deg' }, { translateX: 20 }, { translateY: 20 }]
+                            }}
                         />
-                    </View>
+                        {/* Crisp center icon */}
+                        <Ionicons
+                            name={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).name}
+                            size={viewMode === 'grid' ? 48 : 36}
+                            color="#FFFFFF"
+                            style={{
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.2,
+                                shadowRadius: 8,
+                            }}
+                        />
+                    </LinearGradient>
                 )}
             </View>
             <View style={[styles.cardContent, viewMode === 'grid' && { paddingLeft: 0 }]}>
@@ -327,7 +346,7 @@ export default function HomeScreen() {
                     contentContainerStyle={{ paddingHorizontal: spacing[2] }}
                 >
                     {HOME_CATEGORIES.map((cat) => {
-                        const iconData = CATEGORY_ICONS[cat as any] || CATEGORY_ICONS['Other'];
+                        const iconData = CATEGORY_THEMES[cat as any] || CATEGORY_THEMES['Other'];
                         const isSelected = selectedCategory === cat;
                         return (
                             <TouchableOpacity
