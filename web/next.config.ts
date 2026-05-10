@@ -74,8 +74,6 @@ export default withSentryConfig(nextConfig, {
     silent: !process.env.CI,
     // Upload source maps for readable stack traces
     widenClientFileUpload: true,
-    // Hide source maps from the browser bundle
-    hideSourceMaps: true,
     // Disable the Sentry telemetry on the build machine
     disableLogger: true,
 });

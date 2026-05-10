@@ -72,6 +72,11 @@ apiClient.interceptors.response.use(
             // Emit event to trigger logout in AuthProvider
             authEvents.emit('unauthorized');
         }
+
+        if (error.response?.status === 402) {
+            // AI Subscription Required
+            authEvents.emit('payment_required');
+        }
         return Promise.reject(error);
     }
 );

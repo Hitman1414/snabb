@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { API_URL, getFullImageUrl } from "@/lib/api";
 import { format } from "date-fns";
-
 type PendingPro = {
     id: number;
     username: string;
@@ -37,6 +36,17 @@ type PendingPro = {
     pro_category: string;
     pro_bio: string;
     id_card_url: string | null;
+    created_at: string;
+};
+
+type AdminUser = {
+    id: number;
+    username: string;
+    email: string;
+    is_admin: boolean;
+    is_pro: boolean;
+    is_ai_subscribed: boolean;
+    ai_override: boolean;
     created_at: string;
 };
 
@@ -79,11 +89,17 @@ type ModerationLog = {
 
 export default function AdminPortal() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'system' | 'pro-approvals'>('system');
+    const [activeTab, setActiveTab] = useState<'system' | 'pro-approvals' | 'users'>('system');
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [modLogs, setModLogs] = useState<ModerationLog[]>([]);
     const [pendingPros, setPendingPros] = useState<PendingPro[]>([]);
     const [proActionLoading, setProActionLoading] = useState<number | null>(null);
+    
+    const [users, setUsers] = useState<AdminUser[]>([]);
+    const [userSearch, setUserSearch] = useState("");
+    const [searchingUsers, setSearchingUsers] = useState(false);
+    const [userActionLoading, setUserActionLoading] = useState<number | null>(null);
+
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
@@ -113,6 +129,39 @@ export default function AdminPortal() {
             console.error(`Failed to ${action} pro`, err);
         } finally {
             setProActionLoading(null);
+        }
+    };
+
+    const fetchUsers = async (query = "") => {
+        setSearchingUsers(true);
+        try {
+            const res = await fetch(`${API_URL}/admin/users?q=${encodeURIComponent(query)}`, { credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                setUsers(data.users);
+            }
+        } catch (err) {
+            console.error('Failed to fetch users', err);
+        } finally {
+            setSearchingUsers(false);
+        }
+    };
+
+    const toggleAiOverride = async (userId: number) => {
+        setUserActionLoading(userId);
+        try {
+            const res = await fetch(`${API_URL}/ai/toggle-override/${userId}`, { 
+                method: 'POST',
+                credentials: "include" 
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setUsers(prev => prev.map(u => u.id === userId ? { ...u, ai_override: data.ai_override } : u));
+            }
+        } catch (err) {
+            console.error('Failed to toggle AI override', err);
+        } finally {
+            setUserActionLoading(null);
         }
     };
 
@@ -236,20 +285,15 @@ export default function AdminPortal() {
                     System
                 </button>
                 <button
-                    onClick={() => { setActiveTab('pro-approvals'); fetchPendingPros(); }}
+                    onClick={() => { setActiveTab('users'); fetchUsers(); }}
                     className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                        activeTab === 'pro-approvals'
+                        activeTab === 'users'
                             ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
                             : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                     }`}
                 >
-                    <UserCheck className="w-4 h-4" />
-                    Pro Approvals
-                    {pendingPros.length > 0 && (
-                        <span className="bg-orange-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full">
-                            {pendingPros.length}
-                        </span>
-                    )}
+                    <Users className="w-4 h-4" />
+                    Users
                 </button>
             </div>
 
@@ -366,6 +410,118 @@ export default function AdminPortal() {
                             ))}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Users Tab */}
+            {activeTab === 'users' && (
+                <div className="space-y-8">
+                    <div className="bg-white dark:bg-slate-800 rounded-[3rem] p-10 shadow-sm border border-slate-100 dark:border-slate-700">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">User Management</h2>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Manage permissions and AI access</p>
+                            </div>
+                            <div className="relative w-full md:w-96">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by name or email..."
+                                    value={userSearch}
+                                    onChange={(e) => {
+                                        setUserSearch(e.target.value);
+                                        fetchUsers(e.target.value);
+                                    }}
+                                    className="w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                />
+                                {searchingUsers && (
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                        <RefreshCw className="w-3.5 h-3.5 text-primary animate-spin" />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-slate-50 dark:bg-slate-900/50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                                    <tr>
+                                        <th className="px-8 py-4">User</th>
+                                        <th className="px-8 py-4">Status</th>
+                                        <th className="px-8 py-4">AI Access</th>
+                                        <th className="px-8 py-4">Joined</th>
+                                        <th className="px-8 py-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
+                                    {users.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-bold">
+                                                No users found matching your search.
+                                            </td>
+                                        </tr>
+                                    ) : users.map((user) => (
+                                        <tr key={user.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center font-black text-slate-500">
+                                                        {user.username.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-black text-slate-900 dark:text-white">{user.username}</p>
+                                                        <p className="text-[10px] font-bold text-slate-400">{user.email}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {user.is_admin && (
+                                                        <span className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-[8px] font-black uppercase px-2 py-0.5 rounded-md">Admin</span>
+                                                    )}
+                                                    {user.is_pro && (
+                                                        <span className="bg-primary/10 text-primary text-[8px] font-black uppercase px-2 py-0.5 rounded-md">Pro</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-2">
+                                                    {user.is_ai_subscribed ? (
+                                                        <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg">
+                                                            <Zap className="w-3 h-3" />
+                                                            <span className="text-[10px] font-black uppercase">Subscribed</span>
+                                                        </div>
+                                                    ) : user.ai_override ? (
+                                                        <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-500 px-2 py-1 rounded-lg">
+                                                            <BadgeCheck className="w-3 h-3" />
+                                                            <span className="text-[10px] font-black uppercase">Override</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-[10px] font-black uppercase text-slate-300">Free Tier</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6 text-xs font-bold text-slate-400">
+                                                {format(new Date(user.created_at), "MMM d, yyyy")}
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <button
+                                                    onClick={() => toggleAiOverride(user.id)}
+                                                    disabled={userActionLoading === user.id}
+                                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                        user.ai_override 
+                                                            ? 'bg-red-50 dark:bg-red-500/10 text-red-500 border border-red-100 dark:border-red-500/20 hover:bg-red-100'
+                                                            : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-100 dark:border-emerald-500/20 hover:bg-emerald-100'
+                                                    }`}
+                                                >
+                                                    {userActionLoading === user.id ? 'Wait...' : user.ai_override ? 'Revoke AI' : 'Grant AI'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             )}
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, FormEvent, ChangeEvent } from "react";
 import { API_URL } from "@/lib/api";
 import { Ask as AskType } from "@/types";
+import { useDashboard } from "./useDashboard";
 
 type CreateAskProps = {
     isOpen: boolean;
@@ -10,6 +11,7 @@ type CreateAskProps = {
 };
 
 export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }: CreateAskProps) {
+    const { user, setIsAiProModalOpen } = useDashboard();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     
@@ -21,6 +23,7 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
         budget_min: "",
         budget_max: "",
         contact_phone: "",
+        status: "open",
     });
 
     const [images, setImages] = useState<File[]>([]);
@@ -48,7 +51,7 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
             if (formData.title) {
                 setFormData({
                     title: "", description: "", category: "Services",
-                    location: "", budget_min: "", budget_max: "", contact_phone: ""
+                    location: "", budget_min: "", budget_max: "", contact_phone: "", status: "open"
                 });
                 setCoordinates(null);
                 setShowManualAddress(false);
@@ -227,18 +230,20 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
         setPreviewUrls(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e: FormEvent, explicitStatus?: string) => {
+        if (e) e.preventDefault();
         setError("");
         
+        const finalStatus = explicitStatus || formData.status || "open";
+
         // TASK-24 [UI] Web: move form validation before setLoading(true) in CreateAskModal
-        if (!formData.title || formData.title.trim().length < 10) {
-            setError("Title must be at least 10 characters long for better clarity.");
+        if (!formData.title || formData.title.trim().length < 5) {
+            setError("Title must be at least 5 characters long.");
             return;
         }
 
-        if (!formData.description || formData.description.trim().length < 30) {
-            setError("Please provide a more detailed description (at least 30 characters).");
+        if (!formData.description || formData.description.trim().length < 10) {
+            setError("Please provide a more detailed description.");
             return;
         }
 
@@ -246,7 +251,7 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
         const bMax = formData.budget_max ? parseFloat(formData.budget_max) : null;
 
         if (bMin < 0) {
-            setError("Budget cannot be negative. Please enter a valid amount.");
+            setError("Budget cannot be negative.");
             return;
         }
 
@@ -260,11 +265,6 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
             return;
         }
 
-        if (bMin === 0 && bMax === null) {
-            setError("Please specify a budget range or a minimum amount.");
-            return;
-        }
-
         let finalLocation = formData.location;
         if (showManualAddress) {
             const parts = [manualAddress.houseNo, manualAddress.area, manualAddress.landmark, formData.location].filter(val => val && val.trim().length > 0);
@@ -272,7 +272,7 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
         }
         
         if (!finalLocation || finalLocation.trim().length === 0) {
-            setError("Please enter a location or use a manual address.");
+            setError("Please enter a location.");
             return;
         }
 
@@ -284,6 +284,8 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
             submitData.append('description', formData.description);
             submitData.append('category', formData.category);
             submitData.append('location', finalLocation);
+            submitData.append('status', finalStatus);
+
             if (bMin !== null) submitData.append('budget_min', bMin.toString());
             if (bMax !== null) submitData.append('budget_max', bMax.toString());
             if (coordinates) {
@@ -308,7 +310,6 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
                 let errorMsg = "Failed to create ask";
                 try {
                     const data = await response.json();
-                    // Handle both standard FastAPI 'detail' and custom 'error.message'
                     errorMsg = data.error?.message || data.detail || errorMsg;
                 } catch (e) {
                     if (response.status === 400) errorMsg = "This content violates our safety guidelines.";
@@ -317,22 +318,23 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
             }
 
             const newAsk = await response.json();
-            onToastSuccess?.("🎉 Your Ask has been posted! Pros will start responding shortly.");
+            const successMsg = finalStatus === "draft" 
+                ? "📝 Ask saved to drafts!" 
+                : "🎉 Your Ask has been posted!";
+            onToastSuccess?.(successMsg);
             onSuccess(newAsk);
             onClose();
         } catch (err) {
             console.error("Submit error:", err);
             const msg = err instanceof Error ? err.message : "An unknown error occurred";
-            if (msg.toLowerCase().includes("violate") || msg.toLowerCase().includes("prohibited")) {
-                setError(`🚫 ${msg}`);
-            } else if (msg === "Failed to fetch") {
-                setError("Could not connect to the server. Please check your internet connection.");
-            } else {
-                setError(msg);
-            }
+            setError(msg);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSaveDraft = (e: FormEvent) => {
+        handleSubmit(e, "draft");
     };
 
     return {
@@ -363,5 +365,8 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }:
         handleImageSelect,
         removeImage,
         handleSubmit,
+        handleSaveDraft,
+        user,
+        setIsAiProModalOpen
     };
 }

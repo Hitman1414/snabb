@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "@/lib/api";
-import { Heart, Loader2 } from "lucide-react";
+import { Heart, Loader2, LayoutGrid, List } from "lucide-react";
 import AskCard from "@/components/AskCard";
 import { Ask as AskType } from "@/types";
 
@@ -11,6 +11,7 @@ export default function InterestedPage() {
     const router = useRouter();
     const [asks, setAsks] = useState<AskType[]>([]);
     const [loading, setLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     useEffect(() => {
         const fetchInterested = async () => {
@@ -42,12 +43,31 @@ export default function InterestedPage() {
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface p-8 rounded-[2.5rem] border border-border shadow-sm overflow-hidden relative group">
-                <div className="relative z-10">
-                    <h1 className="text-3xl font-black text-foreground tracking-tight mb-2">Interested Asks</h1>
-                    <p className="text-text-secondary font-medium">Asks where you expressed interest to help.</p>
+                <div className="relative z-10 flex-1 flex flex-col sm:flex-row justify-between items-start sm:items-center w-full gap-4">
+                    <div>
+                        <h1 className="text-3xl font-black text-foreground tracking-tight mb-2">Interested Asks</h1>
+                        <p className="text-text-secondary font-medium">Asks where you expressed interest to help.</p>
+                    </div>
+                    {/* Grid / List toggle */}
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-800/50 rounded-xl p-1 gap-1 pointer-events-auto">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                            title="Grid view"
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                            title="List view"
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
-                <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700"></div>
-                <Heart className="hidden md:block w-16 h-16 text-primary/10 absolute right-8 top-1/2 -translate-y-1/2 rotate-12 group-hover:rotate-0 transition-transform duration-500" />
+                <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-primary/5 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700 pointer-events-none"></div>
+                <Heart className="hidden md:block w-16 h-16 text-primary/10 absolute right-8 top-1/2 -translate-y-1/2 rotate-12 group-hover:rotate-0 transition-transform duration-500 pointer-events-none" />
             </div>
 
             {asks.length === 0 ? (
@@ -67,7 +87,7 @@ export default function InterestedPage() {
                     </button>
                 </div>
             ) : (
-                <div className="grid md:grid-cols-2 gap-8">
+                <div className={viewMode === 'grid' ? "grid md:grid-cols-2 gap-8" : "flex flex-col gap-4"}>
                     {asks.map((ask) => (
                         <AskCard key={ask.id} ask={ask} />
                     ))}

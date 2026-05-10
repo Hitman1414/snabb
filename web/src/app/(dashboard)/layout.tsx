@@ -8,6 +8,7 @@ import CreateAskModal from "@/components/CreateAskModal";
 import SearchOverlay from "@/components/SearchOverlay";
 import OnboardingTour from "@/components/OnboardingTour";
 import { useDashboard } from "@/hooks/useDashboard";
+import AiProModal from "@/components/AiProModal";
 
 export default function DashboardLayout({
     children,
@@ -29,7 +30,10 @@ export default function DashboardLayout({
         isFetchingLocation,
         unreadNotifications,
         unreadMessages,
-        handleAskCreated
+        handleAskCreated,
+        isAiProModalOpen,
+        setIsAiProModalOpen,
+        toggleAiSubscription
     } = useDashboard();
 
     if (loading || !user) {
@@ -183,6 +187,13 @@ export default function DashboardLayout({
                 isOpen={isSearchOpen}
                 onClose={() => setIsSearchOpen(false)}
                 initialMode={searchMode}
+            />
+
+            <AiProModal 
+                isOpen={isAiProModalOpen}
+                onClose={() => setIsAiProModalOpen(false)}
+                onSubscribe={toggleAiSubscription}
+                isSubscribed={user?.is_ai_subscribed || false}
             />
         </div>
     );

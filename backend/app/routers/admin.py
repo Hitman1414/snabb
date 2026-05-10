@@ -238,3 +238,36 @@ def unverify_pro(
     user.pro_verified = False
     db.commit()
     return {"success": True, "user_id": user.id, "pro_verified": user.pro_verified}
+
+
+@router.get("/users")
+def list_users(
+    q: str = Query(None),
+    current_user: models.User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin-only: search/list users."""
+    query = db.query(models.User)
+    if q:
+        query = query.filter(
+            (models.User.username.ilike(f"%{q}%")) | 
+            (models.User.email.ilike(f"%{q}%"))
+        )
+    
+    users = query.limit(50).all()
+    
+    return {
+        "success": True,
+        "users": [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "is_admin": u.is_admin,
+                "is_pro": u.is_pro,
+                "is_ai_subscribed": u.is_ai_subscribed,
+                "ai_override": u.ai_override,
+                "created_at": u.created_at.isoformat()
+            } for u in users
+        ]
+    }

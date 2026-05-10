@@ -15,6 +15,9 @@ export interface User {
     pro_rating: number;
     pro_completed_tasks: number;
     completed_asks_count?: number;
+    pro_status?: string;
+    is_ai_subscribed?: boolean;
+    ai_override?: boolean;
 }
 
 export interface Ask {
@@ -24,7 +27,7 @@ export interface Ask {
     description: string;
     category: string;
     location: string;
-    status: 'open' | 'in_progress' | 'closed';
+    status: 'open' | 'in_progress' | 'closed' | 'draft';
     budget_min?: number;
     budget_max?: number;
     images?: string[];

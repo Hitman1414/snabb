@@ -42,6 +42,32 @@ export default function ProApplicationScreen() {
     const [loading, setLoading] = useState(false);
     const [uploadingId, setUploadingId] = useState(false);
 
+    if (user?.is_pro) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, padding: spacing[6] }]}>
+                <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#d1fae5', alignItems: 'center', justifyContent: 'center', marginBottom: spacing[4] }}>
+                    <Ionicons name="checkmark-circle" size={48} color="#059669" />
+                </View>
+                <Typography variant="h3" weight="black" align="center" style={{ marginBottom: spacing[2] }}>You are already a Pro!</Typography>
+                <Typography variant="body" color="secondary" align="center" style={{ marginBottom: spacing[6] }}>Head over to your dashboard to manage your business.</Typography>
+                <LoadingButton title="Go to Dashboard" onPress={() => navigation.navigate('ProDashboard' as any)} />
+            </View>
+        );
+    }
+
+    if (user?.pro_status === 'pending') {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, padding: spacing[6] }]}>
+                <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#fef3c7', alignItems: 'center', justifyContent: 'center', marginBottom: spacing[4] }}>
+                    <Ionicons name="time" size={48} color="#d97706" />
+                </View>
+                <Typography variant="h3" weight="black" align="center" style={{ marginBottom: spacing[2] }}>Application Pending</Typography>
+                <Typography variant="body" color="secondary" align="center" style={{ marginBottom: spacing[6] }}>We are currently reviewing your application. You'll be notified once approved.</Typography>
+                <LoadingButton title="Back to Hub" variant="outline" onPress={() => navigation.goBack()} />
+            </View>
+        );
+    }
+
     const pickIdImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {

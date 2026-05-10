@@ -130,6 +130,7 @@ class AskBase(BaseModel):
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
     contact_phone: Optional[str] = Field(None, max_length=32)
+    status: Optional[str] = Field("open", max_length=32)
 
 
 class AskCreate(AskBase):
@@ -146,6 +147,7 @@ class AskUpdate(BaseModel):
     images: Optional[List[str]] = None
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
+    status: Optional[str] = Field(None, max_length=32)
 
 
 class Ask(AskBase):

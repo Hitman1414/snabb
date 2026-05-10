@@ -189,6 +189,7 @@ def get_asks(
 def get_my_asks(
     skip: int = Query(0, ge=0),
     limit: int = Query(settings.DEFAULT_PAGE_SIZE, ge=1, le=settings.MAX_PAGE_SIZE),
+    status: Optional[str] = Query(None, description="Filter by status (open/draft/closed)"),
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -198,7 +199,12 @@ def get_my_asks(
         joinedload(models.Ask.responses)
     ).filter(
         models.Ask.user_id == current_user.id
-    ).order_by(
+    )
+    
+    if status:
+        asks = asks.filter(models.Ask.status == status)
+
+    asks = asks.order_by(
         models.Ask.created_at.desc()
     ).offset(skip).limit(limit).all()
 
@@ -262,6 +268,7 @@ async def create_ask(
     longitude: Annotated[Optional[float], Form()] = None,
     contact_phone: Annotated[Optional[str], Form()] = None,
     images: Annotated[List[UploadFile], File()] = [],
+    status: Annotated[Optional[str], Form()] = "open",
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -320,6 +327,7 @@ async def create_ask(
         longitude=longitude,
         contact_phone=contact_phone,
         images=image_urls if image_urls else None,
+        status=status if status else "open",
         user_id=current_user.id
     )
 

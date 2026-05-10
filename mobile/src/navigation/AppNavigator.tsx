@@ -36,7 +36,12 @@ import {
     AdminDashboardScreen,
     HelpCenterScreen,
     AboutUsScreen,
-    AdminProApprovalsScreen
+    AdminProApprovalsScreen,
+    AiProScreen,
+    NeedHelpHub,
+    SnabbProHub,
+    ProDashboardScreen,
+    AdminUserManagementScreen
 } from '../screens';
 
 export type RootStackParamList = {
@@ -59,6 +64,11 @@ export type RootStackParamList = {
     AdminDashboard: undefined;
     AdminModeration: undefined;
     AdminProApprovals: undefined;
+    AiPro: undefined;
+    NeedHelpHub: undefined;
+    SnabbProHub: undefined;
+    ProDashboard: undefined;
+    AdminUserManagement: undefined;
 };
 
 export type MainTabParamList = {
@@ -199,8 +209,22 @@ export const AppNavigator = () => {
                     updatePushTokenOnServer(token);
                 }
             });
+
+            // Handle AI Subscription required events
+            const handlePaymentRequired = () => {
+                navigationRef.current?.navigate('AiPro' as any);
+            };
+
+            import('../services/api').then(({ authEvents }) => {
+                authEvents.on('payment_required', handlePaymentRequired);
+                return () => {
+                    authEvents.off('payment_required', handlePaymentRequired);
+                };
+            });
         }
     }, [user]);
+
+    const navigationRef = React.useRef<any>(null);
 
     if (loading) {
         return (
@@ -212,7 +236,7 @@ export const AppNavigator = () => {
 
     return (
         <>
-            <NavigationContainer>
+            <NavigationContainer ref={navigationRef}>
                 <Stack.Navigator
                     id="RootStack"
                     screenOptions={{
@@ -235,6 +259,11 @@ export const AppNavigator = () => {
                             <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} options={{ title: 'Admin Control Center', headerShown: true }} />
                             <Stack.Screen name="AdminModeration" component={AdminModerationScreen} options={{ title: 'Moderation Logs', headerShown: true }} />
                             <Stack.Screen name="AdminProApprovals" component={AdminProApprovalsScreen} options={{ title: 'Pro Approvals', headerShown: true }} />
+                            <Stack.Screen name="AiPro" component={AiProScreen} options={{ headerShown: false, presentation: 'modal' }} />
+                            <Stack.Screen name="NeedHelpHub" component={NeedHelpHub} options={{ headerShown: false }} />
+                            <Stack.Screen name="SnabbProHub" component={SnabbProHub} options={{ headerShown: false }} />
+                            <Stack.Screen name="ProDashboard" component={ProDashboardScreen} options={{ headerShown: false }} />
+                            <Stack.Screen name="AdminUserManagement" component={AdminUserManagementScreen} options={{ title: 'User Management', headerShown: true }} />
                         </>
                     ) : (
                         <>

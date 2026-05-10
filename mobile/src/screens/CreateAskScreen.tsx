@@ -17,6 +17,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useCreateAsk } from '../hooks/useAsks';
+import { useAuth } from '../hooks/useAuth';
 import { Input, Typography, Dropdown, LocationPicker, ImagePicker, LoadingButton, Card } from '../design-system/components';
 import { useTheme } from '../design-system/ThemeContext';
 import { spacing, borderRadius, elevation } from '../design-system/tokens';
@@ -32,8 +33,11 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CreateAsk'>;
 
 const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
     const { colors } = useTheme();
+    const { user } = useAuth();
     const insets = useSafeAreaInsets();
     const createAskMutation = useCreateAsk();
+
+    const hasAiAccess = user?.is_ai_subscribed || user?.ai_override || user?.is_admin;
  
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -82,13 +86,15 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
             logger.error('Magic Ask Error:', error);
             const status = error?.response?.status;
             const detail = error?.response?.data?.detail || '';
-            if (status === 400 && detail.toLowerCase().includes('violates')) {
-                toastService.error(`🚫 Content blocked: ${detail}`);
-            } else if (status === 429) {
-                toastService.warning('AI is temporarily busy. Please wait a moment and try again.');
-            } else {
-                toastService.error('Magic Ask failed. Please try again.');
+            
+            let msg = 'Magic Ask failed. Please try again.';
+            if (status === 429 || detail.includes('RESOURCE_EXHAUSTED')) {
+                msg = "AI is currently busy. Please try again in a few minutes.";
+            } else if (status === 400 && detail.toLowerCase().includes('violates')) {
+                msg = `🚫 Content blocked: ${detail}`;
             }
+
+            toastService.error(msg);
         } finally {
             setIsMagicLoading(false);
         }
@@ -108,13 +114,15 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
             logger.error('Enhance Description Error:', error);
             const status = error?.response?.status;
             const detail = error?.response?.data?.detail || '';
-            if (status === 400 && detail.toLowerCase().includes('violates')) {
-                toastService.error(`🚫 Content blocked: ${detail}`);
-            } else if (status === 429) {
-                toastService.warning('AI is temporarily busy. Please wait a moment and try again.');
-            } else {
-                toastService.error(detail || 'Failed to enhance description. Please try again.');
+
+            let msg = 'Failed to enhance description.';
+            if (status === 429 || detail.includes('RESOURCE_EXHAUSTED')) {
+                msg = "AI is busy. Please try again soon.";
+            } else if (status === 400 && detail.toLowerCase().includes('violates')) {
+                msg = `🚫 Blocked: ${detail}`;
             }
+
+            toastService.error(msg);
         } finally {
             setIsEnhancing(false);
         }
@@ -126,7 +134,12 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
         setLocationDetected(true);
     };
 
-    const handleSubmit = async () => {
+    const handleSaveDraft = () => {
+        handleSubmit(null, 'draft');
+    };
+
+    const handleSubmit = async (e?: any, explicitStatus?: string) => {
+        const finalStatus = explicitStatus || 'open';
         let finalLocation = location;
         if (showManualAddress) {
             // Build from manual address fields
@@ -155,11 +168,15 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                 latitude: coordinates?.latitude,
                 longitude: coordinates?.longitude,
                 contact_phone: contactPhone ? contactPhone.trim() : undefined,
+                status: finalStatus,
             });
 
             setLoading(true);
             await createAskMutation.mutateAsync(validatedData);
-            toastService.success('🎉 Your Ask has been published! Pros will start responding soon.');
+            const successMsg = finalStatus === 'draft' 
+                ? '📝 Ask saved to drafts!' 
+                : '🎉 Your Ask has been published! Pros will start responding soon.';
+            toastService.success(successMsg);
             navigation.goBack();
         } catch (error: any) {
             if (error.name === 'ZodError' || error.issues) {
@@ -202,37 +219,57 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                 showsVerticalScrollIndicator={false}
             >
                 {/* ✨ Magic Ask Banner */}
-                <Card variant="elevated" elevation="base" style={[styles.aiCard, { backgroundColor: colors.surface, borderColor: '#FF6B3533' }]}>
-                    <View style={styles.aiHeader}>
-                        <MaterialCommunityIcons name="creation" size={20} color="#FF6B35" />
-                        <Typography variant="body" weight="bold" style={{ color: '#FF6B35', marginLeft: 8 }}>
-                            Magic Ask — AI Auto-fill
+                {!hasAiAccess ? (
+                    <Card variant="elevated" elevation="base" style={[styles.aiCard, { backgroundColor: colors.surface, borderColor: colors.border, borderStyle: 'dashed' }]}>
+                        <View style={styles.aiHeader}>
+                            <MaterialCommunityIcons name="sparkles" size={20} color={colors.textTertiary} />
+                            <Typography variant="body" weight="black" style={{ color: colors.textSecondary, marginLeft: 8, textTransform: 'uppercase', fontSize: 12 }}>
+                                Magic Ask Locked
+                            </Typography>
+                        </View>
+                        <Typography variant="caption" style={{ color: colors.textSecondary, marginBottom: spacing[3], fontWeight: 'bold' }}>
+                            Subscribe to <Typography variant="caption" weight="black" color="primary">Snabb AI Pro</Typography> to unlock AI-powered form filling and description enhancement.
                         </Typography>
-                    </View>
-                    <Typography variant="caption" style={{ color: colors.textSecondary, marginBottom: spacing[3] }}>
-                        Describe what you need in plain English and AI will fill the title, description, and budget.
-                    </Typography>
-                    <View style={styles.magicInputRow}>
-                        <TextInput
-                            placeholder='e.g. "Fix my leaking sink, budget ₹500"'
-                            placeholderTextColor={colors.textSecondary}
-                            value={magicText}
-                            onChangeText={setMagicText}
-                            style={[styles.magicInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surfaceVariant }]}
-                        />
                         <TouchableOpacity 
-                            onPress={handleMagicAsk}
-                            disabled={isMagicLoading || !magicText.trim()}
-                            style={[styles.magicButton, { backgroundColor: '#FF6B35', opacity: (isMagicLoading || !magicText.trim()) ? 0.6 : 1 }]}
+                            onPress={() => navigation.navigate('AiPro')}
+                            style={[styles.unlockButton, { backgroundColor: colors.primary }]}
                         >
-                            {isMagicLoading ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                            ) : (
-                                <Ionicons name="flash" size={18} color="#fff" />
-                            )}
+                            <Typography variant="caption" weight="black" style={{ color: '#fff', textTransform: 'uppercase' }}>Upgrade to Unlock</Typography>
                         </TouchableOpacity>
-                    </View>
-                </Card>
+                    </Card>
+                ) : (
+                    <Card variant="elevated" elevation="base" style={[styles.aiCard, { backgroundColor: '#F5F3FF', borderColor: '#8B5CF633' }]}>
+                        <View style={styles.aiHeader}>
+                            <MaterialCommunityIcons name="creation" size={22} color="#8B5CF6" />
+                            <Typography variant="body" weight="black" style={{ color: '#8B5CF6', marginLeft: 8, textTransform: 'uppercase', fontSize: 12 }}>
+                                Magic Ask — AI Power
+                            </Typography>
+                        </View>
+                        <Typography variant="caption" style={{ color: '#6D28D9', marginBottom: spacing[3], fontWeight: 'bold' }}>
+                            Describe what you need in plain English and Gemini will handle the details!
+                        </Typography>
+                        <View style={styles.magicInputRow}>
+                            <TextInput
+                                placeholder='e.g. "Fix my leaking sink, budget ₹500"'
+                                placeholderTextColor="#A78BFA"
+                                value={magicText}
+                                onChangeText={setMagicText}
+                                style={[styles.magicInput, { borderColor: '#8B5CF644', color: '#4C1D95', backgroundColor: '#fff' }]}
+                            />
+                            <TouchableOpacity 
+                                onPress={handleMagicAsk}
+                                disabled={isMagicLoading || !magicText.trim()}
+                                style={[styles.magicButton, { backgroundColor: '#8B5CF6', opacity: (isMagicLoading || !magicText.trim()) ? 0.6 : 1 }]}
+                            >
+                                {isMagicLoading ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Ionicons name="sparkles" size={20} color="#fff" />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </Card>
+                )}
 
                 {/* Section 1: Task Details */}
                 <Card variant="elevated" elevation="base" style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
@@ -262,16 +299,22 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                             Description
                         </Typography>
                         <TouchableOpacity 
-                            onPress={handleEnhanceDescription}
+                            onPress={() => {
+                                if (hasAiAccess) {
+                                    handleEnhanceDescription();
+                                } else {
+                                    navigation.navigate('AiPro');
+                                }
+                            }}
                             disabled={isEnhancing || !description.trim()}
                             style={styles.enhanceButton}
                         >
                             {isEnhancing ? (
-                                <ActivityIndicator size="small" color={colors.primary} />
+                                <ActivityIndicator size="small" color={hasAiAccess ? colors.primary : colors.textTertiary} />
                             ) : (
-                                <MaterialCommunityIcons name="auto-fix" size={16} color={colors.primary} />
+                                <MaterialCommunityIcons name="auto-fix" size={18} color={hasAiAccess ? colors.primary : colors.textTertiary} />
                             )}
-                            <Typography variant="caption" weight="bold" color="primary" style={{ marginLeft: 4 }}>
+                            <Typography variant="caption" weight="black" color={hasAiAccess ? 'primary' : 'tertiary'} style={{ marginLeft: 6, textTransform: 'uppercase', fontSize: 10 }}>
                                 {isEnhancing ? 'Enhancing...' : 'Enhance with AI'}
                             </Typography>
                         </TouchableOpacity>
@@ -407,14 +450,28 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                     />
                 </Card>
 
-                <LoadingButton
-                    title="Publish Ask"
-                    onPress={handleSubmit}
-                    loading={loading}
-                    fullWidth
-                    size="lg"
-                    style={styles.mainButton}
-                />
+                <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                        onPress={handleSaveDraft}
+                        disabled={loading || !title || !description}
+                        style={[styles.draftButton, { borderColor: colors.primary, opacity: (loading || !title || !description) ? 0.6 : 1 }]}
+                    >
+                        {loading ? (
+                            <ActivityIndicator size="small" color={colors.primary} />
+                        ) : (
+                            <Typography variant="body" weight="black" style={{ color: colors.primary, textTransform: 'uppercase' }}>Save Draft</Typography>
+                        )}
+                    </TouchableOpacity>
+
+                    <LoadingButton
+                        title="Publish Ask"
+                        onPress={() => handleSubmit()}
+                        loading={loading}
+                        disabled={!title || !description || !location}
+                        size="lg"
+                        style={styles.mainButton}
+                    />
+                </View>
                 
                 <Typography variant="caption" color="tertiary" align="center" style={styles.footerHint}>
                     By publishing, you agree to our Terms of Service.
@@ -539,11 +596,27 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     magicButton: {
-        height: 44,
+        height: 48,
         paddingHorizontal: spacing[4],
-        borderRadius: borderRadius.md,
+        borderRadius: borderRadius.lg,
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    unlockButton: {
+        paddingVertical: spacing[3],
+        borderRadius: borderRadius.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 2,
     },
     enhanceButton: {
         flexDirection: 'row',
@@ -551,8 +624,25 @@ const styles = StyleSheet.create({
         paddingVertical: spacing[1],
         paddingHorizontal: spacing[2],
     },
-    mainButton: {
+    footerHint: {
+        marginTop: spacing[4],
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing[3],
         marginTop: spacing[6],
+    },
+    draftButton: {
+        flex: 1,
+        height: 60,
+        borderRadius: 30,
+        borderWidth: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    mainButton: {
+        flex: 1.5,
         height: 60,
         borderRadius: 30,
         shadowColor: '#FF6B35',
@@ -560,9 +650,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 12,
         elevation: 8,
-    },
-    footerHint: {
-        marginTop: spacing[4],
     },
 });
 

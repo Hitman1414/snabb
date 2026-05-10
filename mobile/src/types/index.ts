@@ -16,6 +16,8 @@ export interface User {
     pro_rating: number;
     pro_completed_tasks: number;
     completed_asks_count?: number;
+    is_ai_subscribed: boolean;
+    ai_override?: boolean;
 }
 
 export interface Ask {

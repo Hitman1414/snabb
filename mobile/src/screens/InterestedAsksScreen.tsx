@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +19,7 @@ type RootStackParamList = {
 };
 
 export default function InterestedAsksScreen() {
-    const { colors } = useTheme();
+    const { colors, colorScheme } = useTheme();
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const insets = useSafeAreaInsets();
     
@@ -29,24 +30,61 @@ export default function InterestedAsksScreen() {
         isRefetching
     } = useInterestedAsks();
 
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
     const handleAskPress = (ask: Ask) => {
         navigation.navigate('AskDetail', { askId: ask.id } as any);
     };
 
     const renderItem = ({ item }: { item: Ask }) => (
         <TouchableOpacity
-            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[
+                styles.card, 
+                { backgroundColor: colors.surface, borderColor: colors.border },
+                viewMode === 'grid' && { flexDirection: 'column', flex: 1, marginHorizontal: spacing[1] }
+            ]}
             onPress={() => handleAskPress(item)}
             activeOpacity={0.7}
         >
-            <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant }]}>
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons 
-                        name={(CATEGORY_THEMES[item.category] as any)?.name || 'document-text-outline'} 
-                        size={40} 
-                        color={(CATEGORY_THEMES[item.category] as any)?.color || colors.primary} 
-                    />
-                </View>
+            <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }, viewMode === 'grid' && { width: '100%', height: 100, marginBottom: spacing[2] }]}>
+                {/* Essence Background Glow */}
+                <LinearGradient
+                    colors={(CATEGORY_THEMES[item.category] as any)?.gradient || [colors.primary, colors.primaryDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[StyleSheet.absoluteFill, { opacity: colorScheme === 'dark' ? 0.15 : 0.08 }]}
+                />
+                {/* Watermarks */}
+                <Ionicons 
+                    name={(CATEGORY_THEMES[item.category] as any)?.name || 'document-text-outline'} 
+                    size={80} 
+                    color={colors.text} 
+                    style={{ position: 'absolute', right: -15, bottom: -20, opacity: colorScheme === 'dark' ? 0.06 : 0.04, transform: [{ rotate: '15deg' }] }} 
+                />
+                <Ionicons 
+                    name={(CATEGORY_THEMES[item.category] as any)?.name || 'document-text-outline'} 
+                    size={60} 
+                    color={colors.text} 
+                    style={{ position: 'absolute', left: -10, top: -10, opacity: colorScheme === 'dark' ? 0.04 : 0.03, transform: [{ rotate: '-15deg' }] }} 
+                />
+                <LinearGradient
+                    colors={(CATEGORY_THEMES[item.category] as any)?.gradient || [colors.primary, colors.primaryDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{
+                        width: viewMode === 'grid' ? 56 : 64,
+                        height: viewMode === 'grid' ? 56 : 64,
+                        borderRadius: viewMode === 'grid' ? 28 : 32,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        shadowColor: (CATEGORY_THEMES[item.category] as any)?.color || colors.primary,
+                        shadowOpacity: 0.3,
+                        shadowRadius: 8,
+                        elevation: 4,
+                    }}
+                >
+                    <Ionicons name={(CATEGORY_THEMES[item.category] as any)?.name || 'document-text-outline'} size={viewMode === 'grid' ? 28 : 32} color="#FFFFFF" />
+                </LinearGradient>
                 {/* Shortlisted indicator */}
                 {item.is_interested && (
                     <View style={styles.shortlistedDot}>
@@ -55,16 +93,18 @@ export default function InterestedAsksScreen() {
                 )}
             </View>
 
-            <View style={styles.cardContent}>
-                <View style={styles.cardHeader}>
-                    <Typography variant="h6" weight="bold" numberOfLines={1} style={styles.cardTitle}>
+            <View style={[styles.cardContent, viewMode === 'grid' && { paddingLeft: 0 }]}>
+                <View style={[styles.cardHeader, viewMode === 'grid' && { flexDirection: 'column' }]}>
+                    <Typography variant="h6" weight="bold" numberOfLines={viewMode === 'grid' ? 2 : 1} style={[styles.cardTitle, viewMode === 'grid' && { marginRight: 0, marginBottom: spacing[1], fontSize: 13, lineHeight: 16 }]}>
                         {item.title}
                     </Typography>
-                    <Badge
-                        label={item.status.toUpperCase()}
-                        variant={item.status === 'open' ? 'success' : 'outline'}
-                        size="sm"
-                    />
+                    {viewMode === 'list' && (
+                        <Badge
+                            label={item.status.toUpperCase()}
+                            variant={item.status === 'open' ? 'success' : 'outline'}
+                            size="sm"
+                        />
+                    )}
                 </View>
 
                 {/* Shortlisted banner */}
@@ -76,24 +116,26 @@ export default function InterestedAsksScreen() {
                     </View>
                 )}
 
-                <Typography variant="caption" color="secondary" numberOfLines={item.is_interested ? 1 : 2}>
-                    {item.description}
-                </Typography>
+                {viewMode === 'list' && (
+                    <Typography variant="caption" color="secondary" numberOfLines={item.is_interested ? 1 : 2}>
+                        {item.description}
+                    </Typography>
+                )}
 
-                <View style={styles.cardMeta}>
+                <View style={[styles.cardMeta, viewMode === 'grid' && { marginTop: 4 }]}>
                     <Ionicons name="location-outline" size={12} color={colors.textTertiary} />
-                    <Typography variant="caption" color="tertiary" style={{ marginLeft: 2 }}>
+                    <Typography variant="caption" color="tertiary" style={{ marginLeft: 2 }} numberOfLines={1}>
                         {item.location}
                     </Typography>
                 </View>
 
-                <View style={styles.cardFooter}>
-                    <View style={styles.budgetTag}>
-                        <Typography variant="caption" weight="bold" color="primary" style={{ color: colors.primaryDark }}>
+                <View style={[styles.cardFooter, viewMode === 'grid' && { marginTop: 8 }]}>
+                    <View style={[styles.budgetTag, viewMode === 'grid' && { paddingHorizontal: 4, paddingVertical: 2 }]}>
+                        <Typography variant="caption" weight="bold" color="primary" style={[{ color: colors.primaryDark }, viewMode === 'grid' && { fontSize: 9 }]}>
                             ₹{item.budget_min || 0} - ₹{item.budget_max || 0}
                         </Typography>
                     </View>
-                    <Typography variant="caption" color="tertiary">
+                    <Typography variant="caption" color="tertiary" style={viewMode === 'grid' ? { fontSize: 9 } : undefined}>
                         {new Date(item.created_at).toLocaleDateString()}
                     </Typography>
                 </View>
@@ -111,7 +153,25 @@ export default function InterestedAsksScreen() {
                 />
                 <Typography variant="h3" weight="bold">Interested Asks</Typography>
             </View>
-            <Typography variant="bodySmall" color="secondary">Tasks where you&apos;ve expressed interest</Typography>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <Typography variant="bodySmall" color="secondary">Tasks where you&apos;ve expressed interest</Typography>
+                
+                {/* Grid / List View Toggle */}
+                <View style={{ flexDirection: 'row', backgroundColor: colors.surfaceVariant, borderRadius: 12, padding: 4 }}>
+                    <TouchableOpacity 
+                        style={{ padding: 6, borderRadius: 8, backgroundColor: viewMode === 'grid' ? colors.surface : 'transparent' }}
+                        onPress={() => setViewMode('grid')}
+                    >
+                        <Ionicons name="grid" size={16} color={viewMode === 'grid' ? colors.primary : colors.textTertiary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={{ padding: 6, borderRadius: 8, backgroundColor: viewMode === 'list' ? colors.surface : 'transparent' }}
+                        onPress={() => setViewMode('list')}
+                    >
+                        <Ionicons name="list" size={16} color={viewMode === 'list' ? colors.primary : colors.textTertiary} />
+                    </TouchableOpacity>
+                </View>
+            </View>
         </View>
     );
 
@@ -135,8 +195,11 @@ export default function InterestedAsksScreen() {
                 data={asks}
                 renderItem={renderItem}
                 ListHeaderComponent={renderHeader}
+                key={viewMode}
+                numColumns={viewMode === 'grid' ? 2 : 1}
                 keyExtractor={(item) => item.id.toString()}
                 contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + spacing[4] }]}
+                columnWrapperStyle={viewMode === 'grid' ? { justifyContent: 'space-between', paddingHorizontal: spacing[2] } : undefined}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
                     <RefreshControl 

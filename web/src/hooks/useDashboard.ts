@@ -8,6 +8,9 @@ export type User = {
     is_pro: boolean;
     is_admin: boolean;
     location?: string;
+    is_ai_subscribed: boolean;
+    ai_override?: boolean;
+    pro_status?: string;
 };
 
 export function useDashboard() {
@@ -62,19 +65,20 @@ export function useDashboard() {
         };
     }, []);
 
+    const fetchUserData = async () => {
+        try {
+            const userRes = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
+            if (!userRes.ok) throw new Error('Unauthorized');
+            const userData = await userRes.json();
+            setUser(userData);
+        } catch {
+            router.push('/login');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const userRes = await fetch(`${API_URL}/auth/me`, { credentials: "include" });
-                if (!userRes.ok) throw new Error('Unauthorized');
-                const userData = await userRes.json();
-                setUser(userData);
-            } catch {
-                router.push('/login');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchUserData();
     }, [router]);
 
@@ -138,6 +142,31 @@ export function useDashboard() {
         window.location.reload(); 
     };
 
+    const [isAiProModalOpen, setIsAiProModalOpen] = useState(false);
+
+    const toggleAiSubscription = async () => {
+        try {
+            const res = await fetch(`${API_URL}/ai/subscribe`, { method: "POST", credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                setUser(prev => prev ? { ...prev, is_ai_subscribed: data.is_ai_subscribed } : null);
+            }
+        } catch (error) {
+            console.error("Failed to toggle AI subscription:", error);
+        }
+    };
+
+    useEffect(() => {
+        const handleAiPaywall = () => setIsAiProModalOpen(true);
+        const handleOpenCreate = () => setIsCreateModalOpen(true);
+        window.addEventListener('ai-paywall', handleAiPaywall);
+        window.addEventListener('open-create-ask', handleOpenCreate);
+        return () => {
+            window.removeEventListener('ai-paywall', handleAiPaywall);
+            window.removeEventListener('open-create-ask', handleOpenCreate);
+        };
+    }, []);
+
     return {
         user,
         loading,
@@ -152,7 +181,12 @@ export function useDashboard() {
         userLocation,
         isFetchingLocation,
         unreadNotifications,
+        setUnreadNotifications,
         unreadMessages,
-        handleAskCreated
+        handleAskCreated,
+        isAiProModalOpen,
+        setIsAiProModalOpen,
+        toggleAiSubscription,
+        mutate: fetchUserData
     };
 }

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Activity, Users, ArrowRight, MapPin, IndianRupee, Clock, Sparkles, User as UserIcon, ShieldCheck, Trophy } from "lucide-react";
+import { Search, X, Activity, Users, ArrowRight, MapPin, IndianRupee, Clock, Sparkles, User as UserIcon, ShieldCheck, Trophy, Zap, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { API_URL } from "@/lib/api";
+import { API_URL, getFullImageUrl } from "@/lib/api";
 import { Ask as AskType } from "@/types";
+import { useDashboard } from "@/hooks/useDashboard";
 
 type SearchOverlayProps = {
     isOpen: boolean;
@@ -13,14 +14,56 @@ type SearchOverlayProps = {
     initialMode?: 'all' | 'pros' | 'asks';
 };
 
+type ProUserFormatted = {
+    id: number;
+    name: string;
+    rating: number;
+    reviews: number;
+    initial: string;
+    category: string;
+    is_pro: boolean;
+    avatar_url?: string;
+};
+
 export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: SearchOverlayProps) {
     const router = useRouter();
     const [query, setQuery] = useState("");
     const [asks, setAsks] = useState<AskType[]>([]);
-    const [pros, setPros] = useState<{name: string, rating: number, reviews: number, initial: string, category: string, is_pro: boolean}[]>([]);
+    const [pros, setPros] = useState<ProUserFormatted[]>([]);
+    const [topPros, setTopPros] = useState<ProUserFormatted[]>([]);
     const [askers, setAskers] = useState<{username: string, askCount: number, rating: number, initial: string}[]>([]);
+    const [aiResults, setAiResults] = useState<{user: any, match_reason: string}[]>([]);
     const [loading, setLoading] = useState(false);
+    const [isAiMode, setIsAiMode] = useState(false);
+    const { user } = useDashboard();
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // ... (rest of the file lines will be checked below)
+
+    // Fetch top pros for the carousel on mount
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                const prosRes = await fetch(`${API_URL}/users/pros?limit=10`, { credentials: "include" });
+                if (prosRes.ok) {
+                    const fetchedPros = await prosRes.json();
+                    setTopPros(fetchedPros.map((p: any) => ({
+                        id: p.id,
+                        name: p.username,
+                        rating: p.pro_rating || 5.0,
+                        reviews: p.pro_completed_tasks || 0,
+                        initial: p.username ? p.username.charAt(0).toUpperCase() : "?",
+                        category: p.pro_category || "General",
+                        is_pro: p.is_pro,
+                        avatar_url: p.avatar_url
+                    })));
+                }
+            } catch (err) {
+                console.error("Failed to fetch initial pros", err);
+            }
+        };
+        fetchInitialData();
+    }, []);
 
     useEffect(() => {
         if (isOpen) {
@@ -35,13 +78,40 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
             setAsks([]);
             setPros([]);
             setAskers([]);
+            setIsAiMode(false);
         }
     }, [isOpen, initialMode]);
 
     const performSearch = async (q: string) => {
         setLoading(true);
+        setAiResults([]);
+        
+        if (isAiMode && q.trim().length > 3) {
+            try {
+                const aiRes = await fetch(`${API_URL}/ai/magic-search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: q }),
+                    credentials: "include"
+                });
+                if (aiRes.status === 402) {
+                    window.dispatchEvent(new CustomEvent('ai-paywall'));
+                    setIsAiMode(false);
+                    setLoading(false);
+                    return;
+                }
+                if (aiRes.ok) {
+                    const data = await aiRes.json();
+                    setAiResults(data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.error("AI Search Error", err);
+            }
+        }
+
         try {
-            // Fetch asks and pros in parallel
             const [asksRes, prosRes] = await Promise.all([
                 fetch(`${API_URL}/asks/?skip=0&limit=50&search=${encodeURIComponent(q)}`, { credentials: "include" }),
                 fetch(`${API_URL}/users/pros?limit=50${q ? `&search=${encodeURIComponent(q)}` : ''}`, { credentials: "include" })
@@ -58,17 +128,17 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                 fetchedPros = await prosRes.json();
             }
 
-            // Transform Pros to match UI expected format
             const formattedPros = fetchedPros.map(p => ({
+                id: p.id,
                 name: p.username,
                 rating: p.pro_rating || 5.0,
                 reviews: p.pro_completed_tasks || 0,
                 initial: p.username ? p.username.charAt(0).toUpperCase() : "?",
                 category: p.pro_category || "General",
-                is_pro: p.is_pro
+                is_pro: p.is_pro,
+                avatar_url: p.avatar_url
             }));
 
-            // Extract Askers from fetched asks
             const askerMap = new Map();
             fetchedAsks.forEach(ask => {
                 if (ask.user) {
@@ -89,7 +159,6 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
             const searchQ = q.toLowerCase();
             
             if (q.trim() === "") {
-                // "Browse All" mode logic
                 if (initialMode === 'asks' || initialMode === 'all') {
                     setAsks(fetchedAsks.sort((a, b) => (b.response_count || 0) - (a.response_count || 0)).slice(0, 10));
                 }
@@ -99,14 +168,10 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                 }
             } else {
                 setAsks(fetchedAsks.slice(0, 10));
-                
-                // Filter Pros (API might not support search=... depending on backend, so we filter locally too)
                 setPros(formattedPros.filter(p => 
                     p.name.toLowerCase().includes(searchQ) || 
                     p.category.toLowerCase().includes(searchQ)
                 ));
-
-                // Filter Askers (Clients)
                 setAskers(formattedAskers.filter(a => 
                     a.username.toLowerCase().includes(searchQ)
                 ));
@@ -143,7 +208,6 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-[100] flex flex-col items-center pt-[5vh]">
-                    {/* Backdrop */}
                     <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -152,7 +216,6 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                         className="absolute inset-0 bg-slate-900/70 backdrop-blur-2xl cursor-pointer"
                     />
 
-                    {/* Search Container */}
                     <motion.div 
                         initial={{ opacity: 0, y: -20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -163,9 +226,27 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                         {/* Immersive Search Header */}
                         <div className="p-4 sm:p-10 border-b border-slate-50 relative group bg-white z-10">
                             <div className="flex items-center gap-3 sm:gap-6 mb-4 sm:mb-8">
-                                <Search className={`w-6 h-6 sm:w-8 sm:h-8 transition-colors duration-300 ${query ? 'text-primary' : 'text-slate-300'}`} />
-                                <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">Magical Search</h2>
-                                <button onClick={onClose} className="ml-auto sm:hidden p-2 bg-slate-50 rounded-full text-slate-400">
+                                <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${isAiMode ? 'bg-primary shadow-lg shadow-primary/20 rotate-12' : 'bg-slate-100'}`}>
+                                    {isAiMode ? <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-white fill-white" /> : <Search className={`w-6 h-6 sm:w-8 sm:h-8 ${query ? 'text-primary' : 'text-slate-300'}`} />}
+                                </div>
+                                <div className="flex-1">
+                                    <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                                        {isAiMode ? 'AI Magical Match' : 'Magical Search'}
+                                    </h2>
+                                    <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                        {isAiMode ? 'Gemini AI is finding your best match...' : 'Instantly find anything on Snabb'}
+                                    </p>
+                                </div>
+                                {(user?.is_ai_subscribed || user?.ai_override || user?.is_admin) && (
+                                    <button 
+                                        onClick={() => setIsAiMode(!isAiMode)}
+                                        className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${isAiMode ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+                                    >
+                                        <Sparkles className="w-3.5 h-3.5" />
+                                        {isAiMode ? 'AI Active' : 'AI Mode'}
+                                    </button>
+                                )}
+                                <button onClick={onClose} className="ml-2 sm:hidden p-2 bg-slate-50 rounded-full text-slate-400">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
@@ -173,7 +254,7 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                 <input 
                                     ref={inputRef}
                                     type="text"
-                                    placeholder={initialMode === 'pros' ? "Find top-rated professionals..." : initialMode === 'asks' ? "Explore trending opportunities..." : "Search for asks, pros, or communities..."}
+                                    placeholder={isAiMode ? "Describe what you need, and Gemini will find the best pro..." : "Search for asks, pros, or communities..."}
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
                                     className="w-full bg-slate-50 rounded-[2.5rem] py-4 sm:py-7 pl-6 sm:pl-10 pr-12 sm:pr-16 text-lg sm:text-2xl font-black text-slate-900 focus:bg-white focus:ring-[8px] sm:focus:ring-[12px] focus:ring-primary/5 focus:border-primary transition-all outline-none border border-transparent shadow-inner placeholder:text-slate-300"
@@ -191,14 +272,94 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
 
                         {/* Results Grid - Multi-Section */}
                         <div className="flex-1 overflow-y-auto px-4 sm:px-10 py-6 sm:py-12 no-scrollbar bg-white">
-                            {!query && initialMode === 'all' ? (
-                                <div className="py-10 sm:py-20 text-center space-y-6 sm:space-y-8">
-                                    <div className="w-20 h-20 sm:w-28 sm:h-28 bg-gradient-to-tr from-primary/10 to-primary/5 rounded-[2rem] sm:rounded-[3rem] flex items-center justify-center mx-auto text-primary shadow-xl border border-primary/10">
-                                        <Sparkles className="w-10 h-10 sm:w-14 sm:h-14 animate-pulse" />
+                            {!query ? (
+                                <div className="space-y-12 sm:space-y-16">
+                                    {/* PRO CAROUSEL SECTION */}
+                                    <div className="space-y-6 sm:space-y-8">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-amber-50 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 border border-amber-100">
+                                                    <Trophy className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Community Experts</h3>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Top rated pros available now</p>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleNavigate('/app/pros')}
+                                                className="text-primary font-black text-[10px] uppercase tracking-widest flex items-center gap-1 group"
+                                            >
+                                                View All <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-6 no-scrollbar -mx-4 sm:mx-0 px-4 sm:px-0">
+                                            {topPros.length > 0 ? topPros.map((pro) => (
+                                                <motion.div 
+                                                    key={pro.id}
+                                                    whileHover={{ y: -5 }}
+                                                    onClick={() => handleNavigate(`/app/profile?user=${pro.name.replace(' ', '')}`)}
+                                                    className="min-w-[240px] sm:min-w-[280px] bg-slate-50/50 hover:bg-white p-6 rounded-[2.5rem] border border-transparent hover:border-slate-100 hover:shadow-2xl hover:shadow-slate-200/50 transition-all cursor-pointer group"
+                                                >
+                                                    <div className="flex items-center gap-4 mb-5">
+                                                        <div className="w-16 h-16 rounded-[1.25rem] bg-gradient-to-br from-primary/10 to-primary/20 flex items-center justify-center text-primary font-black text-2xl border border-primary/5 shadow-inner flex-shrink-0 relative overflow-hidden">
+                                                            {pro.avatar_url ? (
+                                                                <img src={getFullImageUrl(pro.avatar_url)} alt={pro.name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                pro.initial
+                                                            )}
+                                                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center border-2 border-white">
+                                                                <Star className="w-3 h-3 fill-white" />
+                                                            </div>
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <h4 className="font-black text-slate-900 tracking-tight truncate group-hover:text-primary transition-colors">{pro.name}</h4>
+                                                                <ShieldCheck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                                                            </div>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-black text-amber-500">{pro.rating.toFixed(1)} ★</span>
+                                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{pro.reviews} REVIEWS</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-4">
+                                                        <span className="inline-block text-[8px] font-black uppercase tracking-widest bg-white text-primary px-3 py-1.5 rounded-full border border-primary/10 shadow-sm">
+                                                            {pro.category}
+                                                        </span>
+                                                        <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-primary font-black text-[9px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            View Full Expert Profile <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )) : (
+                                                // Skeleton
+                                                [1, 2, 3].map(i => (
+                                                    <div key={i} className="min-w-[280px] h-48 bg-slate-50 animate-pulse rounded-[2.5rem]"></div>
+                                                ))
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="max-w-md mx-auto space-y-2 sm:space-y-4">
-                                        <p className="text-xl sm:text-3xl font-black text-slate-900 tracking-tighter italic">Experience Snabb Search</p>
-                                        <p className="text-slate-400 font-bold leading-relaxed text-xs sm:text-base uppercase tracking-widest sm:text-[10px]">Asks • Pros • Askers • Community</p>
+
+                                    {/* AI Tip / Promotion */}
+                                    <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[3rem] p-8 sm:p-12 text-white relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+                                        <div className="relative z-10 flex flex-col sm:flex-row items-center gap-8 sm:gap-12">
+                                            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/10 rounded-[2rem] flex items-center justify-center text-primary backdrop-blur-xl border border-white/20 shadow-2xl group-hover:rotate-12 transition-transform duration-500">
+                                                <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 animate-pulse fill-primary/20" />
+                                            </div>
+                                            <div className="flex-1 text-center sm:text-left">
+                                                <h3 className="text-2xl sm:text-3xl font-black mb-3 tracking-tight">Try AI-Powered Magical Search</h3>
+                                                <p className="text-slate-300 font-bold text-xs sm:text-sm leading-relaxed mb-6">Gemini AI understands your needs. Just describe what you're looking for, and we'll handle the vetting and matching for you.</p>
+                                                <button 
+                                                    onClick={() => setIsAiMode(true)}
+                                                    className="bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95"
+                                                >
+                                                    Activate Snabb AI
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : loading ? (
@@ -210,13 +371,70 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12">
                                     {/* Main Results: Asks & Professionals (Left 8/12) */}
                                     <div className="lg:col-span-8 space-y-8 sm:space-y-12">
+                                        {/* SECTION: AI RESULTS */}
+                                        {isAiMode && aiResults.length > 0 && (
+                                            <div className="space-y-6 animate-in zoom-in-95 duration-500">
+                                                <div className="flex items-center gap-3 border-b border-primary/10 pb-4">
+                                                    <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                                                        <Sparkles className="w-4 h-4" />
+                                                    </div>
+                                                    <h3 className="text-lg font-black text-slate-900 tracking-tight">AI Recommended Matches</h3>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    {aiResults.map(({ user, match_reason }) => (
+                                                        <div 
+                                                            key={user.id}
+                                                            onClick={() => handleNavigate(`/app/profile?user=${user.username.replace(' ', '')}`)}
+                                                            className="group p-6 bg-gradient-to-br from-primary/5 to-transparent hover:from-primary/10 rounded-[2.5rem] border border-primary/10 hover:border-primary/20 transition-all cursor-pointer flex flex-col sm:flex-row gap-6 relative overflow-hidden"
+                                                        >
+                                                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                                                <Sparkles className="w-12 h-12" />
+                                                            </div>
+                                                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[1.5rem] bg-white shadow-xl shadow-primary/5 flex items-center justify-center text-primary font-black text-3xl flex-shrink-0 overflow-hidden border border-primary/5">
+                                                                {user.avatar_url ? (
+                                                                    <img src={getFullImageUrl(user.avatar_url)} alt={user.username} className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    user.username.charAt(0).toUpperCase()
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 space-y-3">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <h4 className="font-black text-slate-900 text-xl tracking-tight">{user.username}</h4>
+                                                                        <ShieldCheck className="w-5 h-5 text-primary" />
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-full border border-primary/10 shadow-sm">
+                                                                        <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                                                        <span className="text-[10px] font-black text-slate-900">{(user.pro_rating || 5.0).toFixed(1)}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-primary/5">
+                                                                    <p className="text-primary font-black text-[10px] uppercase tracking-widest mb-1 flex items-center gap-2">
+                                                                        <Zap className="w-3 h-3" /> Why this match?
+                                                                    </p>
+                                                                    <p className="text-slate-600 font-bold text-sm italic leading-relaxed">
+                                                                        &quot;{match_reason}&quot;
+                                                                    </p>
+                                                                </div>
+                                                                <div className="flex items-center gap-3 pt-2">
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest bg-primary text-white px-3 py-1.5 rounded-full shadow-lg shadow-primary/20">
+                                                                        {user.pro_category}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* SECTION: ASKS */}
                                         {asks.length > 0 && (
                                             <div className="space-y-4 sm:space-y-6">
                                                 <div className="flex items-center justify-between border-b border-slate-50 pb-3 sm:pb-4">
                                                     <div className="flex items-center gap-2 sm:gap-3">
                                                         <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
-                                                        <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Trending Asks</h3>
+                                                        <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Matching Asks</h3>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-3 sm:gap-4">
@@ -257,19 +475,23 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                                 <div className="flex items-center justify-between border-b border-slate-50 pb-3 sm:pb-4">
                                                     <div className="flex items-center gap-2 sm:gap-3">
                                                         <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
-                                                        <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Top-Rated Professionals</h3>
+                                                        <h3 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Magical Professional Matches</h3>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                                     {pros.map(pro => (
                                                         <div 
-                                                            key={pro.name} 
+                                                            key={pro.id} 
                                                             onClick={() => handleNavigate(`/app/profile?user=${pro.name.replace(' ', '')}`)}
                                                             className="group p-5 sm:p-6 bg-slate-50/50 hover:bg-white rounded-2xl sm:rounded-[2.5rem] border border-transparent hover:border-slate-100 transition-all cursor-pointer flex flex-col gap-4 sm:gap-6 hover:shadow-2xl hover:shadow-slate-200/50 active:scale-[0.98] border-b-4 border-b-transparent hover:border-b-primary"
                                                         >
                                                             <div className="flex items-center gap-4 sm:gap-5">
-                                                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-[1.5rem] bg-gradient-to-tr from-primary/10 to-primary/20 flex items-center justify-center text-primary font-black text-2xl sm:text-3xl group-hover:scale-105 transition-transform shadow-inner border border-primary/5 flex-shrink-0">
-                                                                    {pro.initial}
+                                                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-[1.5rem] bg-gradient-to-tr from-primary/10 to-primary/20 flex items-center justify-center text-primary font-black text-2xl sm:text-3xl group-hover:scale-105 transition-transform shadow-inner border border-primary/5 flex-shrink-0 overflow-hidden">
+                                                                    {pro.avatar_url ? (
+                                                                        <img src={getFullImageUrl(pro.avatar_url)} alt={pro.name} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        pro.initial
+                                                                    )}
                                                                 </div>
                                                                 <div className="flex-1 min-w-0">
                                                                     <div className="flex items-center gap-2">
@@ -277,7 +499,7 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                                                         <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
                                                                     </div>
                                                                     <div className="flex items-center gap-2 sm:gap-3 mt-1">
-                                                                        <span className="text-[10px] sm:text-xs text-amber-500 font-black">5.0 ★</span>
+                                                                        <span className="text-[10px] sm:text-xs text-amber-500 font-black">{pro.rating.toFixed(1)} ★</span>
                                                                         <span className="text-[8px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-widest">{pro.reviews} REVIEWS</span>
                                                                     </div>
                                                                 </div>
@@ -289,9 +511,6 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                                                 <span className="text-[8px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
                                                                     VERIFIED PRO
                                                                 </span>
-                                                            </div>
-                                                            <div className="pt-2 flex justify-between items-center text-primary font-black text-[9px] sm:text-[10px] uppercase tracking-widest">
-                                                                VIEW PROFILE <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-1" />
                                                             </div>
                                                         </div>
                                                     ))}
@@ -307,7 +526,7 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                             <div className="bg-slate-50/50 rounded-2xl sm:rounded-[2.5rem] p-5 sm:p-8 space-y-6 sm:space-y-8 border border-slate-100">
                                                 <div className="flex items-center gap-2 sm:gap-3 border-b border-slate-200 pb-3 sm:pb-4">
                                                     <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />
-                                                    <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest">Top Askers</h3>
+                                                    <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-widest">Active Askers</h3>
                                                 </div>
                                                 <div className="space-y-4 sm:space-y-6">
                                                     {askers.map(asker => (
@@ -323,16 +542,10 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                                                 <h5 className="font-black text-slate-900 text-xs sm:text-sm truncate group-hover:text-primary transition-colors">{asker.username}</h5>
                                                                 <p className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{asker.askCount} ASKS POSTED</p>
                                                             </div>
-                                                            <div className="text-[9px] sm:text-[10px] font-black text-amber-500 bg-white px-2 py-1 rounded-lg border border-slate-100 italic flex-shrink-0">{asker.rating} ★</div>
+                                                            <div className="text-[9px] sm:text-[10px] font-black text-amber-500 bg-white px-2 py-1 rounded-lg border border-slate-100 italic flex-shrink-0">{asker.rating.toFixed(1)} ★</div>
                                                         </div>
                                                     ))}
                                                 </div>
-                                                <button 
-                                                    onClick={() => handleNavigate('/app/profile')}
-                                                    className="w-full py-3 sm:py-4 text-slate-400 font-black text-[8px] sm:text-[9px] uppercase tracking-[0.2em] border-2 border-dashed border-slate-200 rounded-xl sm:rounded-2xl hover:border-primary hover:text-primary transition-all cursor-pointer"
-                                                >
-                                                    View All Askers
-                                                </button>
                                             </div>
                                         )}
 
@@ -341,10 +554,13 @@ export default function SearchOverlay({ isOpen, onClose, initialMode = 'all' }: 
                                             <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-white/10 rounded-full blur-2xl -mr-12 -mt-12 sm:-mr-16 sm:-mt-16"></div>
                                             <div className="relative z-10">
                                                 <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 mb-3 sm:mb-4 opacity-50" />
-                                                <h4 className="text-lg sm:text-xl font-black mb-1 sm:mb-2 leading-tight">Need a Pro ASAP?</h4>
-                                                <p className="text-[10px] sm:text-xs font-bold opacity-80 leading-relaxed mb-4 sm:mb-6">Filter by &apos;Real-time&apos; to find locals currently online and ready to help.</p>
-                                                <button className="bg-white text-primary px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest shadow-lg hover:bg-slate-900 hover:text-white transition-all">
-                                                    Filter Online
+                                                <h4 className="text-lg sm:text-xl font-black mb-1 sm:mb-2 leading-tight">Match with AI?</h4>
+                                                <p className="text-[10px] sm:text-xs font-bold opacity-80 leading-relaxed mb-4 sm:mb-6">Toggle AI Mode to let Gemini find the absolute best person based on your specific requirements.</p>
+                                                <button 
+                                                    onClick={() => setIsAiMode(true)}
+                                                    className="bg-white text-primary px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-widest shadow-lg hover:bg-slate-900 hover:text-white transition-all"
+                                                >
+                                                    Switch to AI
                                                 </button>
                                             </div>
                                         </div>

@@ -13,6 +13,7 @@ interface SearchBarProps {
     onChangeText: (text: string) => void;
     placeholder?: string;
     onClear?: () => void;
+    rightElement?: React.ReactNode;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -20,6 +21,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     onChangeText,
     placeholder = 'Search...',
     onClear,
+    rightElement,
 }) => {
     const { colors } = useTheme();
     const [localValue, setLocalValue] = useState(value);
@@ -58,10 +60,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 ]}
             />
 
-            {localValue.length > 0 && (
+            {localValue.length > 0 && !rightElement && (
                 <TouchableOpacity onPress={handleClear} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <Ionicons name="close-circle" size={20} color={colors.textTertiary} />
                 </TouchableOpacity>
+            )}
+
+            {rightElement && (
+                <View style={{ marginLeft: spacing[2] }}>
+                    {rightElement}
+                </View>
             )}
         </View>
     );

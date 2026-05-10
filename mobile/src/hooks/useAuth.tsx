@@ -11,6 +11,7 @@ interface AuthContextType {
     register: (data: RegisterData) => Promise<void>;
     logout: () => Promise<void>;
     refreshUser: () => Promise<void>;
+    toggleSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,11 +31,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(null);
         };
 
+        const handlePaymentRequired = () => {
+            toastService.info('Snabb AI Pro subscription required.');
+            // We can add navigation logic here if needed
+        };
+
         // Import authEvents dynamically to avoid circular dependency
         import('../services/api').then(({ authEvents }) => {
             authEvents.on('unauthorized', handleUnauthorized);
+            authEvents.on('payment_required', handlePaymentRequired);
             return () => {
                 authEvents.off('unauthorized', handleUnauthorized);
+                authEvents.off('payment_required', handlePaymentRequired);
             };
         });
     }, []);
@@ -81,8 +89,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const toggleSubscription = async () => {
+        try {
+            const response = await import('../services/api').then(m => m.default.post('/ai/subscribe'));
+            setUser(prev => prev ? { ...prev, is_ai_subscribed: response.data.is_ai_subscribed } : null);
+            toastService.success(response.data.is_ai_subscribed ? 'AI Pro Activated!' : 'AI Pro Deactivated');
+        } catch (error) {
+            logger.error('Failed to toggle subscription:', error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
+        <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, toggleSubscription }}>
             {children}
         </AuthContext.Provider>
     );

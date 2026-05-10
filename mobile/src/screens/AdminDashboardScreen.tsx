@@ -182,6 +182,21 @@ export default function AdminDashboardScreen() {
                     />
                 </View>
             </Card>
+
+            <Card style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={styles.sectionHeader}>
+                    <View>
+                        <Typography variant="h5" weight="bold">User Management</Typography>
+                        <Typography variant="caption" color="tertiary">Manage permissions and AI access</Typography>
+                    </View>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={22}
+                        color={colors.primary}
+                        onPress={() => navigation.navigate('AdminUserManagement')}
+                    />
+                </View>
+            </Card>
         </ScrollView>
     );
 }

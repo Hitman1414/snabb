@@ -25,7 +25,7 @@ import {
     List
 } from "lucide-react";
 import AskCard from "@/components/AskCard";
-import DashboardBanners from "@/components/DashboardBanners";
+import HubPortals from "@/components/HubPortals";
 import CreateAskModal from "@/components/CreateAskModal";
 import SnabbProModal from "@/components/SnabbProModal";
 import { User, Ask } from "@/types";
@@ -58,9 +58,16 @@ function DashboardContent() {
     const [sortFilter, setSortFilter] = useState('latest');
     const [locationParams, setLocationParams] = useState<{lat?: number, lng?: number}>({});
     const [locationError, setLocationError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (searchParams.get('openCreate') === 'true') {
+            setIsCreateModalOpen(true);
+        }
+    }, [searchParams]);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [isLocating, setIsLocating] = useState(false);
+    const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
 
     const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setLocationError(null);
@@ -255,14 +262,14 @@ function DashboardContent() {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Shop by Category</h2>
                         <button 
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-search', { detail: { mode: 'all' } }))}
+                            onClick={() => setIsCategoriesExpanded(!isCategoriesExpanded)}
                             className="text-primary font-black text-[10px] uppercase tracking-widest hover:text-primary/70 transition-colors cursor-pointer flex items-center gap-1 group"
                         >
-                            View All <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
+                            {isCategoriesExpanded ? 'Show Less' : 'View All'} <ArrowRight className={`w-3 h-3 transition-transform ${isCategoriesExpanded ? 'rotate-90' : 'group-hover:translate-x-1'}`} />
                         </button>
                     </div>
                     <div id="tour-categories" className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-10 gap-x-4 gap-y-6 justify-center items-start">
-                        {CATEGORIES_LIST.map((catName) => {
+                        {(isCategoriesExpanded ? CATEGORIES_LIST : CATEGORIES_LIST.slice(0, 10)).map((catName) => {
                             const theme = CATEGORY_THEMES[catName];
                             const Icon = theme.icon;
                             const isSelected = selectedCategory === catName;
@@ -272,14 +279,13 @@ function DashboardContent() {
                                     onClick={() => setSelectedCategory(catName)}
                                     className="group flex flex-col items-center gap-2 transition-all cursor-pointer"
                                 >
-                                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center border-[3px] shadow-sm transition-all duration-300 ${
+                                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shadow-sm transition-all duration-300 overflow-hidden bg-gradient-to-br ${theme.gradient} ${
                                         isSelected 
-                                        ? `${theme.bg} ${theme.border} scale-105 shadow-lg` 
-                                        : 'bg-white dark:bg-slate-800 border-slate-50 dark:border-slate-700 group-hover:border-primary/20 group-hover:scale-105 group-hover:shadow-md'
+                                        ? `scale-110 shadow-lg ring-4 ring-primary/20` 
+                                        : 'group-hover:scale-105 group-hover:shadow-md hover:ring-4 hover:ring-slate-200 dark:hover:ring-slate-800'
                                     }`}
-                                    style={isSelected ? { borderColor: theme.color } : {}}
                                     >
-                                        <Icon className={`w-5 h-5 sm:w-6 sm:h-6 transition-colors`} style={{ color: isSelected ? theme.color : '#94A3B8' }} />
+                                        <Icon className={`w-6 h-6 sm:w-7 sm:h-7 text-white drop-shadow-sm`} />
                                     </div>
                                     <span className={`text-[8px] font-black uppercase tracking-widest text-center leading-tight transition-colors px-1 ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
                                         {catName}
@@ -291,7 +297,7 @@ function DashboardContent() {
                 </div>
             )}
 
-            {!isSearching && <DashboardBanners />}
+            {!isSearching && <HubPortals />}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mt-12">
                 {/* Left Column: Asks (Full Width Now) */}

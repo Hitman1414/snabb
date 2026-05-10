@@ -30,13 +30,18 @@ export const CATEGORIES = [
 export const CATEGORY_THEMES: Record<string, any> = {
     'All': { 
         icon: Activity, 
+        imageIcon: '/category-icons/all.png',
+        hue: 'hue-rotate-0',
         color: '#FF6B35',
         bg: 'bg-orange-50',
+        gradient: 'from-orange-400 to-red-500',
         text: 'text-orange-600',
         border: 'border-orange-100'
     },
     'Digital & Support': { 
         icon: Cpu, 
+        imageIcon: '/category-icons/digital.png',
+        hue: 'hue-rotate-60',
         color: '#8B5CF6',
         bg: 'bg-purple-50',
         gradient: 'from-violet-500 to-purple-600',
@@ -45,6 +50,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Food & Delivery': { 
         icon: Utensils, 
+        imageIcon: '/category-icons/food.png',
+        hue: 'hue-rotate-15',
         color: '#FF6B35',
         bg: 'bg-orange-50',
         gradient: 'from-orange-500 to-red-500',
@@ -53,6 +60,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Home & Repairs': { 
         icon: Home, 
+        imageIcon: '/category-icons/home.png',
+        hue: 'hue-rotate-[180deg]',
         color: '#3B82F6',
         bg: 'bg-blue-50',
         gradient: 'from-blue-500 to-indigo-600',
@@ -61,6 +70,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Errands & Shopping': { 
         icon: ShoppingBag, 
+        imageIcon: '/category-icons/shopping.png',
+        hue: 'hue-rotate-30',
         color: '#F59E0B',
         bg: 'bg-amber-50',
         gradient: 'from-amber-500 to-orange-600',
@@ -69,6 +80,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Ride & Transport': { 
         icon: Car, 
+        imageIcon: '/category-icons/ride.png',
+        hue: 'hue-rotate-[150deg]',
         color: '#06B6D4',
         bg: 'bg-cyan-50',
         gradient: 'from-cyan-500 to-blue-500',
@@ -77,6 +90,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Financial Assistance': { 
         icon: Banknote, 
+        imageIcon: '/category-icons/financial.png',
+        hue: 'hue-rotate-[120deg]',
         color: '#10B981',
         bg: 'bg-emerald-50',
         gradient: 'from-emerald-500 to-teal-600',
@@ -85,6 +100,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Pet Care': { 
         icon: Heart, 
+        imageIcon: '/category-icons/pet.png',
+        hue: 'hue-rotate-15',
         color: '#D97706',
         bg: 'bg-yellow-50',
         gradient: 'from-yellow-600 to-amber-700',
@@ -93,6 +110,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Health & Wellness': { 
         icon: Stethoscope, 
+        imageIcon: '/category-icons/health.png',
+        hue: 'hue-rotate-[300deg]',
         color: '#F43F5E',
         bg: 'bg-rose-50',
         gradient: 'from-rose-500 to-pink-600',
@@ -101,6 +120,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Freelance Tasks': { 
         icon: Briefcase, 
+        imageIcon: '/category-icons/freelance.png',
+        hue: 'hue-rotate-[240deg]',
         color: '#6366F1',
         bg: 'bg-indigo-50',
         gradient: 'from-indigo-500 to-blue-700',
@@ -109,6 +130,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Other': { 
         icon: Sparkles, 
+        imageIcon: '/category-icons/other.png',
+        hue: 'hue-rotate-[270deg]',
         color: '#6366F1',
         bg: 'bg-indigo-50',
         gradient: 'from-indigo-500 to-blue-700',
@@ -117,6 +140,8 @@ export const CATEGORY_THEMES: Record<string, any> = {
     },
     'Services': { 
         icon: Layers, 
+        imageIcon: '/category-icons/services.png',
+        hue: 'hue-rotate-[210deg]',
         color: '#8B5CF6',
         bg: 'bg-purple-50',
         gradient: 'from-violet-500 to-purple-600',

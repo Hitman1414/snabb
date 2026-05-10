@@ -503,7 +503,7 @@ export default function AskDetailPage({ params }: { params: Promise<{ id: string
                 <PaymentModal 
                     isOpen={!!selectedResponseForPayment}
                     onClose={() => setSelectedResponseForPayment(null)}
-                    askId={askId}
+                    askId={parseInt(askId)}
                     responseId={selectedResponseForPayment.id}
                     bidAmount={selectedResponseForPayment.bid_amount || 0}
                     completedAsksCount={currentUser?.completed_asks_count || 0}

@@ -333,3 +333,66 @@ def delete_my_account(
     db.commit()
     logger.info(f"User {current_user.id} soft-deleted (GDPR)")
     return {"message": "Account deleted", "user_id": current_user.id}
+
+
+@router.get("/me/stats", response_model=dict)
+def get_my_stats(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get stats for Pro user dashboard."""
+    if not current_user.is_pro:
+        return {
+            "total_earnings": 0,
+            "completed_tasks": 0,
+            "rating": 0,
+            "active_tasks": 0,
+            "pending_offers": 0
+        }
+    
+    # Calculate earnings from closed tasks where this user was the server
+    # and payment_status is 'paid'
+    from sqlalchemy import func
+    earnings = db.query(func.sum(models.Ask.payment_amount)).filter(
+        models.Ask.server_id == current_user.id,
+        models.Ask.status == "closed",
+        models.Ask.payment_status == "paid"
+    ).scalar() or 0
+
+    active_tasks = db.query(models.Ask).filter(
+        models.Ask.server_id == current_user.id,
+        models.Ask.status == "in_progress"
+    ).count()
+
+    pending_offers = db.query(models.Response).filter(
+        models.Response.user_id == current_user.id,
+        models.Response.is_accepted == False
+    ).count()
+
+    return {
+        "total_earnings": earnings / 100, # convert cents to currency
+        "completed_tasks": current_user.pro_completed_tasks or 0,
+        "rating": current_user.pro_rating or 0.0,
+        "active_tasks": active_tasks,
+        "pending_offers": pending_offers
+    }
+
+
+@router.post("/me/toggle-ai", response_model=schemas.User)
+def toggle_ai_subscription(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Toggle Snabb AI subscription (mocks a payment/trial setup)."""
+    from datetime import timedelta
+    if not current_user.is_ai_subscribed:
+        current_user.is_ai_subscribed = True
+        # Give 7 days trial
+        current_user.ai_subscription_expiry = datetime.now(timezone.utc) + timedelta(days=7)
+    else:
+        current_user.is_ai_subscribed = False
+        current_user.ai_subscription_expiry = None
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user

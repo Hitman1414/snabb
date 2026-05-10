@@ -35,6 +35,8 @@ import { getInitials } from '../utils/helpers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OnboardingTour from '../components/OnboardingTour';
 import { toastService } from '../services/toast.service';
+import { ProCarousel, ProUser } from '../components/ProCarousel';
+import apiClient from '../services/api';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -54,10 +56,17 @@ export default function HomeScreen() {
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [sortFilter, setSortFilter] = useState('latest');
     const [locationError, setLocationError] = useState<string | null>(null);
+
+    const hasAiAccess = user?.is_ai_subscribed || user?.ai_override || user?.is_admin;
+
     const [addressText, setAddressText] = useState('Fetching location...');
     const [hasLocation, setHasLocation] = useState(false);
     const [showTour, setShowTour] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [isAiMode, setIsAiMode] = useState(false);
+    const [topPros, setTopPros] = useState<ProUser[]>([]);
+    const [aiResults, setAiResults] = useState<{user: ProUser, match_reason: string}[]>([]);
+    const [isAiLoading, setIsAiLoading] = useState(false);
 
     // Show onboarding tour on first launch
     useEffect(() => {
@@ -105,6 +114,43 @@ export default function HomeScreen() {
         })();
     }, []);
 
+    useEffect(() => {
+        const fetchTopPros = async () => {
+            try {
+                const response = await apiClient.get('/users/pros?limit=10');
+                setTopPros(response.data);
+            } catch (err) {
+                logger.error('Failed to fetch top pros:', err);
+            }
+        };
+        fetchTopPros();
+    }, []);
+
+    // Handle AI Search
+    useEffect(() => {
+        const handleAiSearch = async () => {
+            if (!isAiMode || searchQuery.trim().length <= 3) {
+                setAiResults([]);
+                return;
+            }
+            
+            setIsAiLoading(true);
+            try {
+                const response = await apiClient.post('/ai/magic-search', {
+                    query: searchQuery
+                });
+                setAiResults(response.data);
+            } catch (err) {
+                logger.error('AI Search Error:', err);
+            } finally {
+                setIsAiLoading(false);
+            }
+        };
+
+        const timer = setTimeout(handleAiSearch, 500);
+        return () => clearTimeout(timer);
+    }, [searchQuery, isAiMode]);
+
     const {
         data,
         fetchNextPage,
@@ -138,20 +184,30 @@ export default function HomeScreen() {
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     const processedAsks = useMemo(() => {
+        let rows: any[] = [];
+        
+        // Inject AI Match Results
+        if (isAiMode && aiResults.length > 0) {
+            rows.push({ id: 'ai-header', isAiHeader: true });
+            aiResults.forEach((res, index) => {
+                rows.push({ id: `ai-match-${index}`, isAiMatch: true, ...res });
+            });
+        }
+
+        const items = asks;
         if (viewMode === 'list') {
-            return asks.map(ask => ({ isRow: false, items: [ask], id: `list-${ask.id}` }));
+            return [...rows, ...items.map(item => ({ ...item, isRow: false, items: [item] }))];
         } else {
-            const rows = [];
-            for (let i = 0; i < asks.length; i += 2) {
+            for (let i = 0; i < items.length; i += 2) {
                 rows.push({
+                    id: `row-${i}`,
                     isRow: true,
-                    items: asks.slice(i, i + 2),
-                    id: `grid-${asks[i].id}`
+                    items: items.slice(i, i + 2)
                 });
             }
             return rows;
         }
-    }, [asks, viewMode]);
+    }, [asks, viewMode, isAiMode, aiResults]);
 
     const renderAskCard = useCallback((item: Ask) => (
         <TouchableOpacity
@@ -176,37 +232,47 @@ export default function HomeScreen() {
                         transition={200}
                     />
                 ) : (
-                    /* Premium Gradient placeholder with watermark effect */
-                    <LinearGradient
-                        colors={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).gradient}
-                        style={{ flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                    >
-                        {/* Large watermark icon */}
-                        <Ionicons
-                            name={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).name}
-                            size={120}
-                            color="#FFFFFF"
-                            style={{ 
-                                position: 'absolute', 
-                                opacity: 0.15,
-                                transform: [{ rotate: '-15deg' }, { translateX: 20 }, { translateY: 20 }]
-                            }}
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceVariant, overflow: 'hidden' }}>
+                        {/* Essence Background Glow */}
+                        <LinearGradient
+                            colors={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).gradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[StyleSheet.absoluteFill, { opacity: colorScheme === 'dark' ? 0.15 : 0.08 }]}
                         />
-                        {/* Crisp center icon */}
-                        <Ionicons
-                            name={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).name}
-                            size={viewMode === 'grid' ? 48 : 36}
-                            color="#FFFFFF"
+                        {/* Watermarks */}
+                        <Ionicons 
+                            name={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).name as any} 
+                            size={100} 
+                            color={colors.text} 
+                            style={{ position: 'absolute', right: -20, bottom: -30, opacity: colorScheme === 'dark' ? 0.06 : 0.04, transform: [{ rotate: '15deg' }] }} 
+                        />
+                        <Ionicons 
+                            name={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).name as any} 
+                            size={80} 
+                            color={colors.text} 
+                            style={{ position: 'absolute', left: -15, top: -15, opacity: colorScheme === 'dark' ? 0.04 : 0.03, transform: [{ rotate: '-15deg' }] }} 
+                        />
+                        
+                        <LinearGradient
+                            colors={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).gradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
                             style={{
-                                shadowColor: '#000',
-                                shadowOffset: { width: 0, height: 4 },
-                                shadowOpacity: 0.2,
+                                width: viewMode === 'grid' ? 64 : 56,
+                                height: viewMode === 'grid' ? 64 : 56,
+                                borderRadius: viewMode === 'grid' ? 32 : 28,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                shadowColor: (CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).color,
+                                shadowOpacity: 0.3,
                                 shadowRadius: 8,
+                                elevation: 4,
                             }}
-                        />
-                    </LinearGradient>
+                        >
+                            <Ionicons name={(CATEGORY_THEMES[item.category] || CATEGORY_THEMES['Other']).name as any} size={viewMode === 'grid' ? 32 : 28} color="#FFFFFF" />
+                        </LinearGradient>
+                    </View>
                 )}
             </View>
             <View style={[styles.cardContent, viewMode === 'grid' && { paddingLeft: 0 }]}>
@@ -247,6 +313,47 @@ export default function HomeScreen() {
     ), [handleAskPress, colors, viewMode]);
 
     const renderItem = useCallback(({ item }: any) => {
+        if (item.isAiHeader) {
+            return (
+                <View style={{ paddingHorizontal: spacing[4], paddingVertical: spacing[3], flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Ionicons name="sparkles" size={20} color={colors.primary} />
+                    <Typography variant="h5" weight="bold">AI Recommended Matches</Typography>
+                </View>
+            );
+        }
+        if (item.isAiMatch) {
+            const { user, match_reason } = item;
+            return (
+                <TouchableOpacity 
+                    onPress={() => navigation.navigate('Profile', { userId: user.id })}
+                    style={[styles.aiMatchCard, { backgroundColor: colors.primary + '08', borderColor: colors.primary + '20' }]}
+                >
+                    <View style={styles.aiMatchHeader}>
+                        <View style={[styles.aiAvatar, { backgroundColor: colors.surface }]}>
+                            {user.avatar_url ? (
+                                <Image source={{ uri: getFullImageUrl(user.avatar_url) }} style={styles.avatarImg} />
+                            ) : (
+                                <Typography variant="h6" weight="bold">{user.username.charAt(0).toUpperCase()}</Typography>
+                            )}
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Typography variant="body" weight="bold">{user.username}</Typography>
+                                <Ionicons name="shield-checkmark" size={14} color={colors.primary} />
+                            </View>
+                            <Typography variant="caption" color="primary" weight="bold">{(user.pro_rating || 5.0).toFixed(1)} ★ • {user.pro_category}</Typography>
+                        </View>
+                        <Badge label="AI MATCH" variant="primary" size="sm" />
+                    </View>
+                    <View style={[styles.matchReason, { backgroundColor: colors.surface }]}>
+                        <Typography variant="caption" weight="bold" color="primary" style={{ fontSize: 9 }}>WHY THIS MATCH?</Typography>
+                        <Typography variant="caption" color="secondary" italic style={{ marginTop: 2 }}>
+                            "{match_reason}"
+                        </Typography>
+                    </View>
+                </TouchableOpacity>
+            );
+        }
         if (item.isRow) {
             return (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
@@ -256,7 +363,7 @@ export default function HomeScreen() {
             );
         }
         return renderAskCard(item.items[0]);
-    }, [renderAskCard]);
+    }, [renderAskCard, colors, navigation]);
 
     const renderFooter = useCallback(() => {
         if (!isFetchingNextPage) return null;
@@ -269,71 +376,74 @@ export default function HomeScreen() {
 
     const ListHeader = useCallback(() => (
         <View style={{ backgroundColor: colors.background }}>
-
-            {/* Promo Carousel */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.carouselContainer}
-                snapToInterval={315}
-                decelerationRate="fast"
-            >
-                <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => navigation.navigate('CreateAsk')}
+            {/* Hub Containers - Vibrant & Aligned */}
+            <View style={styles.hubContainer}>
+                <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: spacing[4], paddingRight: spacing[4] }}
                 >
-                    <View style={[styles.promoCard, { backgroundColor: '#FEE2E2' }]}>
-                        <View style={styles.promoContent}>
-                            <Typography variant="h4" weight="bold" color="primary" style={{ color: '#991B1B' }}>Need help?</Typography>
-                            <Typography variant="bodySmall" style={{ color: '#991B1B', marginTop: 4 }}>
-                                Post an ask and get help instantly from people nearby!
-                            </Typography>
-                            <View style={[styles.promoBadge, { backgroundColor: '#991B1B' }]}>
-                                <Typography variant="caption" weight="bold" style={{ color: '#fff' }}>Post Now</Typography>
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => navigation.navigate('NeedHelpHub' as any)}
+                        style={styles.hubCardLarge}
+                    >
+                        <LinearGradient
+                            colors={['#ef4444', '#991b1b']}
+                            style={styles.hubCardGradient}
+                        >
+                            <View style={styles.hubIconBoxLarge}>
+                                <Ionicons name="megaphone" size={32} color="#fff" />
                             </View>
-                        </View>
-                        <Ionicons name="megaphone" size={80} color="#991B1B20" style={styles.promoIcon} />
-                    </View>
-                </TouchableOpacity>
+                            <View style={styles.hubTextContent}>
+                                <Typography variant="h3" weight="black" style={{ color: '#fff' }}>Snabb Ask</Typography>
+                                <Typography variant="caption" style={{ color: '#fff', opacity: 0.9 }}>Need Help? Post help and get things done by Professionals</Typography>
+                            </View>
+                            <Ionicons name="chevron-forward" size={24} color="#fff" style={styles.hubChevron} />
+                        </LinearGradient>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => navigation.navigate('ProLanding')}
-                >
-                    <View style={[styles.promoCard, { backgroundColor: '#ECFDF5' }]}>
-                        <View style={styles.promoContent}>
-                            <Typography variant="h4" weight="bold" style={{ color: '#065F46' }}>Snabb Pro</Typography>
-                            <Typography variant="bodySmall" style={{ color: '#065F46', marginTop: 4 }}>
-                                Join our pro network and start helping others to earn.
-                            </Typography>
-                            <View style={[styles.promoBadge, { backgroundColor: '#065F46' }]}>
-                                <Typography variant="caption" weight="bold" style={{ color: '#fff' }}>Join Pro</Typography>
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => navigation.navigate('SnabbProHub' as any)}
+                        style={styles.hubCardLarge}
+                    >
+                        <LinearGradient
+                            colors={['#10b981', '#065f46']}
+                            style={styles.hubCardGradient}
+                        >
+                            <View style={styles.hubIconBoxLarge}>
+                                <Ionicons name="trophy" size={32} color="#fff" />
                             </View>
-                        </View>
-                        <Ionicons name="sparkles" size={80} color="#065F4620" style={styles.promoIcon} />
-                    </View>
-                </TouchableOpacity>
+                            <View style={styles.hubTextContent}>
+                                <Typography variant="h3" weight="black" style={{ color: '#fff' }}>Snabb Pro</Typography>
+                                <Typography variant="caption" style={{ color: '#fff', opacity: 0.9 }}>Find opportunities, serve customers, and grow your business</Typography>
+                            </View>
+                            <Ionicons name="chevron-forward" size={24} color="#fff" style={styles.hubChevron} />
+                        </LinearGradient>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() => {
-                        toastService.info('Snabb AI is coming soon.');
-                    }}
-                >
-                    <View style={[styles.promoCard, { backgroundColor: '#F5F3FF' }]}>
-                        <View style={styles.promoContent}>
-                            <Typography variant="h4" weight="bold" style={{ color: '#5B21B6' }}>Snabb AI</Typography>
-                            <Typography variant="bodySmall" style={{ color: '#5B21B6', marginTop: 4 }}>
-                                Need quick data or file help? Our AI agents are ready!
-                            </Typography>
-                            <View style={[styles.promoBadge, { backgroundColor: '#5B21B6', opacity: 0.8 }]}>
-                                <Typography variant="caption" weight="bold" style={{ color: '#fff' }}>Coming Soon</Typography>
+                    <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => navigation.navigate('AiPro' as any)}
+                        style={styles.hubCardLarge}
+                    >
+                        <LinearGradient
+                            colors={['#6366f1', '#4338ca']}
+                            style={styles.hubCardGradient}
+                        >
+                            <View style={styles.hubIconBoxLarge}>
+                                <Ionicons name="sparkles" size={32} color="#fff" />
                             </View>
-                        </View>
-                        <Ionicons name="hardware-chip" size={80} color="#5B21B620" style={styles.promoIcon} />
-                    </View>
-                </TouchableOpacity>
-            </ScrollView>
+                            <View style={styles.hubTextContent}>
+                                <Typography variant="h3" weight="black" style={{ color: '#fff' }}>Snabb AI</Typography>
+                                <Typography variant="caption" style={{ color: '#fff', opacity: 0.9 }}>Smart matchmaking to find the perfect help for your needs</Typography>
+                            </View>
+                            <Ionicons name="chevron-forward" size={24} color="#fff" style={styles.hubChevron} />
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </ScrollView>
+            </View>
 
             {/* Categories */}
             <View style={styles.categorySection}>
@@ -354,16 +464,26 @@ export default function HomeScreen() {
                                 onPress={() => setSelectedCategory(cat)}
                                 style={styles.categoryItem}
                             >
-                                <View key={`${cat}-${colorScheme}`} style={[
-                                    styles.categoryIcon,
-                                    {
-                                        backgroundColor: colors.surfaceVariant,
-                                        borderColor: colors.border,
-                                    },
-                                    isSelected && { borderColor: colors.primary, backgroundColor: colors.primaryLight + '20' }
-                                ]}>
-                                    <Ionicons name={(iconData as any).name} size={28} color={isSelected ? colors.primaryDark : iconData.color} />
-                                </View>
+                                <LinearGradient
+                                    colors={(iconData as any).gradient || [colors.primary, colors.primaryLight]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[
+                                        styles.categoryIcon,
+                                        { borderWidth: 0 },
+                                        isSelected && {
+                                            transform: [{ scale: 1.1 }],
+                                            shadowColor: colors.primary,
+                                            shadowOpacity: 0.4,
+                                            shadowRadius: 8,
+                                            elevation: 6,
+                                            borderWidth: 2,
+                                            borderColor: 'rgba(255,255,255,0.8)',
+                                        }
+                                    ]}
+                                >
+                                    <Ionicons name={(iconData as any).name} size={28} color="#FFFFFF" style={{ textShadowColor: 'rgba(0,0,0,0.1)', textShadowRadius: 2, textShadowOffset: { width: 0, height: 1 } }} />
+                                </LinearGradient>
                                 <Typography
                                     variant="caption"
                                     weight={isSelected ? "bold" : "medium"}
@@ -377,6 +497,7 @@ export default function HomeScreen() {
                     })}
                 </ScrollView>
             </View>
+
 
             {/* Filters Row */}
             <View style={{ paddingHorizontal: spacing[4], marginBottom: spacing[2] }}>
@@ -490,6 +611,13 @@ export default function HomeScreen() {
                     </TouchableOpacity>
 
                     <TouchableOpacity
+                        onPress={() => navigation.navigate('CreateAsk' as any)}
+                        style={{ position: 'relative', padding: 4 }}
+                    >
+                        <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                         onPress={() => navigation.navigate('Notifications')}
                         style={{ position: 'relative', padding: 4 }}
                     >
@@ -523,7 +651,31 @@ export default function HomeScreen() {
                 <SearchBar
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    placeholder="Search for services or help..."
+                    placeholder={isAiMode ? "What do you need help with?" : "Search for services or help..."}
+                    rightElement={
+                        (user?.is_ai_subscribed || user?.ai_override || user?.is_admin) ? (
+                            <TouchableOpacity 
+                                onPress={() => {
+                                    setIsAiMode(!isAiMode);
+                                    if (!isAiMode) toastService.info('AI Matchmaker Activated!');
+                                }}
+                                style={{
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: 10,
+                                    backgroundColor: isAiMode ? colors.primary : colors.surfaceVariant,
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}
+                            >
+                                <Ionicons 
+                                    name="sparkles" 
+                                    size={18} 
+                                    color={isAiMode ? '#fff' : colors.textSecondary} 
+                                />
+                            </TouchableOpacity>
+                        ) : undefined
+                    }
                 />
             </View>
 
@@ -600,36 +752,77 @@ const styles = StyleSheet.create({
         paddingHorizontal: spacing[4],
         paddingBottom: spacing[4],
     },
-    promoCard: {
-        width: 300,
-        height: 140,
-        borderRadius: 20,
-        marginRight: spacing[3],
+    hubContainer: {
+        paddingHorizontal: spacing[4],
+        marginTop: spacing[4],
+        marginBottom: spacing[6],
+        gap: spacing[3],
+    },
+    hubRow: {
+        flexDirection: 'row',
+        gap: spacing[3],
+    },
+    hubCardLarge: {
+        width: 280,
+        height: 160,
+        borderRadius: 32,
         overflow: 'hidden',
-        position: 'relative',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 10,
     },
-    promoImage: {
-        width: '100%',
-        height: '100%',
+    hubCardGradient: {
+        flex: 1,
+        padding: spacing[6],
+        justifyContent: 'center',
+    },
+    hubIconBoxLarge: {
+        width: 56,
+        height: 56,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: spacing[4],
+    },
+    hubTextContent: {
+        gap: 2,
+    },
+    hubChevron: {
         position: 'absolute',
+        right: 24,
+        bottom: 24,
+        opacity: 0.8,
     },
-    promoContent: {
+    hubRow: {
+        flexDirection: 'row',
+        gap: spacing[3],
+    },
+    hubCardSmall: {
+        height: 130,
+        borderRadius: 24,
         padding: spacing[4],
         justifyContent: 'center',
-        flex: 1,
-        paddingRight: spacing[12], // Make room for icon
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 10,
     },
-    promoBadge: {
-        marginTop: spacing[3],
-        paddingHorizontal: spacing[3],
-        paddingVertical: spacing[1],
-        borderRadius: 12,
-        alignSelf: 'flex-start',
+    hubContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing[5],
     },
-    promoIcon: {
-        position: 'absolute',
-        right: -10,
-        bottom: -10,
+    hubIconBox: {
+        width: 52,
+        height: 52,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     categorySection: {
         paddingHorizontal: spacing[2],
@@ -647,11 +840,12 @@ const styles = StyleSheet.create({
     categoryIcon: {
         width: 60,
         height: 60,
-        borderRadius: 15,
+        borderRadius: 30,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: spacing[2],
         borderWidth: 1,
+        overflow: 'hidden',
     },
     listTitle: {
         paddingHorizontal: spacing[4],
@@ -715,4 +909,41 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         borderWidth: 1,
     },
+    aiMatchCard: {
+        marginHorizontal: spacing[4],
+        marginBottom: spacing[4],
+        padding: spacing[4],
+        borderRadius: 24,
+        borderWidth: 1,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+    },
+    aiMatchHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing[3],
+    },
+    aiAvatar: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+    },
+    avatarImg: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 14,
+    },
+    matchReason: {
+        padding: spacing[3],
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+    }
 });

@@ -38,15 +38,18 @@ export default function AskCard({ ask }: AskCardProps) {
                         </div>
                     ) : (
                         <div 
-                            className={`w-full h-full flex items-center justify-center relative overflow-hidden transition-all duration-500 bg-gradient-to-br ${theme.gradient}`}
+                            className={`w-full h-full flex items-center justify-center relative overflow-hidden transition-all duration-500 bg-slate-50 dark:bg-slate-800/80`}
                         >
-                            {/* Watermark Icon */}
-                            <Icon 
-                                className="absolute w-24 h-24 opacity-[0.07] -right-4 -bottom-4 rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6 text-white" 
-                            />
-                            <Icon 
-                                className="w-10 h-10 text-white opacity-40 drop-shadow-md transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" 
-                            />
+                            {/* Essence / Background Glow */}
+                            <div className={`absolute inset-0 opacity-[0.08] dark:opacity-[0.15] bg-gradient-to-br ${theme.gradient}`} />
+                            
+                            {/* Watermark */}
+                            <Icon className="absolute w-32 h-32 opacity-[0.04] dark:opacity-[0.06] text-slate-900 dark:text-white -right-4 -bottom-6 rotate-12 transition-transform duration-700 group-hover:rotate-6 group-hover:scale-110" />
+                            <Icon className="absolute w-24 h-24 opacity-[0.03] dark:opacity-[0.04] text-slate-900 dark:text-white -left-6 -top-4 -rotate-12 transition-transform duration-700 group-hover:-rotate-6 group-hover:scale-110" />
+                            
+                            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center shadow-sm bg-gradient-to-br ${theme.gradient} group-hover:scale-110 transition-transform duration-500 z-10`}>
+                                <Icon className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-sm" />
+                            </div>
                         </div>
                     )}
                     <div className="absolute top-3 right-3">
@@ -100,7 +103,10 @@ export default function AskCard({ ask }: AskCardProps) {
                             <div className="flex items-center gap-1.5">
                                 <p className="text-xs font-black text-slate-900 dark:text-white truncate max-w-[100px]">{ask.user?.username || 'Anonymous'}</p>
                                 {ask.user?.is_pro && (
-                                    <span className="bg-primary/10 text-primary text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-primary/20">PRO</span>
+                                    <span className="bg-emerald-500/10 text-emerald-600 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-emerald-500/20">PRO</span>
+                                )}
+                                {ask.user?.is_ai_subscribed && (
+                                    <span className="bg-indigo-500/10 text-indigo-600 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full border border-indigo-500/20">AI PRO</span>
                                 )}
                             </div>
                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">

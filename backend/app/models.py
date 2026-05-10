@@ -53,6 +53,11 @@ class User(Base):
     pro_rating = Column(Float, default=0.0)
     pro_completed_tasks = Column(Integer, default=0)
 
+    # AI Subscription Features
+    is_ai_subscribed = Column(Boolean, default=False)
+    ai_subscription_expiry = Column(DateTime, nullable=True)
+    ai_override = Column(Boolean, default=False)
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     asks = relationship("Ask", foreign_keys="Ask.user_id", back_populates="user")
