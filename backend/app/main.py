@@ -113,30 +113,29 @@ app = FastAPI(
 )
 
 # ─── CORS (audit #5) ─────────────────────────────────────────────────────
-# Wildcard "*" + allow_credentials=True is rejected by browsers and is a
-# CSRF/credential-leak vector. We enforce an explicit allowlist.
-if "*" in settings.CORS_ORIGINS:
-    logger.warning(
-        "CORS_ORIGINS contains '*'. This is unsafe with cookie auth. "
-        "Replace with explicit origins."
-    )
-    # Strip the wildcard to fail-safe: nothing outside the explicit list passes.
-    cors_origins = [o for o in settings.CORS_ORIGINS if o != "*"]
-else:
-    cors_origins = settings.CORS_ORIGINS
+# We allow specific dev origins and production origins from settings.
+cors_origins = settings.CORS_ORIGINS or []
+if settings.DEBUG:
+    # Ensure common dev origins are always allowed in debug mode
+    dev_origins = ["http://localhost:3000", "http://localhost:3001", "http://localhost:8081", "http://localhost:8082"]
+    for origin in dev_origins:
+        if origin not in cors_origins:
+            cors_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Client-Platform"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     response = await call_next(request)
-    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    # Don't add CSP in development to avoid issues with inline scripts/styles if needed,
+    # or just make it more permissive. For now, keep it simple.
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     return response

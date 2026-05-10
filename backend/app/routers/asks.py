@@ -16,6 +16,7 @@ from ..cache import cache_service
 from ..bot_service import process_new_ask
 from ..storage_service import storage
 from ..moderation import check_content_safety
+from ..utils import get_client_platform
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/asks", tags=["asks"])
@@ -286,7 +287,7 @@ async def create_ask(
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Content violates safety guidelines. {reason}"
+            detail=reason
         )
 
     # ─── Audit #13: validate file content + cap image count ──────────────

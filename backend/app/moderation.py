@@ -32,7 +32,7 @@ COMPILED_PATTERNS = [re.compile(p, re.IGNORECASE) for p in BLOCKED_PATTERNS]
 
 
 def _check_keyword_blocklist(text: str) -> Tuple[bool, str]:
-    """Layer 1: Instant regex-based blocklist check. No API calls."""
+    """Layer 1: Instant regex-based blocklist check. No API calls, zero latency."""
     for pattern in COMPILED_PATTERNS:
         match = pattern.search(text)
         if match:
@@ -42,93 +42,115 @@ def _check_keyword_blocklist(text: str) -> Tuple[bool, str]:
     return True, ""
 
 
-def _check_openai_moderation(text: str) -> Tuple[bool, str]:
-    """Layer 2: OpenAI Moderation API (fast, free, accurate)."""
+def _check_gemini_moderation(text: str) -> Tuple[bool, str]:
+    """
+    Layer 2: Gemini quick-scan moderation (replaces OpenAI Moderation API).
+    Uses a fast, structured prompt designed for binary SAFE/UNSAFE classification.
+    This is intentionally lightweight — a short, focused prompt for speed.
+    """
     try:
-        if not settings.OPENAI_API_KEY:
-            return True, ""  # Skip if no key
-            
-        from openai import OpenAI
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
-        response = client.moderations.create(input=text)
-        result = response.results[0]
-        
-        if result.flagged:
-            flagged_categories = [cat for cat, flagged in result.categories.model_dump().items() if flagged]
-            reason = f"Content flagged for: {', '.join(flagged_categories)}"
-            logger.warning(f"Moderation API flagged text: {reason}")
-            return False, reason
-            
+        if not settings.GEMINI_API_KEY:
+            return True, ""  # Skip if no key configured
+
+        from google import genai
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+        # Lightweight prompt — binary classification only, no explanation needed
+        prompt = f"""You are a content safety classifier for a local service marketplace app.
+
+Classify the following user input as SAFE or UNSAFE.
+
+UNSAFE content includes: sexual services, illegal activities, drug dealing, weapons trafficking, hate speech, harassment, or violence.
+
+User Input: "{text}"
+
+Reply with ONLY one word: SAFE or UNSAFE"""
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
+
+        if response and response.text:
+            result = response.text.strip().upper()
+            if result.startswith("UNSAFE"):
+                reason = "Prohibited or harmful content detected."
+                logger.warning(f"Gemini moderation scan flagged text: {reason}")
+                return False, reason
+
         return True, ""
     except Exception as e:
-        logger.error(f"OpenAI Moderation API failed: {e}")
-        return True, ""  # Can't determine, let other layers decide
+        logger.error(f"Gemini moderation scan failed: {e}")
+        return True, ""  # Fail-open for Layer 2 — Layer 3 is the deeper check
 
 
 def _check_llm_moderation(text: str) -> Tuple[bool, str]:
-    """Layer 3: LLM-based contextual analysis (catches nuanced violations)."""
+    """
+    Layer 3: Gemini contextual analysis (catches nuanced, marketplace-specific violations).
+    Uses a detailed prompt to catch sophisticated evasions that bypass the keyword list
+    and the quick-scan in Layer 2.
+    """
     try:
         from app.ai_service import generate_with_fallback
-        
-        prompt = f"""
-        You are a strict safety and moderation AI for a local service marketplace app. 
-        Users post "Asks" (jobs they need done) or "Serves" (services they offer).
-        
-        Analyze the following user input and determine if it violates our safety policies.
-        VIOLATIONS INCLUDE:
-        - Soliciting or offering sexual services (sex partners, escorts, etc.)
-        - Soliciting or offering illegal acts (murder, assault, theft, hacking, etc.)
-        - Hate speech, harassment, or extreme profanity.
-        
-        User Input: "{text}"
-        
-        If the content is SAFE, output exactly: "SAFE"
-        If the content is UNSAFE, output exactly: "UNSAFE: [Brief reason why]"
-        
-        Respond ONLY with "SAFE" or "UNSAFE: [Reason]". Do not add any other text.
-        """
-        
+
+        prompt = f"""You are a strict safety and moderation AI for a local service marketplace app called Snabb. 
+Users post "Asks" (jobs they need done) or "Serves" (services they offer).
+
+Analyze the following user input and determine if it violates our safety policies.
+VIOLATIONS INCLUDE:
+- Soliciting or offering sexual services (sex partners, escorts, etc.)
+- Soliciting or offering illegal acts (murder, assault, theft, hacking, etc.)
+- Hate speech, harassment, or extreme profanity.
+- Drug dealing or weapons trafficking (even with coded language).
+
+User Input: "{text}"
+
+If the content is SAFE, output exactly: "SAFE"
+If the content is UNSAFE, output exactly: "UNSAFE: [Brief reason why]"
+
+Respond ONLY with "SAFE" or "UNSAFE: [Reason]". Do not add any other text."""
+
         response_text = generate_with_fallback(prompt)
         response_text = response_text.strip().upper()
-        
+
         if response_text.startswith("UNSAFE"):
             reason = response_text.replace("UNSAFE:", "").strip()
-            logger.warning(f"LLM Moderation flagged text: {reason}")
+            logger.warning(f"LLM contextual moderation flagged text: {reason}")
             return False, reason
-            
+
         return True, ""
     except Exception as e:
-        logger.error(f"LLM Moderation failed: {e}")
-        return True, ""  # Can't determine, let other layers decide
+        logger.error(f"LLM contextual moderation failed: {e}")
+        return True, ""  # Fail-open — Layer 1 already caught the obvious violations
 
 
 def check_content_safety(text: str) -> Tuple[bool, str]:
     """
-    Multi-layer content safety check.
-    
+    Multi-layer content safety check powered entirely by Google Gemini.
+
     Layer 1: Keyword blocklist (instant, offline, catches obvious violations)
-    Layer 2: OpenAI Moderation API (fast, free, catches nuanced content)
-    Layer 3: LLM contextual check (catches marketplace-specific violations)
-    
-    FAIL-CLOSED: If Layer 1 catches it, block immediately.
-    Layers 2 & 3 are best-effort — if both APIs are down, Layer 1 still protects.
+    Layer 2: Gemini quick-scan (fast binary classifier, catches standard violations)
+    Layer 3: Gemini contextual LLM check (catches nuanced/coded marketplace violations)
+
+    FAIL-CLOSED on Layer 1: if the regex fires, block immediately — no API call needed.
+    Layers 2 & 3 are best-effort — if the Gemini API is down, Layer 1 still protects.
     """
     if not text or len(text.strip()) == 0:
         return True, ""
 
-    # Layer 1: Keyword blocklist — ALWAYS runs, zero dependencies
+    # Layer 1: Blocklist (Regex) - The "Shield"
     is_safe, reason = _check_keyword_blocklist(text)
     if not is_safe:
         return False, reason
 
-    # Layer 2: OpenAI Moderation API
-    is_safe, reason = _check_openai_moderation(text)
+    # Layer 2: Gemini Fast Scan (Binary Classifier) - The "Sword"
+    is_safe, reason = _check_gemini_moderation(text)
     if not is_safe:
-        return False, reason
+        return False, f"This content violates our safety guidelines: {reason}"
 
-    # Layer 3: LLM contextual check
+    # Layer 3: Gemini Contextual LLM (Deep Analysis) - The "Brain"
     is_safe, reason = _check_llm_moderation(text)
     if not is_safe:
-        return False, reason
+        return False, f"Safety violation: {reason}"
 
     return True, ""

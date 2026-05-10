@@ -6,9 +6,10 @@ type CreateAskProps = {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (newAsk: AskType) => void;
+    onToastSuccess?: (message: string) => void;
 };
 
-export function useCreateAskForm({ isOpen, onClose, onSuccess }: CreateAskProps) {
+export function useCreateAskForm({ isOpen, onClose, onSuccess, onToastSuccess }: CreateAskProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     
@@ -304,19 +305,30 @@ export function useCreateAskForm({ isOpen, onClose, onSuccess }: CreateAskProps)
             });
 
             if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.detail || "Failed to create ask");
+                let errorMsg = "Failed to create ask";
+                try {
+                    const data = await response.json();
+                    // Handle both standard FastAPI 'detail' and custom 'error.message'
+                    errorMsg = data.error?.message || data.detail || errorMsg;
+                } catch (e) {
+                    if (response.status === 400) errorMsg = "This content violates our safety guidelines.";
+                }
+                throw new Error(errorMsg);
             }
 
             const newAsk = await response.json();
-            alert("Your ask has been posted successfully!");
+            onToastSuccess?.("🎉 Your Ask has been posted! Pros will start responding shortly.");
             onSuccess(newAsk);
             onClose();
         } catch (err) {
-            if (err instanceof Error) {
-                setError(err.message);
+            console.error("Submit error:", err);
+            const msg = err instanceof Error ? err.message : "An unknown error occurred";
+            if (msg.toLowerCase().includes("violate") || msg.toLowerCase().includes("prohibited")) {
+                setError(`🚫 ${msg}`);
+            } else if (msg === "Failed to fetch") {
+                setError("Could not connect to the server. Please check your internet connection.");
             } else {
-                setError("An unknown error occurred");
+                setError(msg);
             }
         } finally {
             setLoading(false);

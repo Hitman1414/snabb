@@ -19,6 +19,7 @@ import { getFullImageUrl } from '../constants/config';
 import * as ImagePicker from 'expo-image-picker';
 import { getInitials } from '../utils/helpers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { toastService } from '../services/toast.service';
 
 export default function ProfileScreen() {
     const { user, logout, refreshUser } = useAuth();
@@ -50,7 +51,7 @@ export default function ProfileScreen() {
             const sizeMB = blob.size / (1024 * 1024);
 
             if (sizeMB > 5) {
-                Alert.alert('Error', 'Image size must be less than 5MB');
+                toastService.warning('Photo must be smaller than 5MB. Please choose a different image.');
                 setIsUploading(false);
                 return;
             }
@@ -75,10 +76,10 @@ export default function ProfileScreen() {
             });
 
             await refreshUser();
-            Alert.alert('Success', 'Profile picture updated successfully');
+            toastService.success('Profile photo updated successfully!');
         } catch (error) {
             logger.error('Failed to upload avatar:', error);
-            Alert.alert('Error', 'Failed to upload profile picture');
+            toastService.error('Failed to upload photo. Please try a JPG or PNG under 5MB.');
         } finally {
             setIsUploading(false);
         }
@@ -88,7 +89,7 @@ export default function ProfileScreen() {
         try {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission Required', 'Please grant photo library permissions.');
+                toastService.warning('Photo library access is required to change your profile picture. Please enable it in Settings.');
                 return;
             }
 
@@ -104,13 +105,13 @@ export default function ProfileScreen() {
             }
         } catch (error) {
             logger.error('Error picking image:', error);
-            Alert.alert('Error', 'Failed to pick image');
+            toastService.error('Failed to access your photo library. Please try again.');
         }
     };
 
     const handleReplayTour = async () => {
         await AsyncStorage.removeItem('hasSeenTour');
-        Alert.alert('Tour Reset', 'Go back to the Home tab to replay the onboarding tour.');
+        toastService.info('Go back to the Home tab to replay the onboarding tour.');
     };
 
     if (!user) {

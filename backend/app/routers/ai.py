@@ -59,7 +59,7 @@ async def magic_ask(
         
         raise HTTPException(
             status_code=400,
-            detail=f"Content violates safety guidelines. {reason}"
+            detail=reason
         )
 
     try:
@@ -134,7 +134,7 @@ async def enhance_description(
         
         raise HTTPException(
             status_code=400,
-            detail=f"Content violates safety guidelines. {reason}"
+            detail=reason
         )
 
     try:

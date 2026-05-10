@@ -38,6 +38,8 @@ export default function ProfilePage() {
     const [activeModal, setActiveModal] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+    const [profileError, setProfileError] = useState("");
+    const [avatarError, setAvatarError] = useState("");
     const [proError, setProError] = useState("");
 
     // Form states
@@ -99,15 +101,16 @@ export default function ProfilePage() {
             if (res.ok) {
                 const updated = await res.json();
                 setUser(updated);
+                setProfileError("");
                 setSuccessMessage("Profile updated successfully!");
                 setTimeout(() => { setSuccessMessage(""); setActiveModal(null); }, 2000);
             } else {
                 const err = await res.json();
-                alert(err.detail || "Failed to update profile.");
+                setProfileError(err.detail || "Failed to update profile. Please check your details and try again.");
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred. Please try again.");
+            setProfileError("A network error occurred. Please check your connection and try again.");
         } finally {
             setSaving(false);
         }
@@ -118,7 +121,7 @@ export default function ProfilePage() {
         if (!file) return;
 
         if (file.size > 5 * 1024 * 1024) {
-            alert('Image size must be less than 5MB');
+            setAvatarError("Image size must be less than 5MB. Please choose a smaller image.");
             return;
         }
 
@@ -136,14 +139,15 @@ export default function ProfilePage() {
             if (res.ok) {
                 const updated = await res.json();
                 setUser(updated);
-                setSuccessMessage("Avatar updated successfully!");
-                setTimeout(() => setSuccessMessage(""), 2000);
+                setAvatarError("");
+                setSuccessMessage("Profile photo updated successfully!");
+                setTimeout(() => setSuccessMessage(""), 3000);
             } else {
-                alert("Failed to upload avatar");
+                setAvatarError("Failed to upload photo. Please ensure it is a JPG or PNG under 5MB.");
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred during upload.");
+            setAvatarError("A network error occurred during upload. Please try again.");
         } finally {
             setSaving(false);
         }
@@ -194,18 +198,19 @@ export default function ProfilePage() {
             if (res.ok) {
                 const updatedUser = await res.json();
                 setUser(updatedUser);
-                setSuccessMessage("Your application has been submitted! Welcome to Snabb Pro.");
+                setProError("");
+                setSuccessMessage("Your Pro application has been submitted! Our team will review it shortly.");
                 setTimeout(() => {
                     setSuccessMessage("");
                     setActiveModal(null);
                     setProStep(1);
                 }, 3000);
             } else {
-                alert("Failed to update pro status. Please try again.");
+                setProError("Failed to submit your Pro application. Please try again or contact support.");
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred. Please try again.");
+            setProError("A network error occurred. Please check your connection and try again.");
         } finally {
             setSaving(false);
         }
@@ -660,7 +665,7 @@ export default function ProfilePage() {
                                                                                     const updated = await res.json();
                                                                                     setProForm({...proForm, idCardUrl: updated.id_card_url});
                                                                                 } else {
-                                                                                    alert("Failed to upload ID");
+                                                                                    setProError("Failed to upload your ID. Please ensure it is a JPG or PNG under 5MB and try again.");
                                                                                 }
                                                                             } catch(err) {
                                                                                 console.error(err);

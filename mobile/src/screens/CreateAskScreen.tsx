@@ -10,7 +10,6 @@ import {
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
-    Alert,
     TouchableOpacity,
     ActivityIndicator,
     TextInput,
@@ -25,8 +24,9 @@ import { CATEGORIES } from '../constants/categories';
 import { createAskSchema } from '../lib/validation';
 import { z } from 'zod';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import apiClient from '../services/api';
+import { toastService } from '../services/toast.service';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateAsk'>;
 
@@ -63,7 +63,7 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
 
     const handleMagicAsk = async () => {
         if (!magicText.trim()) {
-            Alert.alert('Error', 'Please enter some text for Magic Auto-fill.');
+            toastService.warning('Please enter some text to describe your task.');
             return;
         }
         setIsMagicLoading(true);
@@ -77,13 +77,17 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
             setBudgetMin(data.budget_min !== null ? String(data.budget_min) : budgetMin);
             setBudgetMax(data.budget_max !== null ? String(data.budget_max) : budgetMax);
             setMagicText('');
+            toastService.success('✨ Form filled! Review and adjust the details.');
         } catch (error: any) {
             logger.error('Magic Ask Error:', error);
             const status = error?.response?.status;
-            if (status === 429) {
-                Alert.alert('Please Wait', 'AI is temporarily busy. Please wait a minute and try again.');
+            const detail = error?.response?.data?.detail || '';
+            if (status === 400 && detail.toLowerCase().includes('violates')) {
+                toastService.error(`🚫 Content blocked: ${detail}`);
+            } else if (status === 429) {
+                toastService.warning('AI is temporarily busy. Please wait a moment and try again.');
             } else {
-                Alert.alert('Error', 'Magic Ask failed. Please try again.');
+                toastService.error('Magic Ask failed. Please try again.');
             }
         } finally {
             setIsMagicLoading(false);
@@ -92,21 +96,24 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
 
     const handleEnhanceDescription = async () => {
         if (!description.trim() || description.length < 10) {
-            Alert.alert('Error', 'Please write a few words in the description first to enhance it.');
+            toastService.warning('Write a few words in the description first before enhancing.');
             return;
         }
         setIsEnhancing(true);
         try {
             const response = await apiClient.post('/ai/enhance-description', { description });
             setDescription(response.data.enhanced_text);
+            toastService.success('Description enhanced!');
         } catch (error: any) {
             logger.error('Enhance Description Error:', error);
             const status = error?.response?.status;
-            const backendDetail = error?.response?.data?.detail || error?.response?.data?.error?.message;
-            if (status === 429) {
-                Alert.alert('Please Wait', backendDetail || 'AI is temporarily busy. Please wait a minute and try again.');
+            const detail = error?.response?.data?.detail || '';
+            if (status === 400 && detail.toLowerCase().includes('violates')) {
+                toastService.error(`🚫 Content blocked: ${detail}`);
+            } else if (status === 429) {
+                toastService.warning('AI is temporarily busy. Please wait a moment and try again.');
             } else {
-                Alert.alert('Error', backendDetail || 'Failed to enhance description.');
+                toastService.error(detail || 'Failed to enhance description. Please try again.');
             }
         } finally {
             setIsEnhancing(false);
@@ -132,12 +139,11 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
         }
         
         if (!finalLocation || finalLocation.trim().length === 0) {
-            Alert.alert('Error', 'Please detect your location or enter an address manually.');
+            toastService.warning('Please detect your location or enter an address to continue.');
             return;
         }
 
         try {
-            // Validate form data
             const validatedData = createAskSchema.parse({
                 title,
                 description,
@@ -153,22 +159,23 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
 
             setLoading(true);
             await createAskMutation.mutateAsync(validatedData);
-
-            Alert.alert('Success', 'Ask created successfully!', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-            ]);
+            toastService.success('🎉 Your Ask has been published! Pros will start responding soon.');
+            navigation.goBack();
         } catch (error: any) {
-            // Handle both Zod errors and standard errors
             if (error.name === 'ZodError' || error.issues) {
                 const firstIssue = error.issues?.[0];
-                Alert.alert('Validation Error', firstIssue ? `${firstIssue.path}: ${firstIssue.message}` : 'Please check all fields.');
+                const msg = firstIssue ? firstIssue.message : 'Please check all fields and try again.';
+                toastService.warning(msg);
             } else {
                 logger.error('Failed to create ask:', error);
-                const serverError = error?.response?.data?.error?.message || error?.response?.data?.detail;
-                Alert.alert(
-                    'Error', 
-                    serverError ? `Server Error: ${serverError}` : 'Failed to create ask. Please check your internet or try again.'
-                );
+                const serverError = error?.response?.data?.detail || error?.response?.data?.error?.message;
+                const msg = serverError || 'Failed to publish your Ask. Please check your connection and try again.';
+                
+                if (msg.toLowerCase().includes('violate') || msg.toLowerCase().includes('prohibited')) {
+                    toastService.error(`🚫 ${msg}`);
+                } else {
+                    toastService.error(msg);
+                }
             }
         } finally {
             setLoading(false);
@@ -194,6 +201,38 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
+                {/* ✨ Magic Ask Banner */}
+                <Card variant="elevated" elevation="base" style={[styles.aiCard, { backgroundColor: colors.surface, borderColor: '#FF6B3533' }]}>
+                    <View style={styles.aiHeader}>
+                        <MaterialCommunityIcons name="creation" size={20} color="#FF6B35" />
+                        <Typography variant="body" weight="bold" style={{ color: '#FF6B35', marginLeft: 8 }}>
+                            Magic Ask — AI Auto-fill
+                        </Typography>
+                    </View>
+                    <Typography variant="caption" style={{ color: colors.textSecondary, marginBottom: spacing[3] }}>
+                        Describe what you need in plain English and AI will fill the title, description, and budget.
+                    </Typography>
+                    <View style={styles.magicInputRow}>
+                        <TextInput
+                            placeholder='e.g. "Fix my leaking sink, budget ₹500"'
+                            placeholderTextColor={colors.textSecondary}
+                            value={magicText}
+                            onChangeText={setMagicText}
+                            style={[styles.magicInput, { borderColor: colors.border, color: colors.text, backgroundColor: colors.surfaceVariant }]}
+                        />
+                        <TouchableOpacity 
+                            onPress={handleMagicAsk}
+                            disabled={isMagicLoading || !magicText.trim()}
+                            style={[styles.magicButton, { backgroundColor: '#FF6B35', opacity: (isMagicLoading || !magicText.trim()) ? 0.6 : 1 }]}
+                        >
+                            {isMagicLoading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Ionicons name="flash" size={18} color="#fff" />
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </Card>
 
                 {/* Section 1: Task Details */}
                 <Card variant="elevated" elevation="base" style={[styles.sectionCard, { backgroundColor: colors.surface }]}>
@@ -222,6 +261,20 @@ const CreateAskScreen: React.FC<Props> = ({ navigation }) => {
                         <Typography variant="caption" weight="bold" style={{ color: colors.textSecondary }}>
                             Description
                         </Typography>
+                        <TouchableOpacity 
+                            onPress={handleEnhanceDescription}
+                            disabled={isEnhancing || !description.trim()}
+                            style={styles.enhanceButton}
+                        >
+                            {isEnhancing ? (
+                                <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                                <MaterialCommunityIcons name="auto-fix" size={16} color={colors.primary} />
+                            )}
+                            <Typography variant="caption" weight="bold" color="primary" style={{ marginLeft: 4 }}>
+                                {isEnhancing ? 'Enhancing...' : 'Enhance with AI'}
+                            </Typography>
+                        </TouchableOpacity>
                     </View>
 
                     <TextInput
@@ -463,10 +516,15 @@ const styles = StyleSheet.create({
         marginTop: spacing[2],
     },
     aiCard: {
-        marginBottom: spacing[4],
+        marginBottom: spacing[5],
         padding: spacing[4],
-        borderWidth: 1,
-        borderRadius: borderRadius.lg,
+        borderRadius: 24,
+        borderWidth: 2,
+    },
+    aiHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: spacing[1],
     },
     magicInputRow: {
         flexDirection: 'row',

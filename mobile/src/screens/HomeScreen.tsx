@@ -167,14 +167,28 @@ export default function HomeScreen() {
             }]}
         >
             <View style={[styles.cardImage, { backgroundColor: colors.surfaceVariant }, viewMode === 'grid' && { width: '100%', height: 120, marginBottom: spacing[2] }]}>
-                {/* Simulated category icon as placeholder for image */}
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons
-                        name={(CATEGORY_ICONS[item.category] as any)?.name || 'document-text-outline'}
-                        size={40}
-                        color={(CATEGORY_ICONS[item.category] as any)?.color || colors.primary}
+                {item.images && item.images.length > 0 ? (
+                    <Image
+                        source={{ uri: getFullImageUrl(item.images[0]) }}
+                        style={StyleSheet.absoluteFill}
+                        contentFit="cover"
+                        transition={200}
                     />
-                </View>
+                ) : (
+                    /* Vibrant category icon as placeholder */
+                    <View style={{ 
+                        flex: 1, 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        backgroundColor: `${(CATEGORY_ICONS[item.category] as any)?.color || colors.primary}15`
+                    }}>
+                        <Ionicons
+                            name={(CATEGORY_ICONS[item.category] as any)?.name || 'document-text-outline'}
+                            size={viewMode === 'grid' ? 44 : 32}
+                            color={(CATEGORY_ICONS[item.category] as any)?.color || colors.primary}
+                        />
+                    </View>
+                )}
             </View>
             <View style={[styles.cardContent, viewMode === 'grid' && { paddingLeft: 0 }]}>
                 <View style={styles.cardHeader}>
